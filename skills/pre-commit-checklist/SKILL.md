@@ -13,13 +13,24 @@ version: 0.1.0
 2. `npm run lint` — must pass. No `--max-warnings` flag (matches CI).
 3. `npx tsc --noEmit` — zero type errors.
 4. If `src/lib/pipeline/`, `src/lib/scoring/`, or DB code touched → `npm test -- --run`.
+5. If migration files staged: check for `now()` in WHERE (IMMUTABLE violation, 3x repeat offender), verify constraint names match production schema, use IF NOT EXISTS patterns.
+6. For every new import path in staged files, verify the target file is tracked: `git ls-files <path>`. Untracked imports = Vercel build failure.
+
+See `scripts/pre-commit-gates.sh` for an automated runner covering gates 1-6.
+
+## Manual review gates (answer before committing)
+- Does this diff touch only files within scope of the task? (scope creep check)
+- If new page route under `(dashboard)/`, is middleware matcher updated?
+- If new env var, is it in env.ts + Vercel + GitHub Secrets + workflow YAML?
+- If new utility in `src/lib/`, does it have tests?
+- Are all untracked files imported by committed code staged?
 
 ## Institutional-grade gate (all must be yes before committing)
-- [ ] Sub-second loads / no perceptible lag
-- [ ] All states handled: loading, empty, error
-- [ ] Every number traceable to its source
-- [ ] Works at 3am unattended
-- [ ] Information density over whitespace
-- [ ] No half-built sections
+- Sub-second loads / no perceptible lag
+- All states handled: loading, empty, error
+- Every number traceable to its source
+- Works at 3am unattended
+- Information density over whitespace
+- No half-built sections
 
 All checks are gates, not warnings. Fix before committing.

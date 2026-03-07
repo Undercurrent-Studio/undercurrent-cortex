@@ -1,6 +1,6 @@
 ---
 name: security-posture
-description: This skill should be used when the user asks to "add an API route", "handle user input", "write a webhook", "add authentication", or before any code that touches auth, user data, API boundaries, or external inputs in the Undercurrent project. The unified security contract.
+description: This skill should be used when the user asks to "add an API route", "handle user input", "write a webhook", "add authentication", "security review", "security audit", "is this secure", "validate input", "add rate limiting", "add CSRF", "RLS", "env vars", "email template", "stripe integration", "payment flow", "send email", or before any code that touches auth, user data, API boundaries, or external inputs in the Undercurrent project. The unified security contract.
 version: 0.1.0
 ---
 
@@ -57,6 +57,37 @@ Verify all of:
 - [ ] String inputs escaped before email/HTML rendering
 - [ ] No raw user strings in SQL or PostgREST filters
 - [ ] Error messages don't leak internal state
+
+## When Writing a Webhook Endpoint
+
+Verify all of:
+- Signature verified via `constructEventWithSecret()` — never trust unverified payloads
+- Replay window checked (webhook_events table stores event IDs, reject duplicates)
+- Idempotency key on any state-changing operations triggered by the webhook
+- Event type handled with switch/case, not open-ended if/else
+- Log event type + event ID only — never log the full payload (contains PII and payment details)
+- Return 200 quickly — offload long processing to avoid webhook timeout retries
+- Webhook secret stored in env var, validated via `getServerEnv()`
+
+## When Sending Email
+
+Verify all of:
+- All user-provided strings passed through `escapeHtml()` from `src/lib/email.ts`
+- Template variables (name, ticker, summary) are ALL escaped before interpolation
+- Digest body items are intentional HTML from callers — these are NOT escaped in the template
+- Test with XSS payloads in user-controlled fields: `<script>alert(1)</script>` in name, ticker
+- Rate limit email sends — no duplicate alerts within cooldown period
+- No double-escaping (escape once at template boundary, not at both caller and template)
+
+## Implementation File Quick Reference
+
+| File | Guards | Check When |
+|------|--------|------------|
+| `src/lib/env.ts` | Env var validation (getServerEnv/getPublicEnv) | Adding env vars |
+| `src/middleware.ts` | Session refresh, route matching | Adding dashboard routes |
+| `src/lib/verify-cron.ts` | CRON_SECRET header check | Adding cron/pipeline routes |
+| `src/lib/stripe/server.ts` | Stripe client, apiVersion pin | Stripe integration changes |
+| `src/lib/email.ts` | escapeHtml, email templates | Email template changes |
 
 See `references/security-audit-history.md` for real findings from 9 audit sessions.
 See `references/known-limitations.md` for accepted risks and their mitigation status.
