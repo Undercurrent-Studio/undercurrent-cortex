@@ -82,6 +82,22 @@ if [ -n "$session_start" ] && [ "$session_start" != "PLACEHOLDER_TIME" ] && [ "$
   fi
 fi
 
+# 9/10. Topology classification from re-edit counts
+max_re_edits=0
+topology="linear"
+if [ -n "$files_modified" ]; then
+  # Find max edits to any single file
+  max_re_edits=$(echo "$files_modified" | sort | uniq -c | awk '{print $1}' | sort -rn | head -n 1)
+  max_re_edits="${max_re_edits:-0}"
+
+  # Classify per master plan spec: linear (<=2), spiral (3-5), thrashing (6+)
+  if [ "$max_re_edits" -ge 6 ]; then
+    topology="thrashing"
+  elif [ "$max_re_edits" -ge 3 ]; then
+    topology="spiral"
+  fi
+fi
+
 # --- Write to health file ---
 mkdir -p "$(dirname "$HEALTH_FILE")"
 
@@ -89,7 +105,7 @@ mkdir -p "$(dirname "$HEALTH_FILE")"
 if [ ! -f "$HEALTH_FILE" ]; then
   cat > "$HEALTH_FILE" << 'HEADER'
 # Undercurrent Health Log
-# Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min
+# Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min|max_re_edits|topology
 trend_direction=stable
 avg_reasoning_misses=0.0
 avg_edits_per_commit=0.0
@@ -99,7 +115,7 @@ HEADER
 fi
 
 # Append data row
-echo "${today}|${reasoning_misses}|${edits_per_commit}|${docs_synced}|${tests_delta}|${lessons_created}|${carry_resolved}|${carry_total}|${duration_min}" >> "$HEALTH_FILE"
+echo "${today}|${reasoning_misses}|${edits_per_commit}|${docs_synced}|${tests_delta}|${lessons_created}|${carry_resolved}|${carry_total}|${duration_min}|${max_re_edits}|${topology}" >> "$HEALTH_FILE"
 
 # --- Recompute rolling averages from last 10 data lines ---
 data_lines=$(grep -v '^#' "$HEALTH_FILE" | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -10)

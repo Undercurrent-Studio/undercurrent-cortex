@@ -21,6 +21,23 @@ file_path=$(echo "$file_path" | sed 's|\\\\|/|g')  # Windows path normalization
 append_to_section "files_modified" "$file_path" "$STATE_FILE"
 increment_field "edits_since_last_commit" "$STATE_FILE"
 
+# Re-edit spiral detection (skip plugin infrastructure paths)
+if ! echo "$file_path" | grep -qE '\.claude-plugin/|\.claude/'; then
+  files_modified=$(read_section "files_modified" "$STATE_FILE")
+  re_edit_count=0
+  if [ -n "$files_modified" ]; then
+    if echo "$files_modified" | grep -qxF "$file_path"; then
+      re_edit_count=$(echo "$files_modified" | grep -cxF "$file_path")
+    fi
+  fi
+  if [ "$re_edit_count" -ge 3 ]; then
+    source "$SCRIPT_DIR/lib/escape-json.sh"
+    msg=$(escape_for_json "Re-edit detected: ${file_path} has been modified ${re_edit_count} times this session. Consider stepping back to re-plan the approach.")
+    printf '{"systemMessage":"%s"}' "$msg"
+    exit 0
+  fi
+fi
+
 # Check for documentation.md update
 if [[ "$file_path" == *"documentation.md"* ]]; then
   write_field "docs_updated" "true" "$STATE_FILE"
