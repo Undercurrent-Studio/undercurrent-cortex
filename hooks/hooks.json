@@ -3,11 +3,18 @@
     "SessionStart": [
       {
         "matcher": "*",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/session-start\"",
-          "async": false
-        }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/session-start\"",
+            "async": false
+          },
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/drift-detector.sh\"",
+            "async": true
+          }
+        ]
       }
     ],
     "PostToolUse": [
