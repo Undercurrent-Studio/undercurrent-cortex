@@ -59,6 +59,18 @@ fi
 # --- Step 4: Operational intelligence (health trends) ---
 health_warning=""
 if [ -f "$HEALTH_FILE" ]; then
+  # Read pre-computed rolling averages from header
+  h_avg_rm=$(grep '^avg_reasoning_misses=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  h_avg_epc=$(grep '^avg_edits_per_commit=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  h_trend=$(grep '^trend_direction=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  h_data_count=0
+  if grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep -q '|' 2>/dev/null; then
+    h_data_count=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep -c '|')
+  fi
+  if [ "${h_data_count:-0}" -ge 1 ]; then
+    health_warning="Session health (last 10): ${h_avg_rm:-0.0} avg misses, ${h_avg_epc:-0.0} avg edits/commit, trend: ${h_trend:-stable}"
+  fi
+
   # Read last 3 data lines (skip comments and blanks)
   recent=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep '|' | tail -3 || echo "")
   # Check for rising reasoning_misses (field 2, pipe-delimited)
@@ -88,9 +100,39 @@ fi
 # --- Step 5: Proposal surfacing ---
 proposal_summary=""
 if [ -f "$PROPOSALS_FILE" ]; then
-  pending_count=$(grep -c '^status=pending' "$PROPOSALS_FILE" 2>/dev/null || echo "0")
+  pending_count=0
+  if grep -q '^status=pending' "$PROPOSALS_FILE" 2>/dev/null; then
+    pending_count=$(grep -c '^status=pending' "$PROPOSALS_FILE" 2>/dev/null)
+  fi
   if [ "$pending_count" -gt 0 ]; then
-    proposal_summary=$'\n'"${pending_count} pending evolution proposal(s). Review with /analyze-session."
+    # Find oldest pending proposal date (id=YYYYMMDD-... comes before status=pending)
+    oldest_date=""
+    last_id=""
+    while IFS= read -r line; do
+      case "$line" in
+        id=*) last_id=$(echo "$line" | sed 's/^id=\([0-9]\{8\}\).*/\1/') ;;
+        status=pending)
+          if [ -n "$last_id" ]; then
+            if [ -z "$oldest_date" ] || [ "$last_id" \< "$oldest_date" ]; then
+              oldest_date="$last_id"
+            fi
+          fi
+          ;;
+      esac
+    done < "$PROPOSALS_FILE"
+
+    age_info=""
+    if [ -n "$oldest_date" ]; then
+      oldest_fmt="${oldest_date:0:4}-${oldest_date:4:2}-${oldest_date:6:2}"
+      oldest_epoch=$(date -d "$oldest_fmt" +%s 2>/dev/null || echo "0")
+      if [ "$oldest_epoch" -gt 0 ]; then
+        now_epoch=$(date +%s)
+        age_days=$(( (now_epoch - oldest_epoch) / 86400 ))
+        age_info=" (oldest: ${age_days}d)"
+      fi
+    fi
+
+    proposal_summary=$'\n'"${pending_count} pending evolution proposal(s)${age_info}. Review with /analyze-session."
   fi
 fi
 

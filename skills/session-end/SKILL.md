@@ -28,6 +28,7 @@ Keep total entry under 25 lines. Signal over noise.
 2. Did I catch all architectural implications, or did any surface late?
 3. Was there a simpler solution I overlooked or dismissed?
 If any "yes, I missed something" → add as `[reasoning-miss]`.
+Tag explicit user corrections (user says "that's wrong", corrects a factual claim, or redirects a wrong approach) with `[correction]`.
 
 **Step 3 — Pattern escalation check**:
 For each journal item: seen this class of problem in `tasks/lessons.md` or prior journals?
@@ -55,7 +56,7 @@ Log as `[health-metrics]`:
 [health-metrics] signal-noise=good, session-start=complete, capture=100%, memory=fresh, dedup=clean
 ```
 
-**Adaptive immunity trigger**: If today's journal contains 2+ `[reasoning-miss]` tags, invoke `/analyze-session` for a full adaptive immunity scan before completing session-end. This is the primary feedback mechanism for the self-improvement loop. Also invoke if 3+ consecutive sessions show degraded health metrics (low capture rate, stale memory).
+**Adaptive immunity trigger**: If today's journal contains 2+ `[correction]` tags OR 1+ `[reasoning-miss]` tag, invoke `/analyze-session` for a full adaptive immunity scan before completing session-end. This is the primary feedback mechanism for the self-improvement loop. Also invoke if 3+ consecutive sessions show degraded health metrics (low capture rate, stale memory).
 
 **What counts as notable**: touched code, made an architectural choice, received a correction, fixed a bug, or spent more than 10 minutes on anything.
 

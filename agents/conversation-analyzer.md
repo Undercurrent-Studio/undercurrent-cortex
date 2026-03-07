@@ -4,7 +4,7 @@ description: |
   Use this agent when analyzing a session for correction events, pattern detection, and system evolution proposals. Reads session journals and lessons, detects mistakes, classifies patterns, and writes proposals. Examples:
 
   <example>
-  Context: Session-end detected 2+ reasoning-miss tags in today's journal
+  Context: Session-end detected 2+ correction events or 1+ reasoning-miss in today's journal
   user: "Run the conversation analyzer"
   assistant: "I'll use the conversation-analyzer agent to perform a full adaptive immunity scan of today's session."
   <commentary>
