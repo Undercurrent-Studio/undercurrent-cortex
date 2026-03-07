@@ -40,6 +40,10 @@
           {
             "type": "prompt",
             "prompt": "Check the tool input. If the file_path contains 'src/app/(dashboard)/', inject this reminder: 'Dashboard route detected. Verify: (1) middleware.ts matcher includes this path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill.'"
+          },
+          {
+            "type": "prompt",
+            "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 8 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. See database-query-safety skill."
           }
         ]
       },
@@ -49,13 +53,6 @@
           "type": "command",
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/plan-file-guard.sh\"",
           "async": false
-        }]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [{
-          "type": "prompt",
-          "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 8 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. See database-query-safety skill."
         }]
       },
       {
