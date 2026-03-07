@@ -4,13 +4,13 @@
 
 - **What it does right**: Maximum information density. Keyboard-driven navigation. Real-time data from hundreds of sources. Trusted by every institutional desk globally.
 - **What it costs**: ~$24,000/year per seat. Locked to proprietary hardware.
-- **Undercurrent's angle**: Bloomberg's density and seriousness without the price tag. Free tier exposes raw data that Bloomberg locks behind a paywall. Signal intelligence layer (Bayesian inference, convergence detection, regime analysis) provides analytical depth that Bloomberg doesn't offer in its default views.
+- **Undercurrent's angle**: Bloomberg's density and seriousness without the price tag. Free tier exposes raw data that Bloomberg locks behind a paywall. Signal intelligence layer provides analytical depth that Bloomberg doesn't offer in its default views. See `documentation.md` § Signal Intelligence for current capabilities.
 
 ## Closest Competitor: Koyfin
 
 - **What it does right**: Free tier with substantial data access. Clean, modern UI with data density. Multiple chart types, screening, and comparison tools. $35-99/mo Pro plans.
 - **Where it falls short**: No signal intelligence or conviction scoring. No insider/congressional trade analysis. No convergence detection. Dashboard is visual but not signal-forward.
-- **Undercurrent's angle**: Deeper signal layer (13 detectors, Bayesian P(bullish), prediction tracking). Congressional + insider trade analysis that Koyfin lacks entirely. Thesis generation grounded in quantitative signals. Free tier shows ALL data types (Koyfin gates some categories).
+- **Undercurrent's angle**: Deeper signal layer (multi-source detectors, Bayesian inference, prediction tracking). Congressional + insider trade analysis that Koyfin lacks entirely. Thesis generation grounded in quantitative signals. Free tier shows ALL data types (Koyfin gates some categories).
 
 ## Research Workflow: Sentieo (now AlphaSense)
 
@@ -31,7 +31,7 @@
 ## Undercurrent's Unique Position
 
 1. **Free data layer**: All 18+ source types visible to free users (depth-gated, not category-gated)
-2. **Signal intelligence**: 13 signal detectors, Bayesian posterior, convergence detection, regime analysis, prediction tracking — no competitor offers this combination
+2. **Signal intelligence**: Multi-source signal detectors, Bayesian posterior, convergence detection, regime analysis, prediction tracking — no competitor offers this combination (see `documentation.md` for current detector count)
 3. **Multi-source convergence**: Cross-referencing insider + congressional + sentiment + fundamentals + options to find signal agreement patterns
 4. **Thesis generation**: Quantitative evidence assembled into structured investment theses with AI narrative
 5. **Institutional data density**: Bloomberg-grade information packaging at consumer pricing ($30/mo)

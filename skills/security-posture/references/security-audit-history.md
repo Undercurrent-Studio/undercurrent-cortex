@@ -26,10 +26,14 @@
 - `process.env` routing documentation
 
 ### Session 3: Database Schema & Query Integrity (19 findings)
-- Schema constraint validation
-- Query return type verification
-- Index optimization
-- Foreign key integrity checks
+- `webhook_events` RLS policy hardening
+- Portfolio CSRF token + rate-limit enforcement on mutations
+- Notification ID validation (UUID format check)
+- Alert `scope_value` validation + UUID format enforcement
+- Schema constraint naming audit (auto-generated vs explicit)
+- Query return type verification (PostgREST silent null on bad columns)
+- Index optimization for frequently filtered columns
+- Foreign key integrity checks across signal tables
 
 ### Session 4: Pipeline Reliability & Data Sources (10 findings)
 - EIA/TSA error handling hardened

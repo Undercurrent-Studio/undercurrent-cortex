@@ -16,18 +16,20 @@ Stock research data aggregation platform that surfaces hidden and correlated sig
 
 ## Design Principles
 
-1. **Performance** — Sub-second page loads. Efficient queries with proper indexing. No unnecessary re-renders. Lazy load heavy components. Data should feel instant.
-2. **Data Integrity** — Every number displayed must be accurate and traceable to its source. Pipeline failures must never corrupt or lose data. Graceful degradation per source.
-3. **UX Density** — Professionals want information density, not whitespace. Pack data intelligently — scannable tables, inline sparklines, contextual tooltips. Every pixel earns its place.
-4. **Reliability** — The platform works flawlessly at 3am with zero human intervention. Circuit breakers, retry logic, atomic operations, proper error boundaries.
-5. **Feature Completeness** — Never ship half-built features. If a section exists, it is fully functional with proper loading states, empty states, error states, and edge case handling.
-6. **Polish** — Consistent spacing, alignment, color usage. No orphaned UI elements. Transitions and micro-interactions where they add clarity. The product should feel inevitable, not cobbled together.
+1. **Performance** — Sub-second loads, efficient queries, lazy loading. Data feels instant.
+2. **Data Integrity** — Every number accurate and traceable. Pipeline failures never corrupt data.
+3. **UX Density** — Information density over whitespace. Scannable tables, sparklines, tooltips.
+4. **Reliability** — Works at 3am unattended. Circuit breakers, error boundaries, atomic ops.
+5. **Feature Completeness** — No half-built features. Loading, empty, error, and edge case states.
+6. **Polish** — Consistent spacing, alignment, color. Transitions where they add clarity.
+
+Full definitions in CLAUDE.md § Product Vision & Standards.
 
 ## Free vs Pro Philosophy
 
 Raw data is free — gating is on **depth**, not on **access**:
 - Free users see the same data types as Pro — just fewer stocks, shorter history, fewer watchlist slots
-- Pro unlocks: full universe (~6K stocks), full history, unlimited watchlist, per-source sentiment, CFTC, database explorer, on-demand AI briefs, Daily Briefing, thesis narratives
+- Pro unlocks depth: full universe, full history, unlimited watchlist, advanced features
 - Never paywall a data category entirely — always show enough to demonstrate value
 
 See `references/free-pro-matrix.md` for the complete gating matrix with constants.
@@ -50,9 +52,9 @@ If the answer is no, the feature is not done. Revisit the design principles and 
 ## Institutional-Grade Checklist
 
 Every feature must satisfy all 6 before shipping:
-- [ ] Sub-second loads
-- [ ] All states handled: loading, empty, error
-- [ ] Every number traceable to source
-- [ ] Works at 3am unattended
-- [ ] Information density over whitespace
-- [ ] No half-built sections
+- Sub-second loads
+- All states handled: loading, empty, error
+- Every number traceable to source
+- Works at 3am unattended
+- Information density over whitespace
+- No half-built sections

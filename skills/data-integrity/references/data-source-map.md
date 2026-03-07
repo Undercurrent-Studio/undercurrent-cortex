@@ -79,14 +79,14 @@ All 18 sources are free. Total API cost: $0/month.
 - **Data**: Crude inventories, natural gas, WTI prices, electricity
 - **Ingestion**: `fetchEIAData()` → `macro_indicators`
 - **Pipeline stage**: Daily at 8 UTC
-- **Quirks**: Error handling hardened in Opus Audit Session 4.
+- **Quirks**: Circuit breaker protected. Errors logged to `data_source_health`.
 
 ### TSA (Transportation Security Administration)
 - **API**: Web scraping (no auth)
 - **Data**: Airport passenger throughput (current + prior year)
 - **Ingestion**: `fetchTSAData()` → `macro_indicators`
 - **Pipeline stage**: Daily at 8 UTC
-- **Quirks**: Error handling hardened in Opus Audit Session 4.
+- **Quirks**: Circuit breaker protected. Errors logged to `data_source_health`.
 
 ### Kenneth French Data Library
 - **API**: CSV files (no auth, unlimited)
@@ -127,3 +127,16 @@ All 18 sources are free. Total API cost: $0/month.
 | Vercel cron (daily) | FRED, CFTC, EIA, TSA | Daily 8 UTC | 270s |
 | GitHub Actions | Congressional, fundamentals, XBRL, 13F, sentiment-worker, price-history, signal-analysis | Various | 6h max |
 | GitHub Actions (monthly) | French factors, betas | 1st of month | 6h max |
+
+## Error Handling
+
+### Pipeline Sources (Vercel cron)
+- **Concurrency**: `pooled()` work-stealing pool — Yahoo 4, EDGAR 2, fundamentals 5 concurrent workers
+- **Circuit breakers**: Per source, 5 consecutive failures → open (30s cooldown). Config in `src/lib/utils/circuit-breaker.ts`
+- **Streak tracking**: `no_quote_streak` on `stocks` table. Failed batch tickers excluded from streak increment
+- **Health logging**: All source successes/failures written to `data_source_health` table via `src/lib/utils/source-health.ts`
+
+### GitHub Actions Sources
+- **Isolation**: `Promise.allSettled` per source — one failure doesn't abort others
+- **Timeouts**: 12-min per-source timeout via `withTimeout()` in sentiment-worker
+- **Retry**: No automatic retry within a single run. Schedule cadence provides implicit retry (hourly for congressional, 2x daily for sentiment, weekly for XBRL/13F)

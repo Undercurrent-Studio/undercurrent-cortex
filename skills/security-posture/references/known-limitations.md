@@ -1,6 +1,6 @@
 # Known Security Limitations
 
-Accepted risks and their mitigation status. Review quarterly or when relevant infrastructure changes.
+Accepted risks and their mitigation status. Review quarterly or when relevant infrastructure changes. Next scheduled review: 2026-06-01.
 
 ## Active Limitations
 

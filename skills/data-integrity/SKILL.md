@@ -38,6 +38,7 @@ Tier check happens at data fetch time, not after fetching all data and filtering
 - Server-side enforcement in API routes and cached loaders
 - Constants from `src/lib/constants.ts` — never hardcode limits
 - Free users see teaser (blurred/limited), not empty state
+- Note: Gating philosophy overlaps with `product-identity` skill. See `references/free-pro-matrix.md` for the complete matrix.
 
 ### 6. Type Discipline
 - **BIGINT** + `Math.round()` / `int()` at ingestion boundary for: dollar amounts, volume, share counts (whole), market cap
@@ -48,7 +49,7 @@ Tier check happens at data fetch time, not after fetching all data and filtering
 ### 7. Data Freshness
 - Display "as of" timestamps where data staleness matters (prices, sentiment)
 - Pipeline health tracked in `data_source_health` table
-- Stale data (>24h for daily sources) should show visual warning
+- Stale data (>24h for daily sources) should show visual warning [aspirational — not yet in UI; `data_source_health` tracks freshness server-side]
 - Score performance cache refreshed every 10 min by pipeline
 
 ### 8. Aggregation Correctness

@@ -35,8 +35,8 @@ version: 0.1.0
 14. **Env three-way sync** — New env vars must be added to: `src/lib/env.ts` (validation) + Vercel dashboard + GitHub Secrets (for Actions). All three must stay in sync.
 15. **Optional env documentation** — Env vars that are optional (e.g., feature-flagged sources) documented with `@optional` comments in `env.ts`.
 
-### Process
-16. **Feature branch discipline** — Work on descriptive feature branches. Never force-push to master. Conventional commits.
+### Supply Chain
+16. **Dependency auditing** — `npm audit --audit-level=high` runs in CI and Husky pre-commit hook. Block on high/critical vulnerabilities. Stripe API version pinned. npm overrides for unpatched transitive CVEs.
 
 ## When Adding an API Route
 
