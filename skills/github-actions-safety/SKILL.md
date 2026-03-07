@@ -1,6 +1,6 @@
 ---
 name: github-actions-safety
-description: This skill should be used before creating or modifying GitHub Actions workflows in the Undercurrent project — permissions, timeouts, cron expressions, artifact handling, secret management, and schedule conflict avoidance.
+description: This skill should be used when creating or modifying GitHub Actions workflows (.yml files in .github/workflows/) in the Undercurrent project. Covers permissions, timeouts, cron scheduling, secret management, Node version pinning, and schedule conflict avoidance. Trigger when the user says "add a GitHub Action", "new workflow", "set up a cron job", "CI pipeline change", or "schedule a background job".
 version: 0.1.0
 ---
 
@@ -69,9 +69,9 @@ Use `actions/setup-node@v4` with the project's `.nvmrc` file:
 
 The project requires Node 22 (`engines: { node: ">=22" }` in package.json). Never hardcode a Node version in workflows — always reference `.nvmrc`.
 
-### 6. Dependency Caching
+### 6. Dependency Installation
 
-Always include `cache: npm` in the `setup-node` step. Saves ~30s per run by caching `node_modules`.
+Always use `npm ci` (not `npm install`) for reproducible builds. The `cache: npm` in the `setup-node` step (Rule 5) saves ~30s per run by caching the npm cache directory.
 
 ### 7. Error Handling in Scripts
 

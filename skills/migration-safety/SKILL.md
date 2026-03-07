@@ -1,6 +1,6 @@
 ---
 name: migration-safety
-description: This skill should be used before writing any Supabase migration in the Undercurrent project — IMMUTABLE constraints, transactional rollback awareness, RLS+policies+grants checklist, IF NOT EXISTS patterns, and constraint naming gotchas.
+description: This skill should be used when writing, reviewing, or fixing a Supabase migration, creating a new database table, adding columns or indexes, writing seed data with foreign keys, or debugging a migration that failed or rolled back in the Undercurrent project. Covers IMMUTABLE constraints, transactional rollback, RLS+policies+grants, IF NOT EXISTS patterns, constraint naming, and data type discipline.
 version: 0.1.0
 ---
 
@@ -29,7 +29,7 @@ Supabase wraps each migration file in a transaction. If ANY statement fails (an 
 
 ### 3. Constraint Naming
 
-PostgreSQL auto-names constraints differently from explicit names. You wrote `uq_ai_briefs_ticker` but production may have `ai_briefs_ticker_key` (Postgres default pattern: `{table}_{column}_key` for UNIQUE, `{table}_{column}_fkey` for FK).
+PostgreSQL auto-names constraints differently from explicit names. A migration may specify `uq_ai_briefs_ticker` but production may have `ai_briefs_ticker_key` (Postgres default pattern: `{table}_{column}_key` for UNIQUE, `{table}_{column}_fkey` for FK).
 
 **Always**: Use dual-name IF EXISTS:
 ```sql
@@ -45,7 +45,13 @@ Always use defensive patterns to prevent "already exists" failures on re-run or 
 - `CREATE TABLE IF NOT EXISTS`
 - `CREATE INDEX IF NOT EXISTS`
 - `ALTER TABLE ... ADD COLUMN IF NOT EXISTS` (PostgreSQL 11+)
-- `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$;` for policies
+- `DO $$ BEGIN ... EXCEPTION WHEN duplicate_object THEN NULL; END $$;` for policies and constraints:
+```sql
+DO $$ BEGIN
+  ALTER TABLE tbl ADD CONSTRAINT uq_foo UNIQUE (col);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
+```
 
 ### 5. RLS + Policies + Grants
 

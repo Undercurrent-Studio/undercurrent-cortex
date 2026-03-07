@@ -1,6 +1,6 @@
 ---
 name: scoring-change-checklist
-description: This skill should be used before modifying the V11 scoring engine, transfer functions, percentile computation, sub-factor weights, or convergence amplifier in the Undercurrent project.
+description: This skill should be used when adding, removing, or modifying scoring sub-factors, changing pillar weights, adjusting transfer function parameters, modifying percentile computation, changing the convergence amplifier, debugging unexpected score values, or making any change to files in src/lib/scoring/ in the Undercurrent project.
 version: 0.1.0
 ---
 
@@ -34,6 +34,8 @@ Read the relevant file(s) BEFORE making changes. Cite line numbers.
 - **Percentile path**: factor has NO transfer function → peer-relative percentile → 0-100
 
 **Never add a factor to BOTH paths.** Check `transfer-functions.ts` for existing registrations before adding new factors.
+
+**Choosing a path**: Use transfer functions for metrics with known distributions and meaningful absolute thresholds (e.g., profit margins, growth rates). Use percentile scoring for metrics that only make sense relative to peers (e.g., sector-specific ratios).
 
 ### 3. Transfer Function Calibration
 
