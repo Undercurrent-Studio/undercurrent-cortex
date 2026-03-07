@@ -50,6 +50,20 @@
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/plan-file-guard.sh\"",
           "async": false
         }]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [{
+          "type": "prompt",
+          "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 8 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. See database-query-safety skill."
+        }]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [{
+          "type": "prompt",
+          "prompt": "Check the tool input. If the command contains 'git push': (1) Check for untracked files imported by committed code. (2) Verify tests pass. (3) Confirm documentation.md updated if architectural files changed. (4) Never force-push to master. Warn before proceeding if any check would fail."
+        }]
       }
     ],
     "PreCompact": [
