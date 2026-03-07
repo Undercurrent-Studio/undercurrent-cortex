@@ -68,6 +68,21 @@ if [ -f "$HEALTH_FILE" ]; then
       health_warning="${health_warning}"$'\n'"Health: reasoning-misses elevated in recent sessions. Review lessons before touching domain code."
     fi
   fi
+
+  # Trend direction check
+  trend=$(grep '^trend_direction=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  if [ "$trend" = "degrading" ]; then
+    health_warning="${health_warning}"$'\n'"Health: DEGRADING trend detected. reasoning-misses increasing. Slow down and plan more carefully."
+  fi
+
+  # Commit granularity check
+  avg_epc=$(grep '^avg_edits_per_commit=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  if [ -n "$avg_epc" ]; then
+    high_epc=$(awk "BEGIN { print ($avg_epc > 15.0) }")
+    if [ "$high_epc" = "1" ]; then
+      health_warning="${health_warning}"$'\n'"Health: avg edits/commit is ${avg_epc}. Commit more frequently — smaller, atomic commits."
+    fi
+  fi
 fi
 
 # --- Step 5: Proposal surfacing ---

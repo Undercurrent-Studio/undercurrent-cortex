@@ -37,7 +37,7 @@ fi
 
 # Doc-sync reminder for architectural files
 docs_updated=$(read_field "docs_updated" "$STATE_FILE")
-if [[ "$docs_updated" != "true" ]] && echo "$file_path" | grep -qiE 'scoring|pipeline|v10|v11|constants|middleware'; then
+if [[ "$docs_updated" != "true" ]] && echo "$file_path" | grep -qiE 'scoring|pipeline|v10|v11|constants|middleware|signals|cached-loader|env\.ts|cron|batch-upsert|stripe'; then
   source "$SCRIPT_DIR/lib/escape-json.sh"
   msg=$(escape_for_json "Architectural file modified. Consider updating documentation.md.")
   printf '{"systemMessage":"%s"}' "$msg"

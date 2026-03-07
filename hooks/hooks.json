@@ -86,6 +86,16 @@
         }]
       }
     ],
+    "SessionEnd": [
+      {
+        "matcher": "*",
+        "hooks": [{
+          "type": "command",
+          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/session-end-dispatch.sh\"",
+          "async": false
+        }]
+      }
+    ],
     "UserPromptSubmit": [
       {
         "matcher": "*",
