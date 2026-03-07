@@ -74,6 +74,16 @@
           "prompt": "Before context compaction: scan the current conversation for any text tagged [carry-over] or [mid-session pin]. If found, summarize them as a systemMessage so they survive compaction. If none found, do nothing."
         }]
       }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "*",
+        "hooks": [{
+          "type": "command",
+          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/context-flow.sh\"",
+          "async": false
+        }]
+      }
     ]
   }
 }
