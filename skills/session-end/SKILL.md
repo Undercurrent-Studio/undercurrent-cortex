@@ -55,7 +55,7 @@ Log as `[health-metrics]`:
 [health-metrics] signal-noise=good, session-start=complete, capture=100%, memory=fresh, dedup=clean
 ```
 
-If 3+ consecutive sessions show degraded health metrics (repeated `[reasoning-miss]` tags, low capture rate, stale memory), consider invoking the conversation-analyzer agent for a full adaptive immunity scan.
+**Adaptive immunity trigger**: If today's journal contains 2+ `[reasoning-miss]` tags, invoke `/analyze-session` for a full adaptive immunity scan before completing session-end. This is the primary feedback mechanism for the self-improvement loop. Also invoke if 3+ consecutive sessions show degraded health metrics (low capture rate, stale memory).
 
 **What counts as notable**: touched code, made an architectural choice, received a correction, fixed a bug, or spent more than 10 minutes on anything.
 
