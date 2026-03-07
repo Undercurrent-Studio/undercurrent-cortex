@@ -35,7 +35,8 @@ CONTEXT_FILE=""
 if [[ "$PROMPT_LOWER" == *scoring* ]] || [[ "$PROMPT_LOWER" == *v10* ]] \
    || [[ "$PROMPT_LOWER" == *v11* ]] || [[ "$PROMPT_LOWER" == *pillar* ]] \
    || [[ "$PROMPT_LOWER" == *"transfer function"* ]] || [[ "$PROMPT_LOWER" == *percentile* ]] \
-   || [[ "$PROMPT_LOWER" == *subfactor* ]] || [[ "$PROMPT_LOWER" == *"sub-factor"* ]]; then
+   || [[ "$PROMPT_LOWER" == *subfactor* ]] || [[ "$PROMPT_LOWER" == *"sub-factor"* ]] \
+   || [[ "$PROMPT_LOWER" == *bayesian* ]]; then
   CONTEXT_FILE="$CONTEXT_DIR/scoring-architecture.md"
 
 elif [[ "$PROMPT_LOWER" == *migration* ]] || [[ "$PROMPT_LOWER" == *"alter table"* ]] \
@@ -61,6 +62,24 @@ elif [[ "$PROMPT_LOWER" == *stripe* ]] || [[ "$PROMPT_LOWER" == *checkout* ]] \
      || [[ "$PROMPT_LOWER" == *subscription* ]] || [[ "$PROMPT_LOWER" == *payment* ]] \
      || [[ "$PROMPT_LOWER" == *billing* ]] || [[ "$PROMPT_LOWER" == *webhook* ]]; then
   CONTEXT_FILE="$CONTEXT_DIR/payment-integration.md"
+
+elif [[ "$PROMPT_LOWER" == *formula* ]] || [[ "$PROMPT_LOWER" == *statistics* ]] \
+     || [[ "$PROMPT_LOWER" == *probability* ]] || [[ "$PROMPT_LOWER" == *"monte carlo"* ]] \
+     || [[ "$PADDED" == *" ou "* ]] || [[ "$PADDED" == *" gbm "* ]] \
+     || [[ "$PROMPT_LOWER" == *likelihood* ]] || [[ "$PROMPT_LOWER" == *"z-score"* ]] \
+     || [[ "$PROMPT_LOWER" == *zscore* ]] || [[ "$PROMPT_LOWER" == *"standard deviation"* ]] \
+     || [[ "$PROMPT_LOWER" == *stddev* ]] || [[ "$PROMPT_LOWER" == *variance* ]] \
+     || [[ "$PROMPT_LOWER" == *distribution* ]] || [[ "$PROMPT_LOWER" == *sigmoid* ]] \
+     || [[ "$PROMPT_LOWER" == *logarithm* ]] || [[ "$PROMPT_LOWER" == *"exponential decay"* ]] \
+     || [[ "$PROMPT_LOWER" == *"half-life"* ]] || [[ "$PROMPT_LOWER" == *normalization* ]] \
+     || [[ "$PROMPT_LOWER" == *regression* ]] || [[ "$PROMPT_LOWER" == *interpolation* ]]; then
+  CONTEXT_FILE="$CONTEXT_DIR/math-review.md"
+
+elif [[ "$PROMPT_LOWER" == *typescript* ]] || [[ "$PROMPT_LOWER" == *"type error"* ]] \
+     || [[ "$PADDED" == *" tsc "* ]] || [[ "$PROMPT_LOWER" == *nouncheckedindexedaccess* ]] \
+     || [[ "$PROMPT_LOWER" == *"type guard"* ]] || [[ "$PROMPT_LOWER" == *"as never"* ]] \
+     || [[ "$PROMPT_LOWER" == *"use client"* ]]; then
+  CONTEXT_FILE="$CONTEXT_DIR/typescript-discipline.md"
 
 elif [[ "$PROMPT_LOWER" == *"done for today"* ]] || [[ "$PROMPT_LOWER" == *"wrap up"* ]] \
      || [[ "$PROMPT_LOWER" == *"session end"* ]] || [[ "$PROMPT_LOWER" == *"let's stop"* ]] \

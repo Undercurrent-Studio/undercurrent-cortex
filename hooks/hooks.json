@@ -26,6 +26,13 @@
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/post-edit-dispatch.sh\"",
           "async": false
         }]
+      },
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [{
+          "type": "prompt",
+          "prompt": "A plan was just finalized. Before implementing, audit it: (1) Check for conflicts with existing architecture in documentation.md. (2) Surface relevant lessons from tasks/lessons.md for this task's domain. (3) Validate estimates against similar past work. (4) Check for missing error handling, migration concerns, edge cases, and security implications. Present audit findings before proceeding."
+        }]
       }
     ],
     "PreToolUse": [
@@ -43,7 +50,7 @@
           },
           {
             "type": "prompt",
-            "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 8 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. See database-query-safety skill."
+            "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 9 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. (9) Verify EVERY column name in .select() exists in actual schema — bad names return null data + error object (no throw), and with Promise.allSettled this silently becomes []. See database-query-safety skill."
           }
         ]
       },
