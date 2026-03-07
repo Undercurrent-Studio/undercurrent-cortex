@@ -1,6 +1,6 @@
 ---
 name: data-integrity
-description: This skill should be used when the user asks to "display data", "add a chart", "show a number", "create a data component", or before any code that displays, transforms, or stores financial data in the Undercurrent project. Enforces 'every number must be accurate and traceable.'
+description: This skill should be used when the user asks to "display data", "add a chart", "show a number", "create a data component", "fix wrong data", "debug null values", "add a pipeline source", "handle data freshness", "fix stale cache", or before any code that displays, transforms, or stores financial data in the Undercurrent project. Enforces 'every number must be accurate and traceable.'
 version: 0.1.0
 ---
 
@@ -31,7 +31,7 @@ Pipeline failures must never corrupt or lose existing data.
 - `'use cache'` functions must throw on Supabase errors — never cache `null` results
 - Cache tags must be rotated to bust stale cached errors
 - Pro/Free tier included in shared cache keys (prevent cross-tier data leakage)
-- Cache TTL matches pipeline cadence (2-min cache, 10-min pipeline)
+- Cache TTL should match or be shorter than pipeline cadence — see `revalidate` values in cached-loader functions
 
 ### 5. Free/Pro Gating
 Tier check happens at data fetch time, not after fetching all data and filtering client-side.
