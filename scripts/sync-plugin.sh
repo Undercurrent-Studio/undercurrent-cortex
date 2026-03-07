@@ -98,10 +98,10 @@ errors=0
 
 # Count hooks in hooks.json
 hook_count=$(grep -c '"type"' "$CACHE/hooks/hooks.json" 2>/dev/null || echo "0")
-if [ "$hook_count" = "12" ]; then
+if [ "$hook_count" = "14" ]; then
   echo "Hook registrations in cache: $hook_count OK"
 else
-  echo "WARNING: Hook registrations in cache: $hook_count (expected 12)"
+  echo "WARNING: Hook registrations in cache: $hook_count (expected 14)"
   errors=$((errors + 1))
 fi
 

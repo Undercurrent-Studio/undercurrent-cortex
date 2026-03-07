@@ -52,7 +52,14 @@ if echo "$content" | grep -iE 'CREATE\s+TABLE' >/dev/null 2>&1; then
   fi
 fi
 
-# CHECK 4: INSERT without FK safety guard
+# CHECK 4: DROP CONSTRAINT without IF EXISTS
+if echo "$content" | grep -iE 'DROP\s+CONSTRAINT' >/dev/null 2>&1; then
+  if ! echo "$content" | grep -iE 'DROP\s+CONSTRAINT\s+IF\s+EXISTS' >/dev/null 2>&1; then
+    warnings="${warnings}- DROP CONSTRAINT without IF EXISTS. Auto-generated constraint names vary between environments. Use dual-name pattern:\n  ALTER TABLE t DROP CONSTRAINT IF EXISTS explicit_name;\n  ALTER TABLE t DROP CONSTRAINT IF EXISTS auto_generated_name;\n"
+  fi
+fi
+
+# CHECK 5: INSERT without FK safety guard
 if echo "$content" | grep -iE 'INSERT\s+INTO' >/dev/null 2>&1; then
   if ! echo "$content" | grep -iE 'WHERE\s+EXISTS' >/dev/null 2>&1; then
     warnings="${warnings}- INSERT INTO without WHERE EXISTS FK safety guard. If inserting rows with foreign keys, use a CTE with WHERE EXISTS to skip missing references (learned from migration 055 TWTR→X failure).\n"
