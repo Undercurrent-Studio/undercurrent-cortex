@@ -42,6 +42,23 @@ Edit/replace stale entries. Never just append. Stay under 200 lines.
 Did the compounding loop produce signal or noise today? Log as `[system-health]`.
 If session-start didn't fire or skills were skipped — note it.
 
+**Step 6 — Health metrics** (1 line per metric):
+Assess the 5 health metrics defined in `references/health-metrics.md`:
+1. Compounding signal-to-noise (did skills produce useful guidance?)
+2. Session-start coverage (did the protocol execute fully?)
+3. Pattern capture rate (did all corrections/decisions get logged?)
+4. Memory freshness (is MEMORY.md clean and under 200 lines?)
+5. Lesson deduplication (any duplicate lessons.md entries?)
+
+Log as `[health-metrics]`:
+```
+[health-metrics] signal-noise=good, session-start=complete, capture=100%, memory=fresh, dedup=clean
+```
+
+If 3+ consecutive sessions show degraded health metrics (repeated `[reasoning-miss]` tags, low capture rate, stale memory), consider invoking the conversation-analyzer agent for a full adaptive immunity scan.
+
 **What counts as notable**: touched code, made an architectural choice, received a correction, fixed a bug, or spent more than 10 minutes on anything.
+
+See `examples/journal-entry.md` for a model journal entry with proper tags.
 
 **Run session-end before closing every working session.** It takes 2 minutes.

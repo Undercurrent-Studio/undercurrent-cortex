@@ -1,6 +1,6 @@
 ---
 name: product-identity
-description: This skill should be used when the user asks to "design a feature", "build a new component", "plan a page", "add functionality", or before any product decision in the Undercurrent project. Encodes the product mission, quality bar, and design principles that every feature must satisfy.
+description: This skill should be used when the user asks to "design a feature", "build a new component", "plan a page", "add functionality", "what tier should this be", "free or pro", "should we gate this", "spec out a feature", "what's the quality bar", "pricing decision", "upgrade flow", "paywall", or before any product decision in the Undercurrent project. Encodes the product mission, quality bar, and design principles that every feature must satisfy.
 version: 0.1.0
 ---
 

@@ -23,6 +23,18 @@ version: 0.1.0
    Surface all matches. Do not limit to "last 5."
 
 ## If touching architecture, schema, or pipeline
-5. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness.
+5. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness to Will before proceeding.
+
+## State file protocol
+6. Check `tasks/todo.md` for in-progress items (unchecked boxes). If the previous session left work mid-flight, complete it before starting new tasks.
+
+## Carry-over re-injection
+When surfacing carry-over items from previous sessions, explicitly write them as the first item in today's journal entry. Do not just acknowledge them — write them to the journal so they are tracked:
+```
+## HH:MM - Session start
+- Carry-over from [date]: [carry-over] Item description here
+```
+
+See `references/memory-tiers.md` for the full memory hierarchy and rules.
 
 **Default to reading** — skip only if the session is purely conversational (no files, no decisions, no code). When in doubt, read.

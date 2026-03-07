@@ -8,15 +8,18 @@ version: 0.1.0
 
 **TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute. Sets the bar, sequences superpowers skills.
 
+## Before Phase 1 — Ground in product mission
+Invoke `undercurrent:product-identity` to verify the feature aligns with the product mission, passes the professional analyst test, and respects Free/Pro gating philosophy. If the feature involves tier gating, review `references/free-pro-matrix.md`.
+
 ## Phase 1 — Quality bar check (answer before brainstorming)
 - What problem does this solve for a professional analyst?
 - **Institutional-grade checklist** (all must be yes before shipping):
-  - [ ] Sub-second loads
-  - [ ] All states: loading, empty, error
-  - [ ] Every number traceable to source
-  - [ ] Works at 3am unattended
-  - [ ] Information density over whitespace
-  - [ ] No half-built sections
+  - Sub-second loads
+  - All states: loading, empty, error
+  - Every number traceable to source
+  - Works at 3am unattended
+  - Information density over whitespace
+  - No half-built sections
 - Full feature or half-feature? If half: what's cut and why (written down)?
 - Data sources / schema changes?
 - Edge cases and failure modes?
@@ -29,13 +32,30 @@ Design doc → `tasks/design-[feature-name].md` (canonical — see CLAUDE.md).
 ## Phase 3 — Implementation plan
 Invoke `superpowers:writing-plans`. Atomic waves, commit checkpoint per wave.
 
-## Phase 4 — Plan audit (before any code)
-- Every design requirement has a plan item
-- All states planned (loading/empty/error)
-- DB migrations identified
-- Tests planned for new utilities + regressions
-- Performance + security considered
-- Institutional bar passes all 6 items
+## Phase 4 — Plan Audit Gate (before any code)
+
+Run the 12-item self-audit checklist from `references/plan-audit-checklist.md` across 3 tiers:
+
+**Tier 1: Codebase Accuracy** — Did I Read every file to modify? Do types/signatures match? Did I check for existing utilities? Are file paths verified?
+
+**Tier 2: Constraint Compliance** — Pipeline budget respected? PostgREST queries safe? Middleware updated for new routes? Env vars in all 3 locations?
+
+**Tier 3: Architectural Integrity** — Scope check? Waves independently shippable? No forward dependencies? Test expectations per wave?
+
+Write `## Plan Self-Audit` at the bottom of the plan file with pass/fail + evidence for each item. **Tier 1/2 failures = fix the plan before proceeding.** Tier 3 failures are flagged but don't hard-block if the user accepts the tradeoff.
+
+See `examples/design-doc-template.md` for the design doc format.
+
+## Phase 5 — Code-Reviewer Agent Audit (after self-audit passes)
+
+For features touching pipeline, scoring, security, or multi-wave implementations: launch `superpowers:code-reviewer` agent against the plan file. Agent reviews for:
+- Data flow mismatches (function signatures vs actual types)
+- Constraint violations (API limits, DB schema, hook event types)
+- Missing error handling paths
+- Dependency ordering bugs (wave X references something built in wave Y where Y > X)
+- Security implications
+
+Incorporate all CRITICAL and IMPORTANT findings into the plan before calling ExitPlanMode. MINOR findings are noted but don't block approval.
 
 → Invoke `superpowers:executing-plans`
 
