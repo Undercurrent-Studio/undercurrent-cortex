@@ -28,6 +28,16 @@
         }]
       }
     ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [{
+          "type": "command",
+          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/migration-linter.sh\"",
+          "async": false
+        }]
+      }
+    ],
     "PreCompact": [
       {
         "matcher": "*",
