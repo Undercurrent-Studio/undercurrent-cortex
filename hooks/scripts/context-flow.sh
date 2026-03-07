@@ -81,6 +81,13 @@ elif [[ "$PROMPT_LOWER" == *typescript* ]] || [[ "$PROMPT_LOWER" == *"type error
      || [[ "$PROMPT_LOWER" == *"use client"* ]]; then
   CONTEXT_FILE="$CONTEXT_DIR/typescript-discipline.md"
 
+elif [[ "$PROMPT_LOWER" == *"[decision]"* ]] || [[ "$PROMPT_LOWER" == *"decision:"* ]] \
+     || [[ "$PROMPT_LOWER" == *"i decided"* ]] || [[ "$PROMPT_LOWER" == *"we decided"* ]]; then
+  MSG="Decision detected. Log it with metadata:\n- Category: architecture / data / UX / pipeline / security\n- Reversibility: easy / hard / irreversible\n- Confidence: high / medium / low\nWrite entry to .claude/undercurrent-decisions.local.md with format:\n## YYYY-MM-DD - [title]\ncategory=[cat] reversibility=[rev] confidence=[conf]\n[description]"
+  ESCAPED=$(escape_for_json "$MSG")
+  printf '{"systemMessage":"%s"}' "$ESCAPED"
+  exit 0
+
 elif [[ "$PROMPT_LOWER" == *"done for today"* ]] || [[ "$PROMPT_LOWER" == *"wrap up"* ]] \
      || [[ "$PROMPT_LOWER" == *"session end"* ]] || [[ "$PROMPT_LOWER" == *"let's stop"* ]] \
      || [[ "$PROMPT_LOWER" == *"call it"* ]]; then

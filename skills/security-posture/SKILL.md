@@ -41,22 +41,22 @@ version: 0.1.0
 ## When Adding an API Route
 
 Verify all of:
-- [ ] Route is in try/catch returning JSON errors
-- [ ] Auth check (getUser or verifyCronSecret)
-- [ ] Input validated with Zod
-- [ ] CSRF token on POST routes
-- [ ] Rate limiting on public endpoints
-- [ ] If under `(dashboard)/`, middleware matcher updated
-- [ ] No secrets logged
-- [ ] Env vars in env.ts + Vercel + GitHub Secrets
+- Route is in try/catch returning JSON errors
+- Auth check (getUser or verifyCronSecret)
+- Input validated with Zod
+- CSRF token on POST routes
+- Rate limiting on public endpoints
+- If under `(dashboard)/`, middleware matcher updated
+- No secrets logged
+- Env vars in env.ts + Vercel + GitHub Secrets
 
 ## When Handling User Input
 
 Verify all of:
-- [ ] Zod schema validates shape and bounds
-- [ ] String inputs escaped before email/HTML rendering
-- [ ] No raw user strings in SQL or PostgREST filters
-- [ ] Error messages don't leak internal state
+- Zod schema validates shape and bounds
+- String inputs escaped before email/HTML rendering
+- No raw user strings in SQL or PostgREST filters
+- Error messages don't leak internal state
 
 ## When Writing a Webhook Endpoint
 
@@ -67,6 +67,7 @@ Verify all of:
 - Event type handled with switch/case, not open-ended if/else
 - Log event type + event ID only — never log the full payload (contains PII and payment details)
 - Return 200 quickly — offload long processing to avoid webhook timeout retries
+- Rate limiting on webhook endpoint — prevent abuse from spoofed requests
 - Webhook secret stored in env var, validated via `getServerEnv()`
 
 ## When Sending Email
@@ -78,6 +79,7 @@ Verify all of:
 - Test with XSS payloads in user-controlled fields: `<script>alert(1)</script>` in name, ticker
 - Rate limit email sends — no duplicate alerts within cooldown period
 - No double-escaping (escape once at template boundary, not at both caller and template)
+- Subject line length capped and sanitized — no user-controlled strings in subject without escaping and truncation
 
 ## Implementation File Quick Reference
 

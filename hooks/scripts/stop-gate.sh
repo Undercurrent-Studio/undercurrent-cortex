@@ -15,13 +15,13 @@ is_undercurrent_project || { printf '{}'; exit 0; }
 # Buffer stdin ONCE (C1 fix — extract_json_field uses cat internally)
 INPUT=$(cat)
 
-# --- ESCAPE HATCH: consecutive_blocks >= 3 → force-approve ---
+# --- ESCAPE HATCH: consecutive_blocks >= 2 → force-approve ---
 consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")
 consecutive="${consecutive:-0}"
 
-if [ "$consecutive" -ge 3 ]; then
+if [ "$consecutive" -ge 2 ]; then
   write_field "consecutive_blocks" "0" "$STATE_FILE"
-  msg=$(escape_for_json "Stop gate: force-approved after ${consecutive} consecutive blocks. Some obligations may be unmet.")
+  msg=$(escape_for_json "Stop gate: force-approved after acknowledgment. Some obligations may be unmet.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0
 fi
@@ -68,12 +68,19 @@ if [ -n "$carry_over" ]; then
   fi
 fi
 
+# Gate 5: Stale carry-over (3+ sessions unresolved)
+carry_over_age=$(read_field "carry_over_age" "$STATE_FILE")
+carry_over_age="${carry_over_age:-0}"
+if [ "$carry_over_age" -ge 3 ]; then
+  failures="${failures}- Stale carry-over: items unresolved for ${carry_over_age} sessions. Address or explicitly discard.\n"
+fi
+
 # --- DECISION ---
 if [ -n "$failures" ]; then
   new_consecutive=$((consecutive + 1))
   write_field "consecutive_blocks" "$new_consecutive" "$STATE_FILE"
 
-  reason=$(escape_for_json "Stop gate blocked (${new_consecutive}/3). Unmet gates:\n${failures}Address these before stopping, or stop will auto-approve after 3 blocks.")
+  reason=$(escape_for_json "Stop blocked. Address obligations above, then stop again to override.\nUnmet gates:\n${failures}")
   printf '{"decision":"block","reason":"%s"}' "$reason"
   exit 0
 fi

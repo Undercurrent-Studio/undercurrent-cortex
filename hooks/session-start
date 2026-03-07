@@ -9,8 +9,11 @@ source "$SCRIPT_DIR/scripts/lib/escape-json.sh"
 
 # --- Step 1: Read old carry-over BEFORE overwriting state file ---
 old_carry_over=""
+old_carry_over_age="0"
 if [ -f "$STATE_FILE" ]; then
   old_carry_over=$(read_section "carry_over" "$STATE_FILE")
+  old_carry_over_age=$(read_field "carry_over_age" "$STATE_FILE")
+  old_carry_over_age="${old_carry_over_age:-0}"
 fi
 
 # --- Step 2: Create fresh state file ---
@@ -27,6 +30,7 @@ docs_updated=false
 carry_over_addressed=false
 stop_hook_active=false
 consecutive_blocks=0
+carry_over_age=0
 debug=false
 
 [files_modified]
@@ -38,6 +42,14 @@ STATEEOF
 # Fill in dynamic values
 write_field "session_id" "$(date +%s)" "$STATE_FILE"
 write_field "session_start" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STATE_FILE"
+
+# Carry-over age tracking: increment if carry-over persists, reset if empty
+if [ -n "$old_carry_over" ]; then
+  new_age=$(( old_carry_over_age + 1 ))
+  write_field "carry_over_age" "$new_age" "$STATE_FILE"
+else
+  write_field "carry_over_age" "0" "$STATE_FILE"
+fi
 
 # --- Step 3: Read skill content + yesterday check (preserved from v1) ---
 skill_content=$(cat "${PLUGIN_ROOT}/skills/session-start/SKILL.md" 2>/dev/null \

@@ -7,6 +7,7 @@ PROJECT_DIR="C:/Users/whflo/Desktop/Code Projects/undercurrent-v1"
 STATE_FILE="${PROJECT_DIR}/.claude/undercurrent-state.local.md"
 HEALTH_FILE="${PROJECT_DIR}/.claude/undercurrent-health.local.md"
 PROPOSALS_FILE="${PROJECT_DIR}/.claude/undercurrent-proposals.local.md"
+DECISIONS_FILE="${PROJECT_DIR}/.claude/undercurrent-decisions.local.md"
 
 # read_field "field_name" "file_path"
 # Returns the value for a key=value field. Empty string if not found.
