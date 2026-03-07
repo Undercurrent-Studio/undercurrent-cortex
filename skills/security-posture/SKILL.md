@@ -1,0 +1,62 @@
+---
+name: security-posture
+description: This skill should be used when the user asks to "add an API route", "handle user input", "write a webhook", "add authentication", or before any code that touches auth, user data, API boundaries, or external inputs in the Undercurrent project. The unified security contract.
+version: 0.1.0
+---
+
+# Security Posture
+
+**TL;DR**: 16 security invariants. Every API route, user input handler, and data boundary must satisfy these.
+
+## The 16 Invariants
+
+### Server-Side Isolation
+1. **`server-only` imports** — All sensitive modules (DB clients, API keys, scoring, pipeline) use `import "server-only"`. Client components never import server modules.
+2. **Env validation** — All `process.env` access routed through `getServerEnv()` / `getPublicEnv()` from `src/lib/env.ts`. No direct `process.env` usage anywhere.
+3. **Column-level RLS** — Row Level Security enabled on all tables. Policies grant minimum necessary access. Admin client (`createAdminClient()`) used for writes; cookie client for reads.
+
+### Authentication & Authorization
+4. **`verifyCronSecret()`** — Pipeline and cron routes verify `CRON_SECRET` header. Returns JSON error if missing/invalid.
+5. **Middleware matcher** — Every route under `(dashboard)/` has a corresponding entry in `middleware.ts` config.matcher. Missing routes = silent auth bypass (sessions not refreshed → RLS sees `anon` role).
+6. **Stripe webhook verification** — `constructEventWithSecret()` verifies signature + checks replay window. Webhook secret in `STRIPE_WEBHOOK_SECRET` env var.
+
+### Input Validation
+7. **Zod validation** — All user input validated with Zod schemas before processing. Trust nothing from the client.
+8. **CSRF tokens** — State-changing POST routes verify CSRF token. Prevents cross-site request forgery.
+9. **Rate limiting** — Public endpoints use rate limiter. Note: in-memory limiter resets on cold starts (see `references/known-limitations.md`).
+
+### Output Safety
+10. **`escapeHtml()`** — All user-provided strings in email templates escaped via shared `escapeHtml()` from `src/lib/email.ts`. Prevents XSS in weekly digest, alert emails, welcome emails.
+11. **JSON error responses** — API routes wrap all throwable code in try/catch returning JSON. Unhandled throws produce HTML 500 → client `res.json()` fails. Every route has a single outer try/catch.
+12. **No secret logging** — Never log API keys, tokens, user emails, Stripe customer IDs, or webhook payloads. Use structured logger with sanitized context.
+
+### Data Safety
+13. **No SQL injection** — Parameterized queries only via Supabase client. Never construct raw SQL strings from user input.
+14. **Env three-way sync** — New env vars must be added to: `src/lib/env.ts` (validation) + Vercel dashboard + GitHub Secrets (for Actions). All three must stay in sync.
+15. **Optional env documentation** — Env vars that are optional (e.g., feature-flagged sources) documented with `@optional` comments in `env.ts`.
+
+### Process
+16. **Feature branch discipline** — Work on descriptive feature branches. Never force-push to master. Conventional commits.
+
+## When Adding an API Route
+
+Verify all of:
+- [ ] Route is in try/catch returning JSON errors
+- [ ] Auth check (getUser or verifyCronSecret)
+- [ ] Input validated with Zod
+- [ ] CSRF token on POST routes
+- [ ] Rate limiting on public endpoints
+- [ ] If under `(dashboard)/`, middleware matcher updated
+- [ ] No secrets logged
+- [ ] Env vars in env.ts + Vercel + GitHub Secrets
+
+## When Handling User Input
+
+Verify all of:
+- [ ] Zod schema validates shape and bounds
+- [ ] String inputs escaped before email/HTML rendering
+- [ ] No raw user strings in SQL or PostgREST filters
+- [ ] Error messages don't leak internal state
+
+See `references/security-audit-history.md` for real findings from 9 audit sessions.
+See `references/known-limitations.md` for accepted risks and their mitigation status.

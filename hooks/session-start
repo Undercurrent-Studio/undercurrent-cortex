@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+source "$SCRIPT_DIR/scripts/lib/state-io.sh"
+source "$SCRIPT_DIR/scripts/lib/escape-json.sh"
+
+# --- Step 1: Read old carry-over BEFORE overwriting state file ---
+old_carry_over=""
+if [ -f "$STATE_FILE" ]; then
+  old_carry_over=$(read_section "carry_over" "$STATE_FILE")
+fi
+
+# --- Step 2: Create fresh state file ---
+mkdir -p "$(dirname "$STATE_FILE")"
+cat > "$STATE_FILE" << 'STATEEOF'
+session_id=PLACEHOLDER_ID
+session_start=PLACEHOLDER_TIME
+model_name=unknown
+commits_count=0
+edits_since_last_commit=0
+tool_calls_count=0
+tests_run=false
+docs_updated=false
+carry_over_addressed=false
+stop_hook_active=false
+consecutive_blocks=0
+debug=false
+
+[files_modified]
+
+[carry_over]
+
+[activity_log]
+STATEEOF
+# Fill in dynamic values
+write_field "session_id" "$(date +%s)" "$STATE_FILE"
+write_field "session_start" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STATE_FILE"
+
+# --- Step 3: Read skill content + yesterday check (preserved from v1) ---
+skill_content=$(cat "${PLUGIN_ROOT}/skills/session-start/SKILL.md" 2>/dev/null \
+  || echo "session-start skill not found")
+
+yesterday=$(date -d "yesterday" +%Y-%m-%d 2>/dev/null \
+  || date -v-1d +%Y-%m-%d 2>/dev/null || echo "")
+missed_close=""
+if [[ -n "$yesterday" ]]; then
+  yjournal="${PROJECT_DIR}/memory/${yesterday}.md"
+  if [[ -f "$yjournal" ]]; then
+    ycontent=$(cat "$yjournal" 2>/dev/null || echo "")
+    if [[ "$ycontent" != *"[session-end]"* && "$ycontent" != *"[carry-over]"* && "$ycontent" != *"session end"* ]]; then
+      missed_close=$'\n\n'"Yesterday's session-end was not run. Consider running /undercurrent:session-end now."
+    fi
+  fi
+fi
+
+# --- Step 4: Operational intelligence (health trends) ---
+health_warning=""
+if [ -f "$HEALTH_FILE" ]; then
+  # Read last 3 data lines (skip comments and blanks)
+  recent=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep '|' | tail -3 || echo "")
+  # Check for rising reasoning_misses (field 2, pipe-delimited)
+  if [ -n "$recent" ]; then
+    high_miss_count=$(echo "$recent" | awk -F'|' '$2 > 0 {c++} END {print c+0}' | tr -d ' \r')
+    if [ "${high_miss_count:-0}" -ge 2 ]; then
+      health_warning="${health_warning}"$'\n'"Health: reasoning-misses elevated in recent sessions. Review lessons before touching domain code."
+    fi
+  fi
+fi
+
+# --- Step 5: Proposal surfacing ---
+proposal_summary=""
+if [ -f "$PROPOSALS_FILE" ]; then
+  pending_count=$(grep -c '^status=pending' "$PROPOSALS_FILE" 2>/dev/null || echo "0")
+  if [ "$pending_count" -gt 0 ]; then
+    proposal_summary=$'\n'"${pending_count} pending evolution proposal(s). Review with /analyze-session."
+  fi
+fi
+
+# --- Step 6: Carry-over re-injection ---
+carry_over_msg=""
+if [ -n "$old_carry_over" ]; then
+  carry_over_msg=$'\n\n'"Carry-over from prior session:"$'\n'"${old_carry_over}"
+fi
+
+# --- Output ---
+full_context="${skill_content}${missed_close}${health_warning}${proposal_summary}${carry_over_msg}"
+escaped=$(escape_for_json "$full_context")
+context="<undercurrent-session-start>${escaped}</undercurrent-session-start>"
+
+cat <<EOF
+{
+  "additional_context": "${context}",
+  "hookSpecificOutput": {
+    "hookEventName": "SessionStart",
+    "additionalContext": "${context}"
+  }
+}
+EOF
+exit 0
