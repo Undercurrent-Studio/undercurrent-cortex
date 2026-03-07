@@ -31,9 +31,23 @@
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/migration-linter.sh\"",
+            "async": false
+          },
+          {
+            "type": "prompt",
+            "prompt": "Check the tool input. If the file_path contains 'src/app/(dashboard)/', inject this reminder: 'Dashboard route detected. Verify: (1) middleware.ts matcher includes this path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill.'"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
         "hooks": [{
           "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/migration-linter.sh\"",
+          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/plan-file-guard.sh\"",
           "async": false
         }]
       }
