@@ -104,18 +104,31 @@ Write a proposal to `.claude/undercurrent-proposals.local.md`. Create the file i
 ---
 id=YYYYMMDD-HHMMSS-[short-slug]
 status=pending
+surfaced_count=0
+created=YYYY-MM-DD
 domain=[domain]
 occurrences=[count]
 severity=[minor|moderate|major]
-type=[hook-rule|skill-update|claude-md-amendment]
+type=[lesson|context-keyword|context-file|skill-update|claude-md-amendment|hook-rule]
+target=[target file path, e.g. tasks/lessons.md]
 probation=3
 ---
 ## Proposal: [Title]
+**Summary**: [one-line description of what this proposal does]
 **Pattern**: [description of the recurring problem]
 **Evidence**: [list of session dates + journal references where this occurred]
+**Body**: [the actual content to append/add to the target file]
 **Proposed change**: [specific file + what to add/modify]
 **Risk**: [what could go wrong if this change is applied incorrectly]
 ```
+
+Proposal types and what "apply" means:
+- `lesson` → append Body to `tasks/lessons.md`
+- `context-keyword` → add keyword to existing keyword block in `context-flow.sh`
+- `context-file` → create new context file + add keyword block
+- `skill-update` → append Body to the relevant SKILL.md
+- `claude-md-amendment` → append Body under relevant CLAUDE.md section
+- `hook-rule` → flagged as "requires manual review" even after approval (too risky to auto-edit)
 
 ### Phase 5 — Repair Assessment
 

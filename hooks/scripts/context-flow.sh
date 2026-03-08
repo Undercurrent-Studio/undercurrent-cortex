@@ -117,6 +117,49 @@ elif [[ "$PROMPT_LOWER" == *"[decision]"* ]] || [[ "$PROMPT_LOWER" == *"decision
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0
 
+elif [[ "$PROMPT_LOWER" == *"approve proposal"* ]] || [[ "$PROMPT_LOWER" == *"accept proposal"* ]] \
+     || [[ "$PROMPT_LOWER" == *"apply proposal"* ]] || [[ "$PROMPT_LOWER" == *"approve all"* ]]; then
+  # Growth system: apply approved proposals
+  apply_output=""
+  if [ -x "$SCRIPT_DIR/apply-proposal.sh" ]; then
+    apply_output=$("$SCRIPT_DIR/apply-proposal.sh" approve 2>/dev/null || echo "Failed to apply proposal.")
+  else
+    apply_output="apply-proposal.sh not found."
+  fi
+  ESCAPED=$(escape_for_json "${apply_output:-No pending proposals found.}")
+  printf '{"systemMessage":"%s"}' "$ESCAPED"
+  exit 0
+
+elif [[ "$PROMPT_LOWER" == *"reject proposal"* ]] || [[ "$PROMPT_LOWER" == *"dismiss proposal"* ]] \
+     || [[ "$PROMPT_LOWER" == *"skip proposal"* ]]; then
+  apply_output=""
+  if [ -x "$SCRIPT_DIR/apply-proposal.sh" ]; then
+    apply_output=$("$SCRIPT_DIR/apply-proposal.sh" reject 2>/dev/null || echo "Failed to reject proposal.")
+  else
+    apply_output="apply-proposal.sh not found."
+  fi
+  ESCAPED=$(escape_for_json "${apply_output:-No pending proposals found.}")
+  printf '{"systemMessage":"%s"}' "$ESCAPED"
+  exit 0
+
+elif [[ "$PROMPT_LOWER" == *"show proposals"* ]] || [[ "$PROMPT_LOWER" == *"list proposals"* ]] \
+     || [[ "$PROMPT_LOWER" == *"pending proposals"* ]]; then
+  if [ -f "$PROPOSALS_FILE" ]; then
+    pending=""
+    if grep -q '^status=pending' "$PROPOSALS_FILE" 2>/dev/null; then
+      pending=$(awk '/^status=pending/{p=1} p && /^## Proposal:/{print; p=0}' "$PROPOSALS_FILE")
+    fi
+    if [ -n "$pending" ]; then
+      ESCAPED=$(escape_for_json "Pending proposals:"$'\n'"${pending}")
+    else
+      ESCAPED=$(escape_for_json "No pending proposals.")
+    fi
+  else
+    ESCAPED=$(escape_for_json "No proposals file exists.")
+  fi
+  printf '{"systemMessage":"%s"}' "$ESCAPED"
+  exit 0
+
 elif [[ "$PROMPT_LOWER" == *"done for today"* ]] || [[ "$PROMPT_LOWER" == *"wrap up"* ]] \
      || [[ "$PROMPT_LOWER" == *"session end"* ]] || [[ "$PROMPT_LOWER" == *"let's stop"* ]] \
      || [[ "$PROMPT_LOWER" == *"call it"* ]]; then

@@ -200,7 +200,20 @@ if [ -f "$PROPOSALS_FILE" ]; then
       fi
     fi
 
-    proposal_summary=$'\n'"${pending_count} pending evolution proposal(s)${age_info}. Review with /analyze-session."
+    proposal_summary=$'\n'"${pending_count} pending evolution proposal(s)${age_info}. Review with /analyze-session or say 'approve proposal'/'reject proposal'."
+
+    # Increment surfaced_count for all pending proposals
+    awk '
+      /^status=pending/ { pending=1 }
+      /^surfaced_count=/ && pending {
+        val = substr($0, index($0,"=")+1) + 1
+        print "surfaced_count=" val
+        pending = 0
+        next
+      }
+      /^---/ { pending=0 }
+      { print }
+    ' "$PROPOSALS_FILE" > "$PROPOSALS_FILE.tmp.$$" && mv "$PROPOSALS_FILE.tmp.$$" "$PROPOSALS_FILE"
   fi
 fi
 
