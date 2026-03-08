@@ -1,6 +1,6 @@
 # Undercurrent Plugin
 
-A Claude Code plugin that works like a **living organism** — 8 biological systems that build intelligence across sessions for the [Undercurrent](https://undercurrent.finance) stock research platform.
+A Claude Code plugin that works like a **living organism** — 13 biological systems that build intelligence across sessions for the [Undercurrent](https://undercurrent.finance) stock research platform.
 
 It watches what you do, learns from mistakes, blocks dangerous operations, injects domain knowledge at the right moment, and tracks your work health over time.
 
@@ -54,7 +54,7 @@ Plugin `hooks.json` can't fire command hooks for PreToolUse/PostToolUse events. 
 
 ---
 
-## The 8 Biological Systems
+## The 13 Biological Systems
 
 ### 1. Nervous System — State Tracking
 Every edit, commit, and tool call is tracked. The plugin always knows what happened this session.
@@ -68,19 +68,34 @@ Blocks dangerous operations before they execute:
 Mention "scoring", "pipeline", or "stripe" and the plugin injects relevant domain knowledge. Also detects decision language and prompts for metadata to build a decision journal.
 
 ### 4. Skeletal System — Session Lifecycle
-Initializes state at start, runs async codebase spot-checks, writes 9 health metrics at end.
+Initializes state at start, runs async codebase spot-checks, writes 12 health metrics at end.
 
 ### 5. Digestive System — Pattern Templates
 When you create a new file, the plugin injects an exemplar from the codebase as a convention reference.
 
 ### 6. Endocrine System — Commit Enforcement
-Nudges after 15+ edits without a commit. Validates conventional commit format on `git commit`.
+Dynamic commit nudge threshold (adjusts based on health metrics). Validates conventional commit format on `git commit`.
 
 ### 7. Memory System — Stop Gates
 Checks 4 things before allowing session end: edits committed, docs updated, tests pass, carry-over resolved. Escape hatch after 2 consecutive blocks.
 
 ### 8. Reproductive System — Evolution
 The `conversation-analyzer` agent detects recurring patterns and proposes new rules. The plugin evolves itself.
+
+### 9. Sensory System — External Awareness
+Detects changes outside the session: remote commits, CI failures, open PRs. Runs at session start and mid-session on keyword triggers (e.g., "CI status").
+
+### 10. Healing/Repair System — Self-Recovery
+Validates organism state on boot: repairs corrupted state files, deduplicates edit lists, prunes oversized health/tracking files, cleans stale temp files.
+
+### 11. Growth/Adaptation System — Proposal Lifecycle
+Surfaces pending evolution proposals, tracks how many times each has been shown. Users say "approve proposal" or "reject proposal" to manage them. 6 proposal types with auto-apply for safe types and manual review for risky ones.
+
+### 12. Feedback Loop System — Health-Driven Behavior
+Health metrics change organism behavior. Degrading trend or high-churn → cautious mode (plan-before-acting reminders). High edits/commit ratio → lower commit nudge threshold.
+
+### 13. Social/Communication System — Cross-Session Intelligence
+Tracks files edited across sessions, tags each session by domain, detects patterns only visible across multiple sessions (domain clustering, session length trends, frequently re-edited files).
 
 ---
 
@@ -117,9 +132,9 @@ Injected by `context-flow.sh` on keyword match: scoring, migration, pipeline, de
 
 `/session-end` · `/analyze-session` · `/review-decisions`
 
-### 4 State Files (in `.claude/`, gitignored)
+### 5 State Files (in `.claude/`, gitignored)
 
-`undercurrent-state.local.md` (session state) · `undercurrent-health.local.md` (health log) · `undercurrent-proposals.local.md` (rule proposals) · `undercurrent-decisions.local.md` (decision journal)
+`undercurrent-state.local.md` (session state) · `undercurrent-health.local.md` (health log) · `undercurrent-proposals.local.md` (rule proposals) · `undercurrent-decisions.local.md` (decision journal) · `undercurrent-cross-session.local.md` (cross-session file tracker)
 
 ---
 
@@ -171,8 +186,10 @@ undercurrent-plugin/
       drift-detector.sh                      # Async codebase checks
       pattern-template.sh                    # Exemplar injection
       stop-gate.sh                           # Session end gates
+      sensory-check.sh                        # External awareness (git, CI, PRs)
+      apply-proposal.sh                       # Proposal approve/reject lifecycle
       pre-compact.sh, session-end-dispatch.sh
-      lib/ (escape-json, json-extract, state-io)
+      lib/ (escape-json, json-extract, state-io, validate-organism)
   skills/          # 16 skill directories
   commands/        # 3 slash commands
   agents/          # conversation-analyzer
@@ -195,6 +212,7 @@ undercurrent-plugin/
 
 ## Version History
 
+- **3.0.0** — Complete organism: 13 systems (sensory, healing, growth, feedback, social)
 - **2.1.0** — Dispatcher architecture, global plugin (no project guards), Windows path fixes
 - **2.0.0** — Full organism: 16 skills, 14 hooks, 1 agent, 8 context files, 3 commands
 - **1.0.0** — Initial scaffold (session-start hook only)

@@ -10,9 +10,6 @@ source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
-# Guard: only act in Undercurrent project
-is_undercurrent_project || { printf '{}'; exit 0; }
-
 CONTEXT_DIR="$SCRIPT_DIR/../../context"
 
 # Read stdin JSON, extract user_prompt
