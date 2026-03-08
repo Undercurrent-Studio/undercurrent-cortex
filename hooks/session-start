@@ -45,6 +45,8 @@ stop_hook_active=false
 consecutive_blocks=0
 carry_over_age=0
 debug=false
+mode=normal
+commit_nudge_threshold=15
 
 [files_modified]
 
@@ -121,6 +123,44 @@ if [ -f "$HEALTH_FILE" ]; then
     fi
   fi
 fi
+
+# --- Step 4b: Feedback Loop — compute behavioral flags ---
+fb_mode="normal"
+fb_commit_threshold=15
+
+if [ -f "$HEALTH_FILE" ]; then
+  fb_trend=$(grep '^trend_direction=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+
+  # Trend-based mode
+  if [ "$fb_trend" = "degrading" ]; then
+    fb_mode="cautious"
+  fi
+
+  # Topology-based mode: last 3 data rows all high-churn
+  fb_data_rows=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -3)
+  fb_row_count=$(echo "$fb_data_rows" | grep -c '|' 2>/dev/null || echo "0")
+  if [ "${fb_row_count:-0}" -ge 3 ]; then
+    fb_churn_count=$(echo "$fb_data_rows" | awk -F'|' '$11 == "high-churn" {c++} END {print c+0}')
+    if [ "${fb_churn_count:-0}" -ge 3 ]; then
+      fb_mode="cautious"
+    fi
+  fi
+
+  # Commit threshold adjustment
+  fb_avg_epc=$(grep '^avg_edits_per_commit=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
+  if [ -n "$fb_avg_epc" ]; then
+    fb_high25=$(awk "BEGIN { print ($fb_avg_epc > 25.0) }" 2>/dev/null || echo "0")
+    fb_high15=$(awk "BEGIN { print ($fb_avg_epc > 15.0) }" 2>/dev/null || echo "0")
+    if [ "$fb_high25" = "1" ]; then
+      fb_commit_threshold=5
+    elif [ "$fb_high15" = "1" ]; then
+      fb_commit_threshold=8
+    fi
+  fi
+fi
+
+write_field "mode" "$fb_mode" "$STATE_FILE"
+write_field "commit_nudge_threshold" "$fb_commit_threshold" "$STATE_FILE"
 
 # --- Step 5: Proposal surfacing ---
 proposal_summary=""

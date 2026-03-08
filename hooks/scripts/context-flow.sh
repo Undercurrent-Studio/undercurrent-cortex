@@ -28,6 +28,18 @@ PROMPT_LOWER=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 # Pad with spaces for word-boundary matching on short keywords
 PADDED=" ${PROMPT_LOWER} "
 
+# --- Feedback Loop: cautious-mode injection ---
+CAUTIOUS_MSG=""
+mode=$(read_field "mode" "$STATE_FILE" 2>/dev/null || echo "normal")
+if [ "$mode" = "cautious" ]; then
+  if [[ "$PROMPT_LOWER" == *"edit"* ]] || [[ "$PROMPT_LOWER" == *"fix"* ]] \
+     || [[ "$PROMPT_LOWER" == *"add"* ]] || [[ "$PROMPT_LOWER" == *"implement"* ]] \
+     || [[ "$PROMPT_LOWER" == *"build"* ]] || [[ "$PROMPT_LOWER" == *"refactor"* ]] \
+     || [[ "$PROMPT_LOWER" == *"change"* ]] || [[ "$PROMPT_LOWER" == *"update"* ]]; then
+    CAUTIOUS_MSG="[Cautious mode active — health trend degrading or high-churn detected. Plan before acting. Enter plan mode for non-trivial changes.]"
+  fi
+fi
+
 # Priority-ordered keyword matching (first match wins)
 # Uses bash [[ ]] glob matching — immune to regex injection from user input
 CONTEXT_FILE=""
@@ -97,8 +109,14 @@ elif [[ "$PROMPT_LOWER" == *"done for today"* ]] || [[ "$PROMPT_LOWER" == *"wrap
   exit 0
 fi
 
-# If no match or file missing, return empty (no injection)
+# If no match or file missing
 if [ -z "$CONTEXT_FILE" ] || [ ! -f "$CONTEXT_FILE" ]; then
+  # Still inject cautious-mode warning if active
+  if [ -n "$CAUTIOUS_MSG" ]; then
+    ESCAPED=$(escape_for_json "$CAUTIOUS_MSG")
+    printf '{"systemMessage":"%s"}' "$ESCAPED"
+    exit 0
+  fi
   printf '{}'
   exit 0
 fi
@@ -106,8 +124,18 @@ fi
 # Read context file and return as systemMessage
 CONTENT=$(cat "$CONTEXT_FILE" 2>/dev/null) || true
 if [ -z "$CONTENT" ]; then
+  if [ -n "$CAUTIOUS_MSG" ]; then
+    ESCAPED=$(escape_for_json "$CAUTIOUS_MSG")
+    printf '{"systemMessage":"%s"}' "$ESCAPED"
+    exit 0
+  fi
   printf '{}'
   exit 0
+fi
+
+# Prepend cautious-mode warning if active
+if [ -n "$CAUTIOUS_MSG" ]; then
+  CONTENT="${CAUTIOUS_MSG}"$'\n\n'"${CONTENT}"
 fi
 
 ESCAPED=$(escape_for_json "$CONTENT")

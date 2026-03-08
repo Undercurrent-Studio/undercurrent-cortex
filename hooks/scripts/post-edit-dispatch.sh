@@ -40,11 +40,13 @@ if [[ "$file_path" == *"documentation.md"* ]]; then
   write_field "docs_updated" "true" "$STATE_FILE"
 fi
 
-# Commit cadence nudge (>15 edits without commit)
+# Commit cadence nudge (dynamic threshold from feedback loop)
 edits=$(read_field "edits_since_last_commit" "$STATE_FILE")
-if [ "${edits:-0}" -gt 15 ]; then
+threshold=$(read_field "commit_nudge_threshold" "$STATE_FILE")
+threshold="${threshold:-15}"
+if [ "${edits:-0}" -gt "$threshold" ]; then
   source "$SCRIPT_DIR/lib/escape-json.sh" || true
-  msg=$(escape_for_json "You have ${edits} edits since last commit. Per Undercurrent workflow: commit after each wave/phase.")
+  msg=$(escape_for_json "You have ${edits} edits since last commit (threshold: ${threshold}). Per Undercurrent workflow: commit after each wave/phase.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0
 fi
