@@ -6,9 +6,6 @@ source "$SCRIPT_DIR/lib/state-io.sh"
 source "$SCRIPT_DIR/lib/json-extract.sh"
 source "$SCRIPT_DIR/lib/escape-json.sh"
 
-# Guard: only act in Undercurrent project
-is_undercurrent_project || { printf '{}'; exit 0; }
-
 # Read stdin JSON, extract file path
 file_path=$(cat | extract_json_field "tool_input.file_path")
 file_path=$(echo "$file_path" | sed 's|\\|/|g')

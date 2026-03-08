@@ -2,7 +2,7 @@
   "hooks": {
     "SessionStart": [
       {
-        "matcher": "*",
+        "matcher": ".*",
         "hooks": [
           {
             "type": "command",
@@ -17,41 +17,10 @@
         ]
       }
     ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/post-bash-dispatch.sh\"",
-          "async": false
-        }]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/post-edit-dispatch.sh\"",
-          "async": false
-        }]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/pattern-template.sh\"",
-          "async": false
-        }]
-      }
-    ],
     "PreToolUse": [
       {
         "matcher": "Write|Edit",
         "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/migration-linter.sh\"",
-            "async": false
-          },
           {
             "type": "prompt",
             "prompt": "Check the tool input. If the file_path contains 'src/app/(dashboard)/', inject this reminder: 'Dashboard route detected. Verify: (1) middleware.ts matcher includes this path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill.'"
@@ -63,24 +32,18 @@
         ]
       },
       {
-        "matcher": "Write",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/plan-file-guard.sh\"",
-          "async": false
-        }]
-      },
-      {
         "matcher": "Bash",
-        "hooks": [{
-          "type": "prompt",
-          "prompt": "Check the tool input. If the command contains 'git push': (1) Check for untracked files imported by committed code. (2) Verify tests pass. (3) Confirm documentation.md updated if architectural files changed. (4) Never force-push to master. Warn before proceeding if any check would fail."
-        }]
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check the tool input. If the command contains 'git push': (1) Check for untracked files imported by committed code. (2) Verify tests pass. (3) Confirm documentation.md updated if architectural files changed. (4) Never force-push to master. Warn before proceeding if any check would fail."
+          }
+        ]
       }
     ],
     "PreCompact": [
       {
-        "matcher": "*",
+        "matcher": ".*",
         "hooks": [{
           "type": "command",
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/pre-compact.sh\"",
@@ -90,7 +53,7 @@
     ],
     "Stop": [
       {
-        "matcher": "*",
+        "matcher": ".*",
         "hooks": [{
           "type": "command",
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/stop-gate.sh\"",
@@ -100,7 +63,7 @@
     ],
     "SessionEnd": [
       {
-        "matcher": "*",
+        "matcher": ".*",
         "hooks": [{
           "type": "command",
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/session-end-dispatch.sh\"",
@@ -110,7 +73,7 @@
     ],
     "UserPromptSubmit": [
       {
-        "matcher": "*",
+        "matcher": ".*",
         "hooks": [{
           "type": "command",
           "command": "\"C:/Program Files/Git/bin/bash.exe\" \"C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/context-flow.sh\"",

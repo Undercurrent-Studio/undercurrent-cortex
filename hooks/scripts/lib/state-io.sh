@@ -49,9 +49,10 @@ append_to_section() {
   local line="$2"
   local file="${3:-$STATE_FILE}"
   if [ ! -f "$file" ]; then return 0; fi
-  # Use awk to insert line after section header
-  awk -v sect="[$section]" -v newline="$line" '
-    $0 == sect { print; print newline; next }
+  # Use ENVIRON to pass line text — awk -v interprets backslash escapes,
+  # which mangles Windows paths (e.g., \Users → Users, \t → tab).
+  APPEND_LINE="$line" awk -v sect="[$section]" '
+    $0 == sect { print; print ENVIRON["APPEND_LINE"]; next }
     { print }
   ' "$file" > "$file.tmp.$$" && mv "$file.tmp.$$" "$file"
 }

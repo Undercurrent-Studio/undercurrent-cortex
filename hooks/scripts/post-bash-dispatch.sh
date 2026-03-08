@@ -5,9 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh"
 source "$SCRIPT_DIR/lib/json-extract.sh"
 
-# Guard: only act in Undercurrent project
-is_undercurrent_project || { printf '{}'; exit 0; }
-
 # Guard: state file must exist
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
 

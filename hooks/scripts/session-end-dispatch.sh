@@ -84,17 +84,17 @@ fi
 
 # 9/10. Topology classification from re-edit counts
 max_re_edits=0
-topology="linear"
+topology="focused"
 if [ -n "$files_modified" ]; then
   # Find max edits to any single file
   max_re_edits=$(echo "$files_modified" | sort | uniq -c | awk '{print $1}' | sort -rn | head -n 1)
   max_re_edits="${max_re_edits:-0}"
 
-  # Classify per master plan spec: linear (<=2), spiral (3-5), thrashing (6+)
+  # Classify: focused (<=2), iterating (3-5), high-churn (6+)
   if [ "$max_re_edits" -ge 6 ]; then
-    topology="thrashing"
+    topology="high-churn"
   elif [ "$max_re_edits" -ge 3 ]; then
-    topology="spiral"
+    topology="iterating"
   fi
 fi
 

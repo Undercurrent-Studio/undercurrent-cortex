@@ -6,9 +6,6 @@ source "$SCRIPT_DIR/lib/state-io.sh"
 source "$SCRIPT_DIR/lib/json-extract.sh"
 source "$SCRIPT_DIR/lib/escape-json.sh"
 
-# Guard: only act in Undercurrent project
-is_undercurrent_project || { printf '{}'; exit 0; }
-
 # Buffer stdin
 input=$(cat)
 
