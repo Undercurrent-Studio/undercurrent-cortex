@@ -47,6 +47,9 @@ carry_over_age=0
 debug=false
 mode=normal
 commit_nudge_threshold=15
+last_sensory_check=
+last_remote_head=
+last_ci_status=
 
 [files_modified]
 
@@ -244,6 +247,12 @@ if [ -f "$CROSS_FILE" ]; then
   fi
 fi
 
+# --- Step 5c: Sensory System — external awareness ---
+sensory_output=""
+if [ -x "$SCRIPT_DIR/scripts/sensory-check.sh" ]; then
+  sensory_output=$("$SCRIPT_DIR/scripts/sensory-check.sh" 2>/dev/null || echo "")
+fi
+
 # --- Step 6: Carry-over re-injection ---
 carry_over_msg=""
 if [ -n "$old_carry_over" ]; then
@@ -251,7 +260,7 @@ if [ -n "$old_carry_over" ]; then
 fi
 
 # --- Output ---
-full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${carry_over_msg}"
+full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${sensory_output:+$'\n\n'Sensory scan:$'\n'${sensory_output}}${carry_over_msg}"
 escaped=$(escape_for_json "$full_context")
 context="<undercurrent-session-start>${escaped}</undercurrent-session-start>"
 

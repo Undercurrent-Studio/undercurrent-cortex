@@ -93,6 +93,23 @@ elif [[ "$PROMPT_LOWER" == *typescript* ]] || [[ "$PROMPT_LOWER" == *"type error
      || [[ "$PROMPT_LOWER" == *"use client"* ]]; then
   CONTEXT_FILE="$CONTEXT_DIR/typescript-discipline.md"
 
+elif [[ "$PADDED" == *" ci "* ]] || [[ "$PROMPT_LOWER" == *"pipeline status"* ]] \
+     || [[ "$PROMPT_LOWER" == *"build status"* ]] || [[ "$PROMPT_LOWER" == *"github actions"* ]] \
+     || [[ "$PROMPT_LOWER" == *"remote commits"* ]] || [[ "$PROMPT_LOWER" == *"open prs"* ]]; then
+  # Sensory system: mid-session external awareness check
+  sensory_output=""
+  if [ -x "$SCRIPT_DIR/sensory-check.sh" ]; then
+    sensory_output=$("$SCRIPT_DIR/sensory-check.sh" --mid-session 2>/dev/null || echo "")
+  fi
+  if [ -n "$sensory_output" ]; then
+    ESCAPED=$(escape_for_json "$sensory_output")
+    printf '{"systemMessage":"%s"}' "$ESCAPED"
+    exit 0
+  fi
+  # Fall through to empty if no sensory output
+  printf '{}'
+  exit 0
+
 elif [[ "$PROMPT_LOWER" == *"[decision]"* ]] || [[ "$PROMPT_LOWER" == *"decision:"* ]] \
      || [[ "$PROMPT_LOWER" == *"i decided"* ]] || [[ "$PROMPT_LOWER" == *"we decided"* ]]; then
   MSG="Decision detected. Log it with metadata:\n- Category: architecture / data / UX / pipeline / security\n- Reversibility: easy / hard / irreversible\n- Confidence: high / medium / low\nWrite entry to .claude/undercurrent-decisions.local.md with format:\n## YYYY-MM-DD - [title]\ncategory=[cat] reversibility=[rev] confidence=[conf]\n[description]"
