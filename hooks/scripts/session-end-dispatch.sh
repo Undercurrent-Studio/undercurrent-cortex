@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-source "$SCRIPT_DIR/lib/state-io.sh"
+source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 
 # Guard: only act in Undercurrent project
 is_undercurrent_project || { printf '{}'; exit 0; }

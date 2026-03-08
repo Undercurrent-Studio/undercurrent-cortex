@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-source "$SCRIPT_DIR/lib/state-io.sh"
-source "$SCRIPT_DIR/lib/json-extract.sh"
+source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 
 # Guard: state file must exist (session-start creates it)
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
@@ -28,7 +28,7 @@ if ! echo "$file_path" | grep -qE '\.claude-plugin/|\.claude/'; then
     fi
   fi
   if [ "$re_edit_count" -ge 3 ]; then
-    source "$SCRIPT_DIR/lib/escape-json.sh"
+    source "$SCRIPT_DIR/lib/escape-json.sh" || true
     msg=$(escape_for_json "Re-edit detected: ${file_path} has been modified ${re_edit_count} times this session. Consider stepping back to re-plan the approach.")
     printf '{"systemMessage":"%s"}' "$msg"
     exit 0
@@ -43,7 +43,7 @@ fi
 # Commit cadence nudge (>15 edits without commit)
 edits=$(read_field "edits_since_last_commit" "$STATE_FILE")
 if [ "${edits:-0}" -gt 15 ]; then
-  source "$SCRIPT_DIR/lib/escape-json.sh"
+  source "$SCRIPT_DIR/lib/escape-json.sh" || true
   msg=$(escape_for_json "You have ${edits} edits since last commit. Per Undercurrent workflow: commit after each wave/phase.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0
@@ -52,7 +52,7 @@ fi
 # Doc-sync reminder for architectural files
 docs_updated=$(read_field "docs_updated" "$STATE_FILE")
 if [[ "$docs_updated" != "true" ]] && echo "$file_path" | grep -qiE 'scoring|pipeline|v10|v11|constants|middleware|signals|cached-loader|env\.ts|cron|batch-upsert|stripe'; then
-  source "$SCRIPT_DIR/lib/escape-json.sh"
+  source "$SCRIPT_DIR/lib/escape-json.sh" || true
   msg=$(escape_for_json "Architectural file modified. Consider updating documentation.md.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0

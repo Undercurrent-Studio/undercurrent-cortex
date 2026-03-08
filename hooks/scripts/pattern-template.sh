@@ -2,9 +2,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-source "$SCRIPT_DIR/lib/state-io.sh"
-source "$SCRIPT_DIR/lib/json-extract.sh"
-source "$SCRIPT_DIR/lib/escape-json.sh"
+source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
 # Read stdin JSON, extract file path
 file_path=$(cat | extract_json_field "tool_input.file_path")

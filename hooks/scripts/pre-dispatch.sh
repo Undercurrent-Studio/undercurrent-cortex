@@ -5,8 +5,8 @@ set -euo pipefail
 # Prompt-based hooks remain inline in hooks.json with their own matchers.
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-source "$SCRIPT_DIR/lib/state-io.sh"
-source "$SCRIPT_DIR/lib/json-extract.sh"
+source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 
 # Buffer stdin ONCE
 INPUT=$(cat)

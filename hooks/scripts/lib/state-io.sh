@@ -37,6 +37,8 @@ increment_field() {
   local current
   current=$(read_field "$field" "$file")
   current="${current:-0}"
+  # Guard: non-numeric → reset to 0 (prevents arithmetic crash with set -e)
+  case "$current" in *[!0-9]*) current=0 ;; esac
   local next=$(( current + 1 ))
   write_field "$field" "$next" "$file"
 }

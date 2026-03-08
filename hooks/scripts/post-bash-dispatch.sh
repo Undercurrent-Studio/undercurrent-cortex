@@ -2,8 +2,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
-source "$SCRIPT_DIR/lib/state-io.sh"
-source "$SCRIPT_DIR/lib/json-extract.sh"
+source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 
 # Guard: state file must exist
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
@@ -38,7 +38,7 @@ if echo "$command_str" | grep -qE '^[[:space:]]*git[[:space:]]+commit[[:space:]]
     # --- Conventional commit check ---
     if [ "$msg" != "commit" ]; then
       if ! echo "$msg" | grep -qE '^(feat|fix|refactor|docs|chore|test|perf|ci|build|style):'; then
-        source "$SCRIPT_DIR/lib/escape-json.sh"
+        source "$SCRIPT_DIR/lib/escape-json.sh" || true
         warn=$(escape_for_json "Non-conventional commit: '${msg}'. Expected prefix: feat:/fix:/refactor:/docs:/chore:/test:. Consider: git commit --amend -m 'type: ...'")
         printf '{"systemMessage":"%s"}' "$warn"
         exit 0

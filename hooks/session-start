@@ -4,8 +4,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-source "$SCRIPT_DIR/scripts/lib/state-io.sh"
-source "$SCRIPT_DIR/scripts/lib/escape-json.sh"
+source "$SCRIPT_DIR/scripts/lib/state-io.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/scripts/lib/escape-json.sh" || { printf '{}'; exit 0; }
+source "$SCRIPT_DIR/scripts/lib/validate-organism.sh" || true
+
+# --- Step 0: Organism self-repair ---
+repair_report=""
+if type validate_organism &>/dev/null; then
+  repair_result=$(validate_organism 2>/dev/null || echo "0|0|")
+  repair_issues=$(echo "$repair_result" | cut -d'|' -f1)
+  repair_fixes=$(echo "$repair_result" | cut -d'|' -f2)
+  repair_details=$(echo "$repair_result" | cut -d'|' -f3-)
+  if [ "${repair_issues:-0}" -gt 0 ]; then
+    repair_report="Organism self-repair: fixed ${repair_fixes} of ${repair_issues} issues (${repair_details})"
+  fi
+fi
 
 # --- Step 1: Read old carry-over BEFORE overwriting state file ---
 old_carry_over=""
@@ -155,7 +168,7 @@ if [ -n "$old_carry_over" ]; then
 fi
 
 # --- Output ---
-full_context="${skill_content}${missed_close}${health_warning}${proposal_summary}${carry_over_msg}"
+full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${carry_over_msg}"
 escaped=$(escape_for_json "$full_context")
 context="<undercurrent-session-start>${escaped}</undercurrent-session-start>"
 
