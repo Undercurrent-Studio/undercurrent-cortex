@@ -201,6 +201,49 @@ if [ -f "$PROPOSALS_FILE" ]; then
   fi
 fi
 
+# --- Step 5b: Social System — cross-session patterns ---
+social_warnings=""
+
+if [ -f "$HEALTH_FILE" ]; then
+  # Get last 5 data rows (skip headers/metadata)
+  social_data=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -5)
+  social_row_count=0
+  if [ -n "$social_data" ]; then
+    social_row_count=$(echo "$social_data" | wc -l | tr -d ' ')
+  fi
+
+  if [ "${social_row_count:-0}" -ge 3 ]; then
+    # Domain clustering (field 12, may be empty on old rows)
+    recent_domains=$(echo "$social_data" | awk -F'|' 'NF >= 12 && $12 != "" {print $12}')
+    if [ -n "$recent_domains" ]; then
+      top_domain_line=$(echo "$recent_domains" | sort | uniq -c | sort -rn | head -1 | sed 's/^[[:space:]]*//')
+      domain_count=$(echo "$top_domain_line" | awk '{print $1}')
+      domain_name=$(echo "$top_domain_line" | awk '{print $2}')
+      if [ "${domain_count:-0}" -ge 3 ] && [ "$domain_name" != "mixed" ] && [ "$domain_name" != "idle" ]; then
+        social_warnings="${social_warnings}You've been working on ${domain_name} for ${domain_count} of the last 5 sessions. Consider: is the approach working, or circling?"$'\n'
+      fi
+    fi
+
+    # Session length trend
+    recent_durations=$(echo "$social_data" | awk -F'|' '{print $9}')
+    if [ -n "$recent_durations" ]; then
+      avg_dur=$(echo "$recent_durations" | awk '{s+=$1; c++} END {if(c>0) printf "%d", s/c; else print 0}')
+      if [ "${avg_dur:-0}" -lt 5 ] && [ "${avg_dur:-0}" -gt 0 ]; then
+        social_warnings="${social_warnings}Last 5 sessions averaged ${avg_dur} minutes. Longer focused sessions may be more productive."$'\n'
+      fi
+    fi
+  fi
+fi
+
+# Recurring file edits (from cross-session tracker)
+CROSS_FILE="${PROJECT_DIR}/.claude/undercurrent-cross-session.local.md"
+if [ -f "$CROSS_FILE" ]; then
+  hot_files=$(awk -F'|' '/^[^#]/ && $2+0 >= 4 { printf "  - %s (%s sessions)\n", $1, $2 }' "$CROSS_FILE")
+  if [ -n "$hot_files" ]; then
+    social_warnings="${social_warnings}Frequently edited files (4+ sessions):"$'\n'"${hot_files}"$'\n'"Consider if these need a deeper refactor."$'\n'
+  fi
+fi
+
 # --- Step 6: Carry-over re-injection ---
 carry_over_msg=""
 if [ -n "$old_carry_over" ]; then
@@ -208,7 +251,7 @@ if [ -n "$old_carry_over" ]; then
 fi
 
 # --- Output ---
-full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${carry_over_msg}"
+full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${carry_over_msg}"
 escaped=$(escape_for_json "$full_context")
 context="<undercurrent-session-start>${escaped}</undercurrent-session-start>"
 

@@ -98,6 +98,29 @@ if [ -n "$files_modified" ]; then
   fi
 fi
 
+# --- Domain tagging ---
+domain_tag="mixed"
+if [ -n "$files_modified" ]; then
+  top_dir=$(echo "$files_modified" \
+    | grep -oE 'src/[^/]+(/[^/]+)?' \
+    | sort | uniq -c | sort -rn | head -1 \
+    | awk '{print $2}' 2>/dev/null || echo "")
+  case "$top_dir" in
+    src/lib/scoring*) domain_tag="scoring" ;;
+    src/lib/signals*) domain_tag="signals" ;;
+    src/lib/pipeline*|src/lib/data-sources*) domain_tag="pipeline" ;;
+    src/components/stock*) domain_tag="stock-ui" ;;
+    src/components/database*) domain_tag="database-ui" ;;
+    src/app/api*) domain_tag="api" ;;
+    src/__tests__*) domain_tag="testing" ;;
+    supabase/migrations*) domain_tag="migrations" ;;
+    .claude-plugin*|.claude/*) domain_tag="plugin" ;;
+    *) domain_tag="mixed" ;;
+  esac
+elif [ "${total_edits:-0}" -eq 0 ]; then
+  domain_tag="idle"
+fi
+
 # --- Write to health file ---
 mkdir -p "$(dirname "$HEALTH_FILE")"
 
@@ -105,7 +128,7 @@ mkdir -p "$(dirname "$HEALTH_FILE")"
 if [ ! -f "$HEALTH_FILE" ]; then
   cat > "$HEALTH_FILE" << 'HEADER'
 # Undercurrent Health Log
-# Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min|max_re_edits|topology
+# Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min|max_re_edits|topology|domain_tag
 trend_direction=stable
 avg_reasoning_misses=0.0
 avg_edits_per_commit=0.0
@@ -114,8 +137,8 @@ avg_duration_min=0
 HEADER
 fi
 
-# Append data row
-echo "${today}|${reasoning_misses}|${edits_per_commit}|${docs_synced}|${tests_delta}|${lessons_created}|${carry_resolved}|${carry_total}|${duration_min}|${max_re_edits}|${topology}" >> "$HEALTH_FILE"
+# Append data row (12 fields — old rows with 11 are backward-compatible)
+echo "${today}|${reasoning_misses}|${edits_per_commit}|${docs_synced}|${tests_delta}|${lessons_created}|${carry_resolved}|${carry_total}|${duration_min}|${max_re_edits}|${topology}|${domain_tag}" >> "$HEALTH_FILE"
 
 # --- Recompute rolling averages from last 10 data lines ---
 data_lines=$(grep -v '^#' "$HEALTH_FILE" | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -10)
@@ -150,6 +173,56 @@ if [ "$line_count" -ge 1 ]; then
     /^avg_duration_min=/ { print "avg_duration_min=" adur; next }
     { print }
   ' "$HEALTH_FILE" > "$HEALTH_FILE.tmp.$$" && mv "$HEALTH_FILE.tmp.$$" "$HEALTH_FILE"
+fi
+
+# --- Cross-session file tracking ---
+CROSS_FILE="${PROJECT_DIR}/.claude/undercurrent-cross-session.local.md"
+if [ ! -f "$CROSS_FILE" ]; then
+  {
+    echo "# Cross-Session File Edit Tracker"
+    echo "# Format: filepath|session_count|last_session_date"
+  } > "$CROSS_FILE"
+fi
+
+if [ -n "$files_modified" ]; then
+  unique_files=$(echo "$files_modified" | sort -u)
+  while IFS= read -r filepath; do
+    [ -z "$filepath" ] && continue
+    # Skip plugin infrastructure files
+    echo "$filepath" | grep -qE '\.claude-plugin/|\.claude/' && continue
+    if grep -qF "${filepath}|" "$CROSS_FILE" 2>/dev/null; then
+      old_count=$(grep -F "${filepath}|" "$CROSS_FILE" | head -1 | cut -d'|' -f2)
+      new_count=$((old_count + 1))
+      # Use awk + ENVIRON to avoid Windows path mangling
+      FILEPATH="$filepath" NEWCOUNT="$new_count" TODAY="$today" awk '
+        BEGIN { fp=ENVIRON["FILEPATH"]; nc=ENVIRON["NEWCOUNT"]; td=ENVIRON["TODAY"] }
+        index($0, fp"|") == 1 { print fp"|"nc"|"td; next }
+        { print }
+      ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
+    else
+      echo "${filepath}|1|${today}" >> "$CROSS_FILE"
+    fi
+  done <<< "$unique_files"
+fi
+
+# Prune cross-session entries older than 30 days
+cutoff=$(date -d "30 days ago" +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d 2>/dev/null || echo "")
+if [ -n "$cutoff" ] && [ -f "$CROSS_FILE" ]; then
+  CUTOFF="$cutoff" awk -F'|' '
+    /^#/ { print; next }
+    NF < 3 { print; next }
+    $3 >= ENVIRON["CUTOFF"] { print }
+  ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
+fi
+
+# --- Proposal count warning ---
+if [ -f "$PROPOSALS_FILE" ]; then
+  if grep -q '^id=' "$PROPOSALS_FILE" 2>/dev/null; then
+    proposal_count=$(grep -c '^id=' "$PROPOSALS_FILE" 2>/dev/null)
+    if [ "${proposal_count:-0}" -gt 50 ]; then
+      write_field "proposals_need_archiving" "true" "$STATE_FILE" 2>/dev/null || true
+    fi
+  fi
 fi
 
 printf '{}'
