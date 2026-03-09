@@ -12,8 +12,9 @@ source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
 CONTEXT_DIR="$SCRIPT_DIR/../../context"
 
-# Read stdin JSON, extract user_prompt
+# Read stdin JSON, resolve session-scoped state file, extract user_prompt
 INPUT=$(cat)
+resolve_state_file "$INPUT"
 PROMPT=$(printf '%s' "$INPUT" | extract_json_field "user_prompt")
 
 # Graceful degradation

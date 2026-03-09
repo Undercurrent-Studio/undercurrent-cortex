@@ -6,11 +6,14 @@ source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
-# Graceful degradation: no state file → approve
-[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
-
 # Buffer stdin ONCE (C1 fix — extract_json_field uses cat internally)
 INPUT=$(cat)
+
+# Resolve session-scoped state file from session_id in hook JSON
+resolve_state_file "$INPUT"
+
+# Graceful degradation: no state file → approve
+[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
 
 # --- ESCAPE HATCH: consecutive_blocks >= 2 → force-approve ---
 consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")

@@ -4,8 +4,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 
-# Buffer stdin (SessionEnd may or may not provide JSON — we don't use it)
+# Diagnostic: log every invocation (remove after confirming hook fires)
+echo "$(date -Iseconds) session-end-dispatch fired" >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
+
+# Buffer stdin (SessionEnd may or may not provide JSON)
 INPUT=$(cat)
+
+# Resolve session-scoped state file from session_id in hook JSON
+resolve_state_file "$INPUT"
 
 # Guard: state file must exist (session-start creates it)
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }

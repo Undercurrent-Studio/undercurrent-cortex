@@ -5,11 +5,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 
+# Buffer stdin ONCE, then resolve session-scoped state file
+INPUT=$(cat)
+resolve_state_file "$INPUT"
+
 # Guard: state file must exist (session-start creates it)
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
 
-# Read stdin JSON, extract nested tool_input.file_path
-file_path=$(cat | extract_json_field "tool_input.file_path")
+# Extract nested tool_input.file_path from buffered input
+file_path=$(printf '%s' "$INPUT" | extract_json_field "tool_input.file_path")
 file_path=$(echo "$file_path" | sed 's|\\\\|/|g')  # Windows path normalization
 
 [ -z "$file_path" ] && { printf '{}'; exit 0; }

@@ -5,11 +5,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 
+# Buffer stdin ONCE, then resolve session-scoped state file
+INPUT=$(cat)
+resolve_state_file "$INPUT"
+
 # Guard: state file must exist
 [ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
 
-# Read stdin JSON, extract tool_input.command
-command_str=$(cat | extract_json_field "tool_input.command")
+# Extract tool_input.command from buffered input
+command_str=$(printf '%s' "$INPUT" | extract_json_field "tool_input.command")
 [ -z "$command_str" ] && { printf '{}'; exit 0; }
 
 # --- Pattern: test commands ---

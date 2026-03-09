@@ -6,11 +6,14 @@ source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
-# Graceful degradation: no state file → nothing to preserve
-[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
-
 # Buffer stdin ONCE (C1 fix — extract_json_field uses cat internally)
 INPUT=$(cat)
+
+# Resolve session-scoped state file from session_id in hook JSON
+resolve_state_file "$INPUT"
+
+# Graceful degradation: no state file → nothing to preserve
+[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
 
 # --- Optional transcript scan: write discovered items to [carry_over] (I3 fix) ---
 transcript_path=$(printf '%s' "$INPUT" | extract_json_field "transcript_path")

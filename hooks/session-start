@@ -8,7 +8,35 @@ source "$SCRIPT_DIR/scripts/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/scripts/lib/escape-json.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/scripts/lib/validate-organism.sh" || true
 
-# --- Step 0: Organism self-repair ---
+# Buffer stdin to extract session_id
+HOOK_INPUT=$(cat)
+
+# Extract session_id from hook JSON (Claude Code provides this)
+HOOK_SESSION_ID=""
+if [ -n "$HOOK_INPUT" ]; then
+  if command -v jq >/dev/null 2>&1; then
+    HOOK_SESSION_ID=$(echo "$HOOK_INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+  fi
+  if [ -z "$HOOK_SESSION_ID" ] && command -v python3 >/dev/null 2>&1; then
+    HOOK_SESSION_ID=$(echo "$HOOK_INPUT" | python3 -c "import sys,json; print(json.load(sys.stdin).get('session_id',''))" 2>/dev/null)
+  fi
+  if [ -z "$HOOK_SESSION_ID" ]; then
+    local_tmp="${HOOK_INPUT#*\"session_id\":\"}"
+    if [ "$local_tmp" != "$HOOK_INPUT" ]; then
+      HOOK_SESSION_ID="${local_tmp%%\"*}"
+    fi
+  fi
+fi
+# Fallback: use epoch timestamp if no session_id from Claude Code
+[ -z "$HOOK_SESSION_ID" ] && HOOK_SESSION_ID="$(date +%s)"
+
+# Set session-scoped state file path
+init_state_file "$HOOK_SESSION_ID"
+
+# --- Step 0: Cleanup stale state files (>24 hours old) ---
+cleanup_stale_state_files
+
+# --- Step 0b: Organism self-repair ---
 repair_report=""
 if type validate_organism &>/dev/null; then
   repair_result=$(validate_organism 2>/dev/null || echo "0|0|")
@@ -20,17 +48,30 @@ if type validate_organism &>/dev/null; then
   fi
 fi
 
-# --- Step 1: Read old carry-over BEFORE overwriting state file ---
+# --- Step 1: Read old carry-over from ANY existing state files ---
 old_carry_over=""
 old_carry_over_age="0"
-if [ -f "$STATE_FILE" ]; then
-  old_carry_over=$(read_section "carry_over" "$STATE_FILE")
-  old_carry_over_age=$(read_field "carry_over_age" "$STATE_FILE")
-  old_carry_over_age="${old_carry_over_age:-0}"
+for sf in "${STATE_DIR}"/undercurrent-state-*.local.md "${STATE_DIR}/undercurrent-state.local.md"; do
+  [ -f "$sf" ] || continue
+  [ "$sf" = "$STATE_FILE" ] && continue  # skip our own (not created yet)
+  co=$(read_section "carry_over" "$sf")
+  if [ -n "$co" ]; then
+    old_carry_over="${old_carry_over}${co}"$'\n'
+    age=$(read_field "carry_over_age" "$sf")
+    age="${age:-0}"
+    # Take the max carry_over_age across all sessions
+    if [ "$age" -gt "$old_carry_over_age" ]; then
+      old_carry_over_age="$age"
+    fi
+  fi
+done
+# Deduplicate carry-over lines
+if [ -n "$old_carry_over" ]; then
+  old_carry_over=$(echo "$old_carry_over" | sort -u | sed '/^$/d')
 fi
 
-# --- Step 2: Create fresh state file ---
-mkdir -p "$(dirname "$STATE_FILE")"
+# --- Step 2: Create fresh session-scoped state file ---
+mkdir -p "$STATE_DIR"
 cat > "$STATE_FILE" << 'STATEEOF'
 session_id=PLACEHOLDER_ID
 session_start=PLACEHOLDER_TIME
@@ -58,7 +99,7 @@ last_ci_status=
 [activity_log]
 STATEEOF
 # Fill in dynamic values
-write_field "session_id" "$(date +%s)" "$STATE_FILE"
+write_field "session_id" "$HOOK_SESSION_ID" "$STATE_FILE"
 write_field "session_start" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STATE_FILE"
 
 # Carry-over age tracking: increment if carry-over persists, reset if empty
