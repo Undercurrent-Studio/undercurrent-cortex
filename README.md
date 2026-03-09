@@ -154,6 +154,30 @@ The `conversation-analyzer` agent watches for recurring patterns across sessions
 
 *Where:* `agents/conversation-analyzer.md` generates proposals → stored in `undercurrent-proposals.local.md`
 
+**8b. Research System — Deep-Dive Agent**
+A world-class research analyst agent that can exhaustively investigate any topic — competitors, markets, technology, codebase architecture, new ideas — and produce a comprehensive written report with strategic recommendations.
+
+What makes it different from a web search:
+- **Hypothesis-driven** — formulates what it expects to find *before* searching, which produces better queries
+- **Browser-equipped** — actually visits live products via Playwright, takes screenshots, tests user flows
+- **Incremental writing** — writes findings to file as it goes, so nothing is lost to context limits
+- **Auto-splitting** — when a sub-topic is deep enough, it creates a linked sub-report
+- **Adversarial** — actively searches for counter-evidence to its own findings
+- **Strategic output** — doesn't just collect facts; produces recommendations, opportunity assessments, threat analysis
+
+The 6-phase methodology:
+1. **Scoping** — decompose topic into sub-questions, formulate hypotheses, create report skeleton
+2. **Broad Discovery** — 5-15 varied web searches, visit live products, build source hierarchy
+3. **Deep Investigation** — sequential per sub-topic, chase primary sources, write to file after each
+4. **Cross-Validation** — confirm from independent sources, search for counter-evidence, assign confidence (HIGH/MEDIUM/LOW)
+5. **Synthesis** — non-obvious connections, strategic implications, comparison matrices, key takeaways
+6. **Quality Audit** — every claim sourced? thin sections fleshed out? research journal written
+
+Reports are saved to `tasks/research/` (project topics) or `docs/research/` (external topics).
+
+*Where:* `agents/deep-dive.md`
+*Invoke:* `/deep-dive <topic>` or say "do a deep dive on [topic]", "research [topic]", "compare X vs Y", "investigate [topic]"
+
 ---
 
 ### Systems 9-13: The v3 Expansion
@@ -268,10 +292,11 @@ Patterns that only emerge across multiple sessions:
 | PreCompact | pre-compact.sh | hooks.json | Preserve carry-over |
 | SessionEnd | session-end-dispatch.sh | hooks.json | Health metrics, domain tag, cross-session tracking |
 
-### 3 Commands
+### 4 Commands
 
 | Command | What it does |
 |---------|-------------|
+| `/deep-dive <topic>` | Launch exhaustive research on any topic — produces a comprehensive written report |
 | `/session-end` | Write journal entry, carry-over, reasoning audit, health metrics |
 | `/analyze-session` | Deep adaptive immunity scan (triggered by corrections or reasoning misses) |
 | `/review-decisions` | Review decisions from 7-14 days ago for validation |
@@ -356,8 +381,8 @@ undercurrent-plugin/
         state-io.sh                      # read_field/write_field/read_section/append_to_section
         validate-organism.sh            # Healing system: 9 self-repair checks
   skills/          # 16 skill directories
-  commands/        # 3 slash commands
-  agents/          # conversation-analyzer (evolution proposal generator)
+  commands/        # 4 slash commands
+  agents/          # conversation-analyzer (evolution) + deep-dive (research)
   context/         # 8 domain context files
   scripts/         # sync-plugin.sh
 ```
