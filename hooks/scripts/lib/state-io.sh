@@ -60,7 +60,7 @@ resolve_state_file() {
   else
     # No session_id available — find the newest state file
     local newest
-    newest=$(ls -t "${STATE_DIR}"/undercurrent-state-*.local.md 2>/dev/null | head -1)
+    newest=$(ls -t "${STATE_DIR}"/undercurrent-state-*.local.md 2>/dev/null | head -1 || true)
     if [ -n "$newest" ]; then
       STATE_FILE="$newest"
     else

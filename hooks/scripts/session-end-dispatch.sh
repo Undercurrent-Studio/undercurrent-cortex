@@ -4,17 +4,46 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 
-# Diagnostic: log every invocation (remove after confirming hook fires)
-echo "$(date -Iseconds) session-end-dispatch fired" >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
-
 # Buffer stdin (SessionEnd may or may not provide JSON)
 INPUT=$(cat)
 
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
+# Diagnostic: log every invocation with full context (remove after confirming health writes work)
+{
+  echo "$(date -Iseconds) session-end-dispatch fired"
+  echo "  INPUT=${INPUT:0:200}"
+  echo "  STATE_FILE=$STATE_FILE"
+  echo "  EXISTS=$([ -f "$STATE_FILE" ] && echo yes || echo no)"
+  ls -t "${STATE_DIR}"/undercurrent-state*.local.md 2>/dev/null | head -5 | sed 's/^/  state_file: /'
+} >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
+
 # Guard: state file must exist (session-start creates it)
-[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
+# Fallback: if session-scoped file doesn't exist, try legacy file
+if [ ! -f "$STATE_FILE" ]; then
+  legacy="${STATE_DIR}/undercurrent-state.local.md"
+  if [ -f "$legacy" ]; then
+    STATE_FILE="$legacy"
+  else
+    printf '{}'
+    exit 0
+  fi
+fi
+
+# Dedup guard: prevent duplicate health writes if hook fires multiple times
+health_written=$(grep '^health_written=' "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true)
+if [ "$health_written" = "true" ]; then
+  printf '{}'
+  exit 0
+fi
+# Mark as written — append field if missing, replace if present
+if grep -q '^health_written=' "$STATE_FILE" 2>/dev/null; then
+  write_field "health_written" "true" "$STATE_FILE"
+else
+  # Insert before first section header (only first match via 0,/pattern/)
+  sed '0,/^\[/{s/^\[/health_written=true\n[/}' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
+fi
 
 # --- Compute metrics ---
 today=$(date +%Y-%m-%d)

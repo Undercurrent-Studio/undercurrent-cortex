@@ -12,8 +12,16 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
-# Graceful degradation: no state file → nothing to preserve
-[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
+# Graceful degradation: no state file → try legacy, else nothing to preserve
+if [ ! -f "$STATE_FILE" ]; then
+  legacy="${STATE_DIR}/undercurrent-state.local.md"
+  if [ -f "$legacy" ]; then
+    STATE_FILE="$legacy"
+  else
+    printf '{}'
+    exit 0
+  fi
+fi
 
 # --- Optional transcript scan: write discovered items to [carry_over] (I3 fix) ---
 transcript_path=$(printf '%s' "$INPUT" | extract_json_field "transcript_path")

@@ -12,8 +12,16 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
-# Graceful degradation: no state file → approve
-[ -f "$STATE_FILE" ] || { printf '{}'; exit 0; }
+# Graceful degradation: no state file → try legacy, else approve
+if [ ! -f "$STATE_FILE" ]; then
+  legacy="${STATE_DIR}/undercurrent-state.local.md"
+  if [ -f "$legacy" ]; then
+    STATE_FILE="$legacy"
+  else
+    printf '{}'
+    exit 0
+  fi
+fi
 
 # --- ESCAPE HATCH: consecutive_blocks >= 2 → force-approve ---
 consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")
