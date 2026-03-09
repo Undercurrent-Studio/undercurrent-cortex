@@ -62,4 +62,11 @@ Log as `[health-metrics]`:
 
 See `examples/journal-entry.md` for a model journal entry with proper tags.
 
+**Step 7 — Organism health dispatch** (non-negotiable, every session):
+The SessionEnd hook does not fire reliably on Windows/VSCode. Run the dispatch script manually to ensure health metrics are recorded:
+```
+echo '{}' | bash "C:/Users/whflo/.claude/plugins/cache/claude-plugins-official/undercurrent/55b58ec6e564/hooks/scripts/session-end-dispatch.sh"
+```
+If this outputs `{}` silently, health was written (or the dedup guard fired). Check `undercurrent-v1/.claude/undercurrent-health.local.md` exists afterward.
+
 **Run session-end before closing every working session.** It takes 2 minutes.
