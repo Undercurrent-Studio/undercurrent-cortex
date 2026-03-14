@@ -1,0 +1,19 @@
+{
+  "name": "undercurrent-studio",
+  "owner": {
+    "name": "Undercurrent Studio L.L.C."
+  },
+  "plugins": [
+    {
+      "name": "undercurrent",
+      "source": "./",
+      "description": "Undercurrent compounding intelligence system — 17 skills, 3 agents, 14 hooks, 8 context files for institutional-grade stock research development",
+      "version": "2.0.0",
+      "author": {
+        "name": "Undercurrent Studio L.L.C."
+      },
+      "homepage": "https://github.com/Undercurrent-Studio/undercurrent-cortex",
+      "license": "MIT"
+    }
+  ]
+}
