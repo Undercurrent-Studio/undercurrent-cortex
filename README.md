@@ -1,4 +1,4 @@
-# Undercurrent Plugin
+# Undercurrent Cortex
 
 A Claude Code plugin that works like a **living organism** — 13 biological systems that learn, adapt, protect, and evolve across your coding sessions.
 
@@ -286,36 +286,12 @@ Injected by `context-flow.sh` on keyword match: scoring, migration, pipeline, de
 
 ---
 
-## Making Changes
-
-**Always edit in `undercurrent-plugin/`** (source of truth). Then sync:
-
-```bash
-bash scripts/sync-plugin.sh
-# Restart Claude Code for hook changes
-```
-
-Syncs to: plugin cache (runtime) + `undercurrent-v1/.claude-plugin/` (mirror).
-
 | Task | How |
 |------|-----|
 | Add a skill | Create `skills/<name>/SKILL.md` with YAML frontmatter → sync |
 | Add a hook (PreToolUse/PostToolUse) | Add routing in the dispatcher script → sync + restart |
 | Add a hook (other events) | Add to `hooks/hooks.json` → sync + restart |
 | Add a context file | Create in `context/` + add keywords in `context-flow.sh` → sync |
-
----
-
-## Troubleshooting
-
-| Problem | Fix |
-|---------|-----|
-| PreToolUse/PostToolUse not firing | Must be in `~/.claude/settings.json`, not plugin `hooks.json`. Use `"bash C:/path/to/script.sh"` — quoted full paths silently fail |
-| Paths mangled in state file | Re-sync to get `ENVIRON`-based `state-io.sh` (awk `-v` mangles Windows backslashes) |
-| Cache hash changed after update | Update paths in `settings.json` to match new cache directory |
-| Skills not appearing | Each needs `SKILL.md` with YAML frontmatter containing trigger phrases in `description` |
-| State file corrupted | Delete it — the Healing system will rebuild on next boot |
-| Sensory checks slow | Requires `gh` CLI authenticated. Without it, CI/PR checks are skipped silently |
 
 ---
 
@@ -353,19 +329,6 @@ undercurrent-plugin/
   context/         # 8 domain context files
   scripts/         # sync-plugin.sh
 ```
-
----
-
-## Windows Gotchas
-
-| Issue | Fix |
-|-------|-----|
-| `awk -v` mangles `\U`, `\t` in paths | Use `ENVIRON` instead: `VAR="$val" awk '... ENVIRON["VAR"] ...'` |
-| `cut -d:` splits at drive letter `C:` | Strip prefix with `sed` first, then `cut` |
-| `grep -c` outputs count even on no-match | Guard with `grep -q` first, then `grep -c` |
-| Quoted bash exe path in hooks | Use plain `bash` (must be on PATH) |
-| No `timeout` command in Git Bash | `sensory-check.sh` uses `run_with_timeout()` fallback |
-
 ---
 
 ## Version History
