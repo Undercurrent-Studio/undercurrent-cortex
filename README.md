@@ -37,40 +37,7 @@ All of this happens through bash hooks that fire at specific moments in your Cla
 
 **Step 1:** Install the plugin via Claude Code's plugin system.
 
-**Step 2:** Register dispatcher hooks in `~/.claude/settings.json`.
-
-Claude Code's plugin system can't fire command hooks for PreToolUse/PostToolUse events — only prompt hooks work for those. The workaround is registering two dispatcher scripts globally:
-
-```json
-{
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "bash C:/Users/<you>/.claude/plugins/cache/claude-plugins-official/undercurrent/<hash>/hooks/scripts/pre-dispatch.sh",
-          "timeout": 10
-        }]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "bash C:/Users/<you>/.claude/plugins/cache/claude-plugins-official/undercurrent/<hash>/hooks/scripts/post-dispatch.sh",
-          "timeout": 10
-        }]
-      }
-    ]
-  }
-}
-```
-
-> **Syntax:** Plain `bash` (not the full exe path). Forward slashes. No quotes around the script path. Matcher must be `".*"` (regex that matches all tools).
-
-**Step 3:** Restart Claude Code.
+**Step 2:** Restart Claude Code. All hooks auto-load from the plugin's `hooks/hooks.json` — no manual registration in `settings.json` needed.
 
 ---
 
