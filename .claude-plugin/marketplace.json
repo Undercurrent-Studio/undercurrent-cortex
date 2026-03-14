@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "undercurrent",
+      "name": "cortex",
       "source": "./",
       "description": "Undercurrent compounding intelligence system — 17 skills, 3 agents, 14 hooks, 8 context files for institutional-grade stock research development",
       "version": "2.0.0",
