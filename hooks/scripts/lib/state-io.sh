@@ -182,6 +182,24 @@ validate_state_file() {
   done
 }
 
+# normalize_path "path"
+# Normalizes a file path: backslash → forward slash, lowercase drive → uppercase.
+# Used to prevent duplicate tracking of the same file with different path formats.
+normalize_path() {
+  local p="$1"
+  # Backslash → forward slash
+  p="${p//\\//}"
+  # MSYS path /c/Users/... → C:/Users/...
+  if [[ "$p" =~ ^/([a-zA-Z])/ ]]; then
+    p="${BASH_REMATCH[1]^^}:/${p:3}"
+  fi
+  # Lowercase drive letter → uppercase (c:/ → C:/)
+  if [[ "$p" =~ ^[a-z]:/ ]]; then
+    p="${p^}"
+  fi
+  echo "$p"
+}
+
 # is_undercurrent_project [dir]
 # Returns 0 if current or given directory is the Undercurrent project.
 # Handles Git Bash MSYS paths (/c/Users/...) and Windows paths (C:/Users/...).

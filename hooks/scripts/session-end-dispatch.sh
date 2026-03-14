@@ -218,8 +218,12 @@ fi
 
 if [ -n "$files_modified" ]; then
   unique_files=$(echo "$files_modified" | sort -u)
-  while IFS= read -r filepath; do
-    [ -z "$filepath" ] && continue
+  while IFS= read -r raw_filepath; do
+    [ -z "$raw_filepath" ] && continue
+    # Fix 2: Skip non-path lines (state flags like health_written=true leak into [files_modified])
+    echo "$raw_filepath" | grep -qE '[/\\]' || continue
+    # Fix 1: Normalize path format (backslash→forward slash, lowercase drive→uppercase)
+    filepath=$(normalize_path "$raw_filepath")
     # Skip plugin infrastructure files
     echo "$filepath" | grep -qE '\.claude-plugin/|\.claude/' && continue
     if grep -qF "${filepath}|" "$CROSS_FILE" 2>/dev/null; then

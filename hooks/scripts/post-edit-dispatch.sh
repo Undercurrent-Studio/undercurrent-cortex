@@ -14,7 +14,7 @@ resolve_state_file "$INPUT"
 
 # Extract nested tool_input.file_path from buffered input
 file_path=$(printf '%s' "$INPUT" | extract_json_field "tool_input.file_path")
-file_path=$(echo "$file_path" | sed 's|\\\\|/|g')  # Windows path normalization
+file_path=$(normalize_path "$file_path")
 
 [ -z "$file_path" ] && { printf '{}'; exit 0; }
 

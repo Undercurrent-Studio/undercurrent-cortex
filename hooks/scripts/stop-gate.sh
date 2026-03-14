@@ -12,6 +12,9 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
+# Diagnostic: confirm hook fires (remove once verified)
+echo "$(date -Iseconds) stop-gate fired" >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
+
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
   legacy="${STATE_DIR}/undercurrent-state.local.md"
