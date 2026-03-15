@@ -23,11 +23,18 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check the tool input. If the file_path contains 'src/app/(dashboard)/', inject this reminder: 'Dashboard route detected. Verify: (1) middleware.ts matcher includes this path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill.'"
+            "prompt": "Dashboard security reminder: When writing to src/app/(dashboard)/ routes, verify: (1) middleware.ts matcher includes this path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill."
           },
           {
             "type": "prompt",
-            "prompt": "Check the tool input. If the code being written contains Supabase/PostgREST calls (.from(, .select(, .update(, .upsert(, .insert(, .delete(, .rpc(), supabase.), apply these 9 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. (9) Verify EVERY column name in .select() exists in actual schema — bad names return null data + error object (no throw), and with Promise.allSettled this silently becomes []. See database-query-safety skill."
+            "prompt": "PostgREST safety reminder: When writing Supabase/PostgREST calls, apply these 9 gotchas: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. (9) Verify EVERY column name in .select() exists in actual schema — bad names return null data + error object (no throw), and with Promise.allSettled this silently becomes []. See database-query-safety skill."
+          },
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-dispatch.sh\"",
+            "timeout": 30,
+            "async": false,
+            "_bug_workaround": "https://github.com/anthropics/claude-code/issues/34573 — these hooks are loaded but never fired by Claude Code. Actual dispatch happens via bootstrap-hooks.sh injecting into settings.local.json at session start. Remove when fixed."
           }
         ]
       },
@@ -36,7 +43,21 @@
         "hooks": [
           {
             "type": "prompt",
-            "prompt": "Check the tool input. If the command contains 'git push': (1) Check for untracked files imported by committed code. (2) Verify tests pass. (3) Confirm documentation.md updated if architectural files changed. (4) Never force-push to master. Warn before proceeding if any check would fail."
+            "prompt": "Git push safety reminder: Before pushing, (1) check for untracked files imported by committed code, (2) verify tests pass, (3) confirm documentation.md updated if architectural files changed, (4) never force-push to master. Warn before proceeding if any check would fail."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-dispatch.sh\"",
+            "timeout": 30,
+            "async": true,
+            "_bug_workaround": "https://github.com/anthropics/claude-code/issues/34573 — these hooks are loaded but never fired by Claude Code. Actual dispatch happens via bootstrap-hooks.sh injecting into settings.local.json at session start. Remove when fixed."
           }
         ]
       }
@@ -44,41 +65,49 @@
     "PreCompact": [
       {
         "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-compact.sh\"",
-          "async": false
-        }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-compact.sh\"",
+            "async": false
+          }
+        ]
       }
     ],
     "Stop": [
       {
         "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/stop-gate.sh\"",
-          "async": false
-        }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/stop-gate.sh\"",
+            "async": false
+          }
+        ]
       }
     ],
     "SessionEnd": [
       {
         "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-end-dispatch.sh\"",
-          "async": false
-        }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-end-dispatch.sh\"",
+            "async": false
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [
       {
         "matcher": ".*",
-        "hooks": [{
-          "type": "command",
-          "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/context-flow.sh\"",
-          "async": false
-        }]
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/context-flow.sh\"",
+            "async": false
+          }
+        ]
       }
     ]
   }

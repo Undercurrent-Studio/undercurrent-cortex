@@ -12,7 +12,6 @@ INPUT=$(cat)
 
 # Extract tool_name for routing
 tool_name=$(printf '%s' "$INPUT" | extract_json_field "tool_name")
-
 case "$tool_name" in
   Bash)
     printf '%s' "$INPUT" | "$SCRIPT_DIR/post-bash-dispatch.sh"

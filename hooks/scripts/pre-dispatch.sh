@@ -13,7 +13,6 @@ INPUT=$(cat)
 
 # Extract tool_name for routing
 tool_name=$(printf '%s' "$INPUT" | extract_json_field "tool_name")
-
 # Early exit for irrelevant tools
 case "$tool_name" in
   Write|Edit) ;;
@@ -21,26 +20,26 @@ case "$tool_name" in
 esac
 
 # Migration linter runs on Write AND Edit
-result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/migration-linter.sh")
+linter_result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/migration-linter.sh")
 
 # If migration-linter returned a deny, propagate it immediately
-if printf '%s' "$result" | grep -q '"deny"' 2>/dev/null; then
-  printf '%s' "$result"
+if printf '%s' "$linter_result" | grep -q '"deny"' 2>/dev/null; then
+  printf '%s' "$linter_result"
   exit 0
 fi
 
 # Plan-file-guard only runs on Write
 if [ "$tool_name" = "Write" ]; then
-  result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/plan-file-guard.sh")
-  if printf '%s' "$result" | grep -q '"deny"' 2>/dev/null; then
-    printf '%s' "$result"
+  guard_result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/plan-file-guard.sh")
+  if printf '%s' "$guard_result" | grep -q '"deny"' 2>/dev/null; then
+    printf '%s' "$guard_result"
     exit 0
   fi
 fi
 
 # If migration-linter returned a warning (systemMessage but not deny), output it
-if [ "$result" != "{}" ] && [ -n "$result" ]; then
-  printf '%s' "$result"
+if [ "$linter_result" != "{}" ] && [ -n "$linter_result" ]; then
+  printf '%s' "$linter_result"
   exit 0
 fi
 
