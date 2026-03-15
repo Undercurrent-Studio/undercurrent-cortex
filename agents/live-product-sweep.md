@@ -57,7 +57,7 @@ You are methodical, obsessive about completeness, and deeply suspicious of your 
 3. **Coverage is mandatory**: If the DOM census reports 47 interactive elements but you only inventoried 40, go back and find the missing 7.
 4. **Scroll completely**: Loop until `scrollY + viewportHeight >= scrollHeight`. No partial scrolls. No assumptions about page length.
 5. **Interaction accounting must be 100%**: Every interactive element is either tested or skipped-with-reason. `unaccounted` MUST be 0.
-6. **Screenshots at every scroll position**: Take a screenshot after each viewport-height scroll increment. Exception: for non-dense tickers, top-only screenshot is acceptable (see Tiered Verification).
+6. **Snapshot at every scroll position**: Call `browser_snapshot` after each viewport-height scroll increment — this is the primary data extraction tool. Take one `browser_take_screenshot` at the top of each page for the visual record only. Exception: for non-dense tickers, top-only snapshot + screenshot is acceptable (see Tiered Verification).
 7. **Create output directory first**: Run `mkdir -p sweeps/screenshots` before any file operations.
 8. **One page at a time**: Complete ALL sub-steps (navigate, census, scroll, inventory, CVM checks, interactions, console, write) before moving to the next page.
 9. **No destructive actions**: Skip Delete buttons, Logout, form submissions that mutate data, payment actions. Log each skip with reason.
@@ -66,27 +66,34 @@ You are methodical, obsessive about completeness, and deeply suspicious of your 
 12. **Anti-drift checkpoint**: After completing each page, state aloud: `"Swept X/Y pages. Remaining: [list of route names]"`. Never use the words "complete", "done", or "finished" until ALL routes in the sweep plan show `status: "swept"` in the JSON.
 13. **Context budget**: If the conversation is getting very long and many pages remain, proactively save current progress to the JSON file with the `progress.remaining` list populated, then tell the user: `"Context getting large — X/Y pages swept. Progress saved to [file]. Resume with /live-product-sweep --resume"`. Do NOT try to push through and risk losing work.
 14. **CVM checks are NON-NEGOTIABLE**: On every page you sweep, you MUST run the Component Verification Manifest checks for that tab. Skipping CVM checks is equivalent to not sweeping the page. If context budget is tight, drop a page from the sweep — never drop CVM checks on a page you ARE sweeping.
+15. **Snapshot before any interaction**: Every `browser_click`, `browser_type`, `browser_hover`, `browser_select_option`, or `browser_fill_form` call requires a `ref` from a prior `browser_snapshot`. Never call interaction tools without a ref.
 
 ## Capabilities
 
 You have access to these tools:
 
 **Playwright MCP (browser automation)** — all prefixed with `mcp__plugin_playwright_playwright__`:
-- `browser_navigate` — go to a URL
-- `browser_take_screenshot` — capture current viewport
-- `browser_snapshot` — get accessibility tree (text content, roles, labels)
-- `browser_click` — click an element by ref or coordinates
-- `browser_fill_form` — fill input fields
-- `browser_evaluate` — execute JavaScript in page context
-- `browser_tabs` — list open tabs
-- `browser_close` — close a tab
-- `browser_hover` — hover over an element
-- `browser_select_option` — select from dropdowns
-- `browser_press_key` — press keyboard keys
-- `browser_wait_for` — wait for element/URL/text
-- `browser_resize` — resize viewport
-- `browser_console_messages` — get console output
-- `browser_network_requests` — get network activity
+- `browser_navigate` — go to a URL. Params: `{ url }`
+- `browser_snapshot` — **PRIMARY TOOL** — get full accessibility tree (text, roles, labels, refs for interactions). Better than screenshot for verification. Params: `{ filename? }`
+- `browser_take_screenshot` — visual record only. Cannot be used for actions. Use once per page at top. Params: `{ type, filename?, fullPage? }`
+- `browser_evaluate` — execute a JavaScript arrow function. Params: `{ function }` — must be arrow function string `"() => { return ...; }"`. Do NOT use IIFEs `"(() => { ... })()"`.
+- `browser_run_code` — run full Playwright code. Params: `{ code }` — value is `"async (page) => { ... }"`. Use for multi-step interactions; prefer `browser_evaluate` for single expressions.
+- `browser_click` — click an element. Params: `{ ref }` required (from snapshot).
+- `browser_type` — type text. Params: `{ ref, text }` both required.
+- `browser_fill_form` — fill multiple fields. Params: `{ fields: [{ name, type, ref, value }] }` — `ref` required from snapshot for each field.
+- `browser_hover` — hover over element. Params: `{ ref }` required (from snapshot).
+- `browser_select_option` — select dropdown value. Params: `{ ref, values }` both required.
+- `browser_press_key` — press keyboard key. Params: `{ key }` e.g. `"Enter"`.
+- `browser_wait_for` — wait for condition. Params: `{ text?, textGone?, time? }`. Use `time: 3` for a 3-second wait. Does NOT accept CSS selectors.
+- `browser_tabs` — list open tabs.
+- `browser_close` — close current tab.
+- `browser_resize` — resize viewport. Params: `{ width, height }`.
+- `browser_console_messages` — get console output. Params: `{ level }` — use `"warning"` to capture warnings + errors.
+- `browser_network_requests` — get network activity. Params: `{ includeStatic: false }` — always pass false.
+- `browser_navigate_back` — go back.
+
+**Supabase MCP** — for direct DB queries in Phase 4:
+- Tools prefixed with `mcp__supabase_*`. Resolve exact tool names from your available tool list at runtime.
 
 **Codebase tools:**
 - `Read` — read file contents
@@ -326,19 +333,17 @@ div.border-dashed.border-border\/50 > span.text-muted-foreground
 ### Step 2.1: Navigate to login
 `browser_navigate` to `https://undercurrent.finance/login`
 
-### Step 2.2: Find form fields
-`browser_snapshot` to locate email and password inputs.
+### Step 2.2: Snapshot to get input refs
+`browser_snapshot` to get the accessibility tree. Locate the email input ref and password input ref from the snapshot output.
 
 ### Step 2.3: Fill credentials
-`browser_fill_form` with:
-- email: `support@undercurrent.finance`
-- password: `Support123!`
+`browser_fill_form` using the refs from Step 2.2 with the test account credentials (email + password fields, both type "textbox").
 
 ### Step 2.4: Submit
-Click the "Sign In" button via `browser_click`.
+`browser_snapshot` to get the Sign In button ref, then `browser_click` with that ref.
 
 ### Step 2.5: Verify auth
-`browser_wait_for` redirect to `/dashboard` (timeout 10s).
+`browser_wait_for` with `time: 5` to allow redirect to complete.
 `browser_snapshot` to confirm sidebar navigation is present (links to Dashboard, Watchlist, Database, etc.).
 
 ### Step 2.6: Handle failure
@@ -351,33 +356,16 @@ For EACH route in the sweep plan, execute ALL of the following sub-steps before 
 ### 3a. Navigate + Wait
 
 1. `browser_navigate` to the full URL
-2. `browser_wait_for` absence of `.animate-pulse` (loading skeletons) OR 3-second timeout — whichever comes first
-3. `browser_take_screenshot` — initial state
+2. `browser_wait_for` with `time: 3` — allow page to load and skeletons to resolve
+3. `browser_snapshot` — initial state (primary: extract element tree)
+4. `browser_take_screenshot` — visual record (save to `sweeps/screenshots/{route-slug}-top.png`)
 
 ### 3b. DOM Census (Failsafe #1)
 
-Run `browser_evaluate` with this exact script:
+Run `browser_evaluate` with this exact function (arrow function, not IIFE):
 
 ```javascript
-(() => {
-  const visible = (el) => {
-    const r = el.getBoundingClientRect();
-    const s = getComputedStyle(el);
-    return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden';
-  };
-  return {
-    buttons: [...document.querySelectorAll('button')].filter(visible).length,
-    links: [...document.querySelectorAll('a[href]')].filter(visible).length,
-    inputs: [...document.querySelectorAll('input, select, textarea')].filter(visible).length,
-    tables: [...document.querySelectorAll('table')].filter(visible).length,
-    data_points: [...document.querySelectorAll('.font-mono-tabular, td, dd, [data-value]')].filter(visible).length,
-    badges: [...document.querySelectorAll('[class*="badge"], [class*="Badge"]')].filter(visible).length,
-    charts: [...document.querySelectorAll('svg.recharts-surface, canvas')].filter(visible).length,
-    images: [...document.querySelectorAll('img')].filter(visible).length,
-    total_interactive: [...document.querySelectorAll('button, a[href], input, select, textarea, [role="tab"], [role="switch"], [role="checkbox"], [role="menuitem"]')].filter(visible).length,
-    empty_states: [...document.querySelectorAll('.border-dashed')].filter(visible).length
-  };
-})()
+"() => { const visible = (el) => { const r = el.getBoundingClientRect(); const s = getComputedStyle(el); return r.width > 0 && r.height > 0 && s.display !== 'none' && s.visibility !== 'hidden'; }; return { buttons: [...document.querySelectorAll('button')].filter(visible).length, links: [...document.querySelectorAll('a[href]')].filter(visible).length, inputs: [...document.querySelectorAll('input, select, textarea')].filter(visible).length, tables: [...document.querySelectorAll('table')].filter(visible).length, data_points: [...document.querySelectorAll('.font-mono-tabular, td, dd, [data-value]')].filter(visible).length, badges: [...document.querySelectorAll('[class*=\"badge\"], [class*=\"Badge\"]')].filter(visible).length, charts: [...document.querySelectorAll('svg.recharts-surface, canvas')].filter(visible).length, images: [...document.querySelectorAll('img')].filter(visible).length, total_interactive: [...document.querySelectorAll('button, a[href], input, select, textarea, [role=\"tab\"], [role=\"switch\"], [role=\"checkbox\"], [role=\"menuitem\"]')].filter(visible).length, empty_states: [...document.querySelectorAll('.border-dashed')].filter(visible).length }; }"
 ```
 
 Record the census result in the page's JSON entry. This is the ground truth for coverage verification.
@@ -386,15 +374,11 @@ Record the census result in the page's JSON entry. This is the ground truth for 
 
 **For dense ticker (full scroll):**
 
-1. Get page dimensions via `browser_evaluate`:
-```javascript
-({ scrollHeight: document.documentElement.scrollHeight, viewportHeight: window.innerHeight, scrollY: window.scrollY })
-```
+1. Get page dimensions via `browser_evaluate` with `function: "() => { return { scrollHeight: document.documentElement.scrollHeight, viewportHeight: window.innerHeight, scrollY: window.scrollY }; }"`
 
 2. Loop through the page in viewport-height increments (900px):
-   - `browser_take_screenshot` — save to `sweeps/screenshots/{route-slug}-scroll-{N}.png`
-   - `browser_snapshot` — extract accessibility tree for this viewport section
-   - `browser_evaluate`: `window.scrollBy(0, 900)`
+   - `browser_snapshot` — **primary**: extract accessibility tree for this viewport section, catalog all elements
+   - `browser_evaluate` with `function: "() => { window.scrollBy(0, 900); return window.scrollY; }"` — scroll and return new position
    - Record the scroll position
    - Continue until `scrollY + viewportHeight >= scrollHeight`
 
@@ -402,14 +386,16 @@ Record the census result in the page's JSON entry. This is the ground truth for 
 
 **For non-dense tickers (top-only):**
 
-1. `browser_take_screenshot` — save initial state
-2. `browser_snapshot` — extract full accessibility tree
-3. Scroll to bottom in one jump to trigger lazy content, then scroll back to top
-4. Log `scroll_positions: [0]`
+1. `browser_snapshot` — extract full accessibility tree
+2. `browser_evaluate` with `function: "() => { window.scrollTo(0, document.documentElement.scrollHeight); }"` — scroll to bottom to trigger lazy content
+3. `browser_wait_for` with `time: 2`
+4. `browser_evaluate` with `function: "() => { window.scrollTo(0, 0); }"` — scroll back to top
+5. `browser_snapshot` — final state after lazy load
+6. Log `scroll_positions: [0]`
 
 ### 3d. Element Inventory
 
-For EVERY visible element encountered in the accessibility tree and screenshots, create an inventory entry:
+The `browser_snapshot` accessibility tree IS the primary element source. For EVERY element in the snapshot output, create an inventory entry. Supplement with targeted `browser_evaluate` only for elements not exposed in the accessibility tree (canvas charts, hidden data attributes):
 
 ```json
 {
@@ -426,7 +412,7 @@ For EVERY visible element encountered in the accessibility tree and screenshots,
 **Rules:**
 - Never skip elements. If the accessibility tree is truncated or incomplete, supplement with `browser_evaluate` using `querySelectorAll` to extract missing elements.
 - Tables: inventory column headers AND sample rows (first 3 + last row).
-- Charts: record chart type, axis labels, legend items, approximate data range.
+- Charts: use `browser_evaluate` with `function: "() => { return [...document.querySelectorAll('svg.recharts-surface')].map(svg => ({ hasPaths: svg.querySelectorAll('path[d]').length > 0, pathCount: svg.querySelectorAll('path[d]').length })); }"` — record chart type, axis labels, legend items. Flag empty SVGs (no path data) as P2.
 - Cards: record title, all values, all labels.
 - Badges: record text and inferred color/variant.
 
@@ -454,17 +440,7 @@ For EVERY visible element encountered in the accessibility tree and screenshots,
 - For each component in the CVM, check whether data is present or absent
 - If absent: verify the `empty_contract` — is the correct EmptyState message rendered? Run:
 ```javascript
-(() => {
-  const empties = [...document.querySelectorAll('.border-dashed')].map(el => ({
-    text: el.querySelector('.text-muted-foreground')?.textContent?.trim() ?? null,
-    section: el.closest('[id]')?.id ?? el.closest('section')?.querySelector('h3,h2')?.textContent?.trim() ?? 'unknown'
-  }));
-  const blankCards = [...document.querySelectorAll('.bg-card')].filter(el => {
-    const text = el.textContent?.trim();
-    return !text || text.length < 5;
-  }).length;
-  return { emptyStates: empties, blankCardCount: blankCards };
-})()
+"() => { const empties = [...document.querySelectorAll('.border-dashed')].map(el => ({ text: el.querySelector('.text-muted-foreground')?.textContent?.trim() ?? null, section: el.closest('[id]')?.id ?? el.closest('section')?.querySelector('h3,h2')?.textContent?.trim() ?? 'unknown' })); const blankCards = [...document.querySelectorAll('.bg-card')].filter(el => { const text = el.textContent?.trim(); return !text || text.length < 5; }).length; return { emptyStates: empties, blankCardCount: blankCards }; }"
 ```
 - Flag blank cards (`.bg-card` with no content) that LACK an EmptyState as P1 bugs
 - If present: verify `required_elements` exist (same as dense)
@@ -476,13 +452,7 @@ For EVERY visible element encountered in the accessibility tree and screenshots,
   - PFE (Healthcare): TravelDemand should NOT be rendered (it's Travel-only)
 - Run:
 ```javascript
-(() => {
-  const sections = ['Government Contracts', 'Lobbying Activity', 'FDA Events', 'Energy Context', 'Travel Demand'];
-  return sections.map(name => {
-    const heading = [...document.querySelectorAll('h3')].find(h => h.textContent?.trim() === name);
-    return { section: name, visible: !!heading, hasData: heading ? heading.closest('.bg-card')?.querySelectorAll('tr, li, .border-dashed').length > 0 : false };
-  });
-})()
+"() => { const sections = ['Government Contracts', 'Lobbying Activity', 'FDA Events', 'Energy Context', 'Travel Demand']; return sections.map(name => { const heading = [...document.querySelectorAll('h3')].find(h => h.textContent?.trim() === name); return { section: name, visible: !!heading, hasData: heading ? heading.closest('.bg-card')?.querySelectorAll('tr, li, .border-dashed').length > 0 : false }; }); }"
 ```
 - Flag: conditional section shown when it shouldn't be = P2. Conditional section missing when it should show = P1.
 
@@ -516,10 +486,10 @@ For the dense ticker:
    - **Skip with reason**: Delete/Remove buttons (destructive), Logout (ends session), form Submit (mutates data), external links (leaves site), payment/upgrade buttons (Stripe), Cancel subscription, danger zone actions
 
 3. For each safe-to-test element:
-   - Record the before-state (snapshot or screenshot)
-   - Perform the interaction (`browser_click`, `browser_hover`, `browser_select_option`, etc.)
-   - `browser_wait_for` visible change or 2-second timeout
-   - Record the after-state
+   - `browser_snapshot` to get current refs and record before-state
+   - Perform the interaction using the ref from snapshot: `browser_click`, `browser_hover`, `browser_type`, etc.
+   - `browser_wait_for` with `time: 2`
+   - `browser_snapshot` to capture after-state
    - Log: `{ element, action, before, after, changed: true/false }`
 
 4. Compute interaction accounting:
@@ -547,18 +517,23 @@ For non-dense tickers, record:
 }
 ```
 
-### 3f. Console Check
+### 3f. Console + Network Check
 
-1. Run `browser_console_messages` to capture all console output.
+1. Run `browser_console_messages` with `level: "warning"` to capture warnings and errors.
 2. Classify each message:
    - **Real errors**: JS exceptions, failed fetches, React errors → add to bugs array as P2
    - **Known noise**: Recharts defaultProps warnings, hydration warnings on dynamic content, third-party script warnings → note but don't flag as bugs
    - **Warnings worth noting**: deprecation warnings, missing keys → add to bugs array as P3
 
+3. Run `browser_network_requests` with `includeStatic: false` to capture API calls.
+4. Classify network findings:
+   - **Failed requests** (4xx/5xx status): add to bugs array as P1 (4xx on data routes) or P2 (5xx)
+   - **Slow requests** (>2000ms): note in page entry as P3
+
 ### 3g. Write Results + Anti-Drift Checkpoint
 
 1. Update the JSON file with this page's complete data:
-   - Page entry in `pages` object with: url, status ("swept"), ticker_category, dom_census, scroll_positions, elements (inventory array), cvm_results, interactions, console_messages, screenshots
+   - Page entry in `pages` object with: url, status ("swept"), ticker_category, dom_census, scroll_positions, elements (inventory array), cvm_results, interactions, console_messages, network_requests, screenshots
    - Increment `progress.swept`
    - Remove this route from `progress.remaining`
    - Update `coverage.summary` running totals
@@ -575,29 +550,33 @@ Sweep tickers in priority order:
 1. **Dense (AAPL)** — All 6 tabs:
    - Navigate to `/stock/AAPL`
    - For each tab (Overview, Ownership, Signals, Financials, Intelligence, Simulate):
-     - Click the tab
-     - Run full sweep protocol: census, full scroll, inventory, **full CVM checks**, interaction testing, console, DB cross-ref
+     - `browser_snapshot` to get tab refs, then `browser_click` the tab ref
+     - `browser_wait_for` with `time: 2`
+     - Run full sweep protocol: census, full scroll (snapshot at each position), inventory, **full CVM checks**, interaction testing, console + network, DB cross-ref
      - Each tab is a separate page entry in JSON
 
 2. **Sparse (SFIX)** — All 6 tabs:
    - Navigate to `/stock/SFIX`
    - For each tab:
-     - Click the tab
-     - Run sweep protocol: census, top-only scroll, inventory, **empty-state CVM checks**, console
+     - `browser_snapshot` to get tab refs, then `browser_click` the tab ref
+     - `browser_wait_for` with `time: 2`
+     - Run sweep protocol: census, top-only snapshot, inventory, **empty-state CVM checks**, console + network
      - Skip interactions and DB cross-ref
      - Focus on: Are EmptyState messages correct? Are blank cards flagged? Do null values show "—" not "undefined"?
 
 3. **Sector (PFE)** — Overview + Intelligence tabs only:
    - Navigate to `/stock/PFE`
-   - Sweep Overview tab: census, top-only scroll, inventory, CVM checks, console
-   - Sweep Intelligence tab: census, top-only scroll, inventory, **sector-conditional CVM checks**, console
+   - `browser_snapshot` to get tab refs for each sweep
+   - Sweep Overview tab: census, top-only snapshot, inventory, CVM checks, console + network
+   - Sweep Intelligence tab: census, top-only snapshot, inventory, **sector-conditional CVM checks**, console + network
    - Skip other 4 tabs (covered by AAPL and BLK)
 
 4. **Moderate (BLK)** — All 6 tabs:
    - Navigate to `/stock/BLK`
    - For each tab:
-     - Click the tab
-     - Run sweep protocol: census, top-only scroll, inventory, **full CVM checks**, console
+     - `browser_snapshot` to get tab refs, then `browser_click` the tab ref
+     - `browser_wait_for` with `time: 2`
+     - Run sweep protocol: census, top-only snapshot, inventory, **full CVM checks**, console + network
      - Skip interactions and DB cross-ref
 
 **Database Explorer (`/database`):**
@@ -630,27 +609,24 @@ Focus on these high-value data points:
 ### Step 4.2: Fetch DB values (fallback chain)
 Try each method in order until one works:
 
-**Method 1 — Known API routes:**
-```javascript
-// In browser_evaluate:
-const resp = await fetch('/api/stock/AAPL/overview');
-const data = await resp.json();
-return data;
-```
+**Method 1 — Supabase MCP (preferred):**
+At runtime, check available tools for `mcp__supabase_*` tool names. Use these to query the database directly:
+- Look for a tool like `mcp__supabase__query` or `mcp__supabase__execute_sql`
+- Example queries to cross-reference:
+  - `SELECT ticker, score, computed_at FROM stock_scores WHERE ticker = 'AAPL' ORDER BY computed_at DESC LIMIT 1`
+  - `SELECT ticker, price, volume, market_cap FROM stock_prices WHERE ticker = 'AAPL' ORDER BY recorded_at DESC LIMIT 1`
+- If Supabase MCP tools are available, use them and skip Methods 2 and 3.
 
-**Method 2 — Construct Supabase client from public keys:**
+**Method 2 — Known API routes:**
 ```javascript
 // In browser_evaluate:
-// Look for Supabase URL and anon key in page source
-const scripts = [...document.querySelectorAll('script')];
-const envScript = scripts.find(s => s.textContent.includes('NEXT_PUBLIC_SUPABASE'));
-// Or check meta tags, __NEXT_DATA__, or window env
+"() => { return fetch('/api/stock/AAPL/overview').then(r => r.json()); }"
 ```
 
 **Method 3 — Skip with note:**
 If neither method works, record in the page entry:
 ```json
-{ "db_cross_reference": "skipped", "reason": "Could not access DB — no API route found and Supabase keys not exposed in client" }
+{ "db_cross_reference": "skipped", "reason": "Could not access DB — Supabase MCP unavailable and no API route accessible" }
 ```
 
 ### Step 4.3: Compare and classify
@@ -704,6 +680,8 @@ Merge all bugs from:
 - DB mismatches (P1, P2, P3)
 - Console errors (P2)
 - Console warnings (P3)
+- Network failures: 4xx on data routes (P1), 5xx responses (P2)
+- Slow network requests >2000ms (P3)
 - Broken interactions (elements that don't respond to clicks)
 - Missing elements (DOM census counts higher than inventory)
 
@@ -848,6 +826,14 @@ The final JSON file must conform to this structure:
         "errors": ["string"],
         "warnings": ["string"],
         "known_noise": ["string"]
+      },
+      "network_requests": {
+        "failed": [
+          { "url": "string", "status": "number", "method": "string" }
+        ],
+        "slow": [
+          { "url": "string", "duration_ms": "number" }
+        ]
       },
       "screenshots": ["string — file paths"],
       "db_cross_reference": "object|string — results or 'skipped' with reason",
