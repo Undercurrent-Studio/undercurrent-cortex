@@ -1,6 +1,6 @@
 ---
 name: data-integrity
-description: This skill should be used when the user asks to "display data", "add a chart", "show a number", "create a data component", "fix wrong data", "debug null values", "add a pipeline source", "handle data freshness", "fix stale cache", or before any code that displays, transforms, or stores financial data in the Undercurrent project. Enforces 'every number must be accurate and traceable.'
+description: This skill should be used when the user asks to "display data", "add a chart", "show a number", "create a data component", "fix wrong data", "debug null values", "add a pipeline source", "handle data freshness", "fix stale cache", or before any code that displays, transforms, or stores data in the current project. Enforces 'every number must be accurate and traceable.'
 version: 0.1.0
 ---
 

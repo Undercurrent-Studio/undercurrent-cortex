@@ -1,6 +1,6 @@
 ---
 name: pre-commit-checklist
-description: This skill should be used before any git commit or PR in the Undercurrent project — runs automated checks and institutional quality gates.
+description: This skill should be used before any git commit or PR — runs automated checks and institutional quality gates.
 version: 0.1.0
 ---
 

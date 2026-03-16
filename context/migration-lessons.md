@@ -1,3 +1,4 @@
+keywords: migration,alter table,create table,add column
 # Migration Lessons Context
 
 **IMMUTABLE trap (3x repeat offender)**: PostgreSQL partial indexes require IMMUTABLE functions in WHERE clause. `now()`, `CURRENT_DATE`, `clock_timestamp()` are ALL non-IMMUTABLE. Use materialized columns or remove time conditions from WHERE. The migration-linter hook blocks this automatically.

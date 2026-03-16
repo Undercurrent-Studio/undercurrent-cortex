@@ -11,7 +11,7 @@ create_state_file() {
   local dir="$1" sid="$2"
   shift 2
   mkdir -p "$dir"
-  local file="$dir/undercurrent-state-${sid}.local.md"
+  local file="$dir/cortex-state-${sid}.local.md"
   cat > "$file" << 'EOF'
 session_id=PLACEHOLDER_SID
 session_start=2026-03-14T00:00:00Z
@@ -57,7 +57,7 @@ create_legacy_state_file() {
   local dir="$1"
   shift
   mkdir -p "$dir"
-  local file="$dir/undercurrent-state.local.md"
+  local file="$dir/cortex-state.local.md"
   cat > "$file" << 'EOF'
 session_id=legacy
 session_start=2026-03-14T00:00:00Z
@@ -94,7 +94,7 @@ create_health_file() {
   local filepath="$1"
   shift
   cat > "$filepath" << 'HEADER'
-# Undercurrent Health Log
+# Cortex Health Log
 # Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min|max_re_edits|topology|domain_tag
 trend_direction=stable
 avg_reasoning_misses=0.0
@@ -191,14 +191,14 @@ mock_json() {
 create_context_dir() {
   local parent="$1"
   mkdir -p "$parent/context"
-  echo "Scoring architecture context loaded" > "$parent/context/scoring-architecture.md"
-  echo "Migration lessons context loaded" > "$parent/context/migration-lessons.md"
-  echo "Pipeline constraints context loaded" > "$parent/context/pipeline-constraints.md"
-  echo "Deploy readiness context loaded" > "$parent/context/deploy-readiness.md"
-  echo "Testing conventions context loaded" > "$parent/context/testing-conventions.md"
-  echo "Payment integration context loaded" > "$parent/context/payment-integration.md"
-  echo "Math review context loaded" > "$parent/context/math-review.md"
-  echo "TypeScript discipline context loaded" > "$parent/context/typescript-discipline.md"
+  printf '%s\n%s\n' "keywords: scoring,v10,v11,pillar,percentile,subfactor,bayesian" "Scoring architecture context loaded" > "$parent/context/scoring-architecture.md"
+  printf '%s\n%s\n' "keywords: migration,alter table,create table,add column" "Migration lessons context loaded" > "$parent/context/migration-lessons.md"
+  printf '%s\n%s\n' "keywords: pipeline,cron,sync-tickers,run-pipeline,sentiment worker" "Pipeline constraints context loaded" > "$parent/context/pipeline-constraints.md"
+  printf '%s\n%s\n' "keywords: deploy,vercel,go live,push to prod,production,ship it" "Deploy readiness context loaded" > "$parent/context/deploy-readiness.md"
+  printf '%s\n%s\n' "keywords: vitest,test suite,write test,add test,run test,fix test,coverage" "Testing conventions context loaded" > "$parent/context/testing-conventions.md"
+  printf '%s\n%s\n' "keywords: stripe,checkout,subscription,payment,billing,webhook" "Payment integration context loaded" > "$parent/context/payment-integration.md"
+  printf '%s\n%s\n' "keywords: formula,statistics,probability,monte carlo,sigmoid,z-score" "Math review context loaded" > "$parent/context/math-review.md"
+  printf '%s\n%s\n' "keywords: typescript,type error,tsc,nouncheckedindexedaccess,type guard" "TypeScript discipline context loaded" > "$parent/context/typescript-discipline.md"
 }
 
 # create_journal <dir> <date> [content]
@@ -226,10 +226,10 @@ override_state_paths() {
   local dir="$1"
   PROJECT_DIR="$dir"
   STATE_DIR="$dir/.claude"
-  STATE_FILE="$dir/.claude/undercurrent-state.local.md"
-  HEALTH_FILE="$dir/.claude/undercurrent-health.local.md"
-  PROPOSALS_FILE="$dir/.claude/undercurrent-proposals.local.md"
-  DECISIONS_FILE="$dir/.claude/undercurrent-decisions.local.md"
+  STATE_FILE="$dir/.claude/cortex-state.local.md"
+  HEALTH_FILE="$dir/.claude/cortex-health.local.md"
+  PROPOSALS_FILE="$dir/.claude/cortex-proposals.local.md"
+  DECISIONS_FILE="$dir/.claude/cortex-decisions.local.md"
   export PROJECT_DIR STATE_DIR STATE_FILE HEALTH_FILE PROPOSALS_FILE DECISIONS_FILE
 }
 
@@ -283,8 +283,8 @@ setup_script_sandbox() {
   echo "Session start skill stub" > "$sandbox/skills/session-start/SKILL.md"
   echo "Session end skill stub" > "$sandbox/skills/session-end/SKILL.md"
 
-  # Export CLAUDE_PROJECT_DIR pointing at test dir (audit finding #3)
-  export CLAUDE_PROJECT_DIR="$tmpdir"
+  # Export CORTEX_PROJECT_DIR pointing at test dir
+  export CORTEX_PROJECT_DIR="$tmpdir"
 
   echo "$sandbox"
 }

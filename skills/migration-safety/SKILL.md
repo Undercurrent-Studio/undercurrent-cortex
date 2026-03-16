@@ -1,6 +1,6 @@
 ---
 name: migration-safety
-description: This skill should be used when writing, reviewing, or fixing a Supabase migration, creating a new database table, adding columns or indexes, writing seed data with foreign keys, or debugging a migration that failed or rolled back in the Undercurrent project. Covers IMMUTABLE constraints, transactional rollback, RLS+policies+grants, IF NOT EXISTS patterns, constraint naming, and data type discipline.
+description: This skill should be used when writing, reviewing, or fixing a Supabase migration, creating a new database table, adding columns or indexes, writing seed data with foreign keys, or debugging a migration that failed or rolled back. Covers IMMUTABLE constraints, transactional rollback, RLS+policies+grants, IF NOT EXISTS patterns, constraint naming, and data type discipline.
 version: 0.1.0
 ---
 

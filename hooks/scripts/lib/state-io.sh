@@ -4,18 +4,18 @@
 # and functions for reading/writing the flat key=value state file.
 #
 # Session-scoped state files: each Claude Code session gets its own state file
-# (undercurrent-state-{session_id}.local.md) to avoid collisions when running
+# (cortex-state-{session_id}.local.md) to avoid collisions when running
 # multiple sessions concurrently. Shared files (health, proposals, decisions)
 # remain singleton.
 
-PROJECT_DIR="C:/Users/whflo/Desktop/Code Projects/undercurrent-v1"
+PROJECT_DIR="${CORTEX_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
 STATE_DIR="${PROJECT_DIR}/.claude"
 # STATE_FILE is set dynamically by resolve_state_file() or init_state_file()
 # Default fallback for scripts that don't call either:
-STATE_FILE="${STATE_DIR}/undercurrent-state.local.md"
-HEALTH_FILE="${STATE_DIR}/undercurrent-health.local.md"
-PROPOSALS_FILE="${STATE_DIR}/undercurrent-proposals.local.md"
-DECISIONS_FILE="${STATE_DIR}/undercurrent-decisions.local.md"
+STATE_FILE="${STATE_DIR}/cortex-state.local.md"
+HEALTH_FILE="${STATE_DIR}/cortex-health.local.md"
+PROPOSALS_FILE="${STATE_DIR}/cortex-proposals.local.md"
+DECISIONS_FILE="${STATE_DIR}/cortex-decisions.local.md"
 
 # resolve_state_file "json_input"
 # Extracts session_id from hook stdin JSON and sets STATE_FILE to the
@@ -44,10 +44,10 @@ resolve_state_file() {
   fi
 
   if [ -n "$sid" ]; then
-    STATE_FILE="${STATE_DIR}/undercurrent-state-${sid}.local.md"
+    STATE_FILE="${STATE_DIR}/cortex-state-${sid}.local.md"
     # If session-specific file doesn't exist, try legacy single file
     if [ ! -f "$STATE_FILE" ]; then
-      local legacy="${STATE_DIR}/undercurrent-state.local.md"
+      local legacy="${STATE_DIR}/cortex-state.local.md"
       if [ -f "$legacy" ]; then
         local legacy_sid
         legacy_sid=$(grep '^session_id=' "$legacy" 2>/dev/null | cut -d= -f2- | tr -d '\r')
@@ -60,12 +60,12 @@ resolve_state_file() {
   else
     # No session_id available — find the newest state file
     local newest
-    newest=$(ls -t "${STATE_DIR}"/undercurrent-state-*.local.md 2>/dev/null | head -1 || true)
+    newest=$(ls -t "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
     if [ -n "$newest" ]; then
       STATE_FILE="$newest"
     else
       # Fall back to legacy single file
-      STATE_FILE="${STATE_DIR}/undercurrent-state.local.md"
+      STATE_FILE="${STATE_DIR}/cortex-state.local.md"
     fi
   fi
 }
@@ -74,7 +74,7 @@ resolve_state_file() {
 # Creates a new session-scoped state file. Called by session-start.
 init_state_file() {
   local sid="$1"
-  STATE_FILE="${STATE_DIR}/undercurrent-state-${sid}.local.md"
+  STATE_FILE="${STATE_DIR}/cortex-state-${sid}.local.md"
 }
 
 # cleanup_stale_state_files
@@ -84,7 +84,7 @@ cleanup_stale_state_files() {
   cutoff_epoch=$(date -d "24 hours ago" +%s 2>/dev/null || date -v-24H +%s 2>/dev/null || echo "0")
   [ "$cutoff_epoch" -eq 0 ] && return 0
 
-  for f in "${STATE_DIR}"/undercurrent-state-*.local.md; do
+  for f in "${STATE_DIR}"/cortex-state-*.local.md; do
     [ -f "$f" ] || continue
     local file_epoch
     file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
@@ -94,7 +94,7 @@ cleanup_stale_state_files() {
   done
 
   # Also remove legacy single file if it exists and is stale
-  local legacy="${STATE_DIR}/undercurrent-state.local.md"
+  local legacy="${STATE_DIR}/cortex-state.local.md"
   if [ -f "$legacy" ]; then
     local file_epoch
     file_epoch=$(stat -c %Y "$legacy" 2>/dev/null || stat -f %m "$legacy" 2>/dev/null || echo "0")
@@ -102,6 +102,17 @@ cleanup_stale_state_files() {
       rm -f "$legacy"
     fi
   fi
+}
+
+# migrate_state_files
+# One-time rename of undercurrent-* state files to cortex-*.
+# Uses mv with error suppression for race condition safety.
+migrate_state_files() {
+  for old_file in "${STATE_DIR}"/undercurrent-*.local.md; do
+    [ -f "$old_file" ] || continue
+    local new_file="${old_file/undercurrent-/cortex-}"
+    [ -f "$new_file" ] || mv "$old_file" "$new_file" 2>/dev/null || true
+  done
 }
 
 # read_field "field_name" "file_path"
@@ -200,21 +211,5 @@ normalize_path() {
   echo "$p"
 }
 
-# is_undercurrent_project [dir]
-# Returns 0 if current or given directory is the Undercurrent project.
-# Handles Git Bash MSYS paths (/c/Users/...) and Windows paths (C:/Users/...).
-is_undercurrent_project() {
-  local check_dir="${1:-$PWD}"
-  # Normalize: backslash → forward slash
-  check_dir=$(echo "$check_dir" | sed 's|\\|/|g')
-  local normalized_project
-  normalized_project=$(echo "$PROJECT_DIR" | sed 's|\\|/|g')
-  # Also normalize MSYS paths: /c/Users/... → C:/Users/...
-  check_dir=$(echo "$check_dir" | sed 's|^/\([a-zA-Z]\)/|\1:/|')
-  normalized_project=$(echo "$normalized_project" | sed 's|^/\([a-zA-Z]\)/|\1:/|')
-  # Case-insensitive comparison (drive letter case varies between MSYS and Windows)
-  if [ "$(echo "$check_dir" | tr '[:upper:]' '[:lower:]')" = "$(echo "$normalized_project" | tr '[:upper:]' '[:lower:]')" ]; then
-    return 0
-  fi
-  return 1
-}
+# Run migration on source (rename undercurrent-* -> cortex-*)
+migrate_state_files

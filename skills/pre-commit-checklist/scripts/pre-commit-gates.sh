@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit gate runner for Undercurrent
+# Pre-commit gate runner
 # Usage: bash skills/pre-commit-checklist/scripts/pre-commit-gates.sh
 #
 # Runs 5 automated gates before commit. Not a git hook — run manually

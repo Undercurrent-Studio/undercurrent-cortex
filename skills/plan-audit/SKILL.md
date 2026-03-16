@@ -1,6 +1,6 @@
 ---
 name: plan-audit
-description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan in the Undercurrent project — 9-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, and architecture conflicts before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
+description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 9-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, and architecture conflicts before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
 ---
 
 # Plan Audit

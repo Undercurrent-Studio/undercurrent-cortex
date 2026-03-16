@@ -1,3 +1,4 @@
+keywords: stripe,checkout,subscription,payment,billing,webhook
 # Payment Integration Context
 
 **Stripe webhook**: Endpoint at `/api/webhooks/stripe`. 3 events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Signing secret in `STRIPE_WEBHOOK_SECRET` env var. API version `2026-02-25.clover` pinned in `src/lib/stripe/server.ts` (matches SDK v20.4.0).

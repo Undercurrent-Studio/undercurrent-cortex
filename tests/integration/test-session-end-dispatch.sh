@@ -43,16 +43,16 @@ setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "se-health" "health_written=false" > /dev/null
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-health" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 assert_file_exists "creates_health_file" "$health_file"
-assert_file_contains "health_has_header" "$health_file" "# Undercurrent Health Log"
+assert_file_contains "health_has_header" "$health_file" "# Cortex Health Log"
 
 # Test 2: Appends data row with today's date
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "se-row" "health_written=false" > /dev/null
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-row" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 assert_file_contains "row_has_today_date" "$health_file" "$TODAY"
 
 # Test 3: Dedup prevents duplicate rows (run twice, count rows = 1)
@@ -61,7 +61,7 @@ create_state_file "$_TEST_TMPDIR/.claude" "se-dedup" "health_written=false" > /d
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-dedup" > /dev/null
 run_session_end "se-dedup" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 data_rows=0
 if [ -f "$health_file" ]; then
   data_rows=$(grep -c '|' "$health_file" | tr -d ' ')
@@ -83,7 +83,7 @@ cat > "$_TEST_TMPDIR/memory/${TODAY}.md" << 'JEOF'
 - Third one [reasoning-miss]
 JEOF
 run_session_end "se-miss" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 # Data row format: date|reasoning_misses|edits_per_commit|...
 if [ -f "$health_file" ]; then
   data_line=$(grep "^${TODAY}" "$health_file" | head -1)
@@ -99,7 +99,7 @@ sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-epc" "health_written=false" "
 sed -i '/^\[files_modified\]$/a src/lib/a.ts\nsrc/lib/b.ts\nsrc/lib/c.ts\nsrc/lib/d.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-epc" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 if [ -f "$health_file" ]; then
   data_line=$(grep "^${TODAY}" "$health_file" | head -1)
   epc=$(echo "$data_line" | cut -d'|' -f3)
@@ -127,7 +127,7 @@ sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-cross" "health_written=false"
 sed -i '/^\[files_modified\]$/a src/lib/utils.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-cross" > /dev/null
-cross_file="$_TEST_TMPDIR/.claude/undercurrent-cross-session.local.md"
+cross_file="$_TEST_TMPDIR/.claude/cortex-cross-session.local.md"
 assert_file_exists "creates_cross_session_file" "$cross_file"
 
 # Test 9: Topology = "focused" for 2 unique files
@@ -136,7 +136,7 @@ sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-topo" "health_written=false")
 sed -i '/^\[files_modified\]$/a src/lib/a.ts\nsrc/lib/b.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-topo" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/undercurrent-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
 if [ -f "$health_file" ]; then
   data_line=$(grep "^${TODAY}" "$health_file" | head -1)
   topology=$(echo "$data_line" | cut -d'|' -f11)

@@ -1,6 +1,6 @@
 ---
 name: feature-design-flow
-description: This skill should be used when starting any feature, significant change, or architectural decision in the Undercurrent project — sets quality bar, sequences design before implementation.
+description: This skill should be used when starting any feature, significant change, or architectural decision — sets quality bar, sequences design before implementation.
 version: 0.1.0
 ---
 
@@ -9,7 +9,7 @@ version: 0.1.0
 **TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute. Sets the bar, sequences superpowers skills.
 
 ## Before Phase 1 — Ground in product mission
-Invoke `undercurrent:product-identity` to verify the feature aligns with the product mission, passes the professional analyst test, and respects Free/Pro gating philosophy. If the feature involves tier gating, review `references/free-pro-matrix.md`.
+Invoke `cortex:product-identity` to verify the feature aligns with the product mission, passes the professional analyst test, and respects Free/Pro gating philosophy. If the feature involves tier gating, review `references/free-pro-matrix.md`.
 
 ## Phase 1 — Quality bar check (answer before brainstorming)
 - What problem does this solve for a professional analyst?

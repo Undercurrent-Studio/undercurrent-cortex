@@ -1,6 +1,6 @@
 # Pre-Commit Gates Script
 
-Automated gate runner for the Undercurrent pre-commit checklist.
+Automated gate runner for the pre-commit checklist.
 
 ## Usage
 

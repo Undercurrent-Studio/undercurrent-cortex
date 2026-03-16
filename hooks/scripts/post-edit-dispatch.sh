@@ -50,7 +50,7 @@ threshold=$(read_field "commit_nudge_threshold" "$STATE_FILE")
 threshold="${threshold:-15}"
 if [ "${edits:-0}" -gt "$threshold" ]; then
   source "$SCRIPT_DIR/lib/escape-json.sh" || true
-  msg=$(escape_for_json "You have ${edits} edits since last commit (threshold: ${threshold}). Per Undercurrent workflow: commit after each wave/phase.")
+  msg=$(escape_for_json "You have ${edits} edits since last commit (threshold: ${threshold}). Consider committing — many edits since last commit.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0
 fi

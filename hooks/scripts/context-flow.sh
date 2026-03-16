@@ -42,56 +42,30 @@ fi
 # Uses bash [[ ]] glob matching — immune to regex injection from user input
 CONTEXT_FILE=""
 
-if [[ "$PROMPT_LOWER" == *scoring* ]] || [[ "$PROMPT_LOWER" == *v10* ]] \
-   || [[ "$PROMPT_LOWER" == *v11* ]] || [[ "$PROMPT_LOWER" == *pillar* ]] \
-   || [[ "$PROMPT_LOWER" == *"transfer function"* ]] || [[ "$PROMPT_LOWER" == *percentile* ]] \
-   || [[ "$PROMPT_LOWER" == *subfactor* ]] || [[ "$PROMPT_LOWER" == *"sub-factor"* ]] \
-   || [[ "$PROMPT_LOWER" == *bayesian* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/scoring-architecture.md"
+# --- Context file auto-discovery ---
+SCAN_DIRS="$CONTEXT_DIR"
+[ -n "${CORTEX_EXTRA_CONTEXT_DIRS:-}" ] && SCAN_DIRS="$SCAN_DIRS:$CORTEX_EXTRA_CONTEXT_DIRS"
 
-elif [[ "$PROMPT_LOWER" == *migration* ]] || [[ "$PROMPT_LOWER" == *"alter table"* ]] \
-     || [[ "$PROMPT_LOWER" == *"create table"* ]] || [[ "$PROMPT_LOWER" == *"add column"* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/migration-lessons.md"
+IFS=: read -ra ctx_dirs <<< "$SCAN_DIRS"
+for dir in "${ctx_dirs[@]}"; do
+  for ctx_file in "$dir"/*.md; do
+    [ -f "$ctx_file" ] || continue
+    IFS= read -r kw_line < "$ctx_file"
+    [[ "$kw_line" == keywords:* ]] || continue
+    local_keywords="${kw_line#keywords: }"
+    IFS=, read -ra kw_list <<< "$local_keywords"
+    for kw in "${kw_list[@]}"; do
+      kw="${kw## }"
+      kw="${kw%% }"
+      if [[ "$PROMPT_LOWER" == *"$kw"* ]]; then
+        CONTEXT_FILE="$ctx_file"
+        break 3
+      fi
+    done
+  done
+done
 
-elif [[ "$PROMPT_LOWER" == *pipeline* ]] || [[ "$PADDED" == *" cron "* ]] \
-     || [[ "$PROMPT_LOWER" == *sync-tickers* ]] || [[ "$PROMPT_LOWER" == *"run-pipeline"* ]] \
-     || [[ "$PROMPT_LOWER" == *"sentiment worker"* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/pipeline-constraints.md"
-
-elif [[ "$PROMPT_LOWER" == *deploy* ]] || [[ "$PROMPT_LOWER" == *vercel* ]] \
-     || [[ "$PROMPT_LOWER" == *"go live"* ]] || [[ "$PROMPT_LOWER" == *"push to prod"* ]] \
-     || [[ "$PROMPT_LOWER" == *production* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/deploy-readiness.md"
-
-elif [[ "$PROMPT_LOWER" == *vitest* ]] || [[ "$PROMPT_LOWER" == *"test suite"* ]] \
-     || [[ "$PROMPT_LOWER" == *"write test"* ]] || [[ "$PROMPT_LOWER" == *"add test"* ]] \
-     || [[ "$PROMPT_LOWER" == *"run test"* ]] || [[ "$PROMPT_LOWER" == *"fix test"* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/testing-conventions.md"
-
-elif [[ "$PROMPT_LOWER" == *stripe* ]] || [[ "$PROMPT_LOWER" == *checkout* ]] \
-     || [[ "$PROMPT_LOWER" == *subscription* ]] || [[ "$PROMPT_LOWER" == *payment* ]] \
-     || [[ "$PROMPT_LOWER" == *billing* ]] || [[ "$PROMPT_LOWER" == *webhook* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/payment-integration.md"
-
-elif [[ "$PROMPT_LOWER" == *formula* ]] || [[ "$PROMPT_LOWER" == *statistics* ]] \
-     || [[ "$PROMPT_LOWER" == *probability* ]] || [[ "$PROMPT_LOWER" == *"monte carlo"* ]] \
-     || [[ "$PADDED" == *" ou "* ]] || [[ "$PADDED" == *" gbm "* ]] \
-     || [[ "$PROMPT_LOWER" == *likelihood* ]] || [[ "$PROMPT_LOWER" == *"z-score"* ]] \
-     || [[ "$PROMPT_LOWER" == *zscore* ]] || [[ "$PROMPT_LOWER" == *"standard deviation"* ]] \
-     || [[ "$PROMPT_LOWER" == *stddev* ]] || [[ "$PROMPT_LOWER" == *variance* ]] \
-     || [[ "$PROMPT_LOWER" == *distribution* ]] || [[ "$PROMPT_LOWER" == *sigmoid* ]] \
-     || [[ "$PROMPT_LOWER" == *logarithm* ]] || [[ "$PROMPT_LOWER" == *"exponential decay"* ]] \
-     || [[ "$PROMPT_LOWER" == *"half-life"* ]] || [[ "$PROMPT_LOWER" == *normalization* ]] \
-     || [[ "$PROMPT_LOWER" == *regression* ]] || [[ "$PROMPT_LOWER" == *interpolation* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/math-review.md"
-
-elif [[ "$PROMPT_LOWER" == *typescript* ]] || [[ "$PROMPT_LOWER" == *"type error"* ]] \
-     || [[ "$PADDED" == *" tsc "* ]] || [[ "$PROMPT_LOWER" == *nouncheckedindexedaccess* ]] \
-     || [[ "$PROMPT_LOWER" == *"type guard"* ]] || [[ "$PROMPT_LOWER" == *"as never"* ]] \
-     || [[ "$PROMPT_LOWER" == *"use client"* ]]; then
-  CONTEXT_FILE="$CONTEXT_DIR/typescript-discipline.md"
-
-elif [[ "$PADDED" == *" ci "* ]] || [[ "$PROMPT_LOWER" == *"pipeline status"* ]] \
+if [[ "$PADDED" == *" ci "* ]] || [[ "$PROMPT_LOWER" == *"pipeline status"* ]] \
      || [[ "$PROMPT_LOWER" == *"build status"* ]] || [[ "$PROMPT_LOWER" == *"github actions"* ]] \
      || [[ "$PROMPT_LOWER" == *"remote commits"* ]] || [[ "$PROMPT_LOWER" == *"open prs"* ]]; then
   # Sensory system: mid-session external awareness check
@@ -110,7 +84,7 @@ elif [[ "$PADDED" == *" ci "* ]] || [[ "$PROMPT_LOWER" == *"pipeline status"* ]]
 
 elif [[ "$PROMPT_LOWER" == *"[decision]"* ]] || [[ "$PROMPT_LOWER" == *"decision:"* ]] \
      || [[ "$PROMPT_LOWER" == *"i decided"* ]] || [[ "$PROMPT_LOWER" == *"we decided"* ]]; then
-  MSG="Decision detected. Log it with metadata:\n- Category: architecture / data / UX / pipeline / security\n- Reversibility: easy / hard / irreversible\n- Confidence: high / medium / low\nWrite entry to .claude/undercurrent-decisions.local.md with format:\n## YYYY-MM-DD - [title]\ncategory=[cat] reversibility=[rev] confidence=[conf]\n[description]"
+  MSG="Decision detected. Log it with metadata:\n- Category: architecture / data / UX / pipeline / security\n- Reversibility: easy / hard / irreversible\n- Confidence: high / medium / low\nWrite entry to .claude/cortex-decisions.local.md with format:\n## YYYY-MM-DD - [title]\ncategory=[cat] reversibility=[rev] confidence=[conf]\n[description]"
   ESCAPED=$(escape_for_json "$MSG")
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0
@@ -161,7 +135,7 @@ elif [[ "$PROMPT_LOWER" == *"show proposals"* ]] || [[ "$PROMPT_LOWER" == *"list
 elif [[ "$PROMPT_LOWER" == *"done for today"* ]] || [[ "$PROMPT_LOWER" == *"wrap up"* ]] \
      || [[ "$PROMPT_LOWER" == *"session end"* ]] || [[ "$PROMPT_LOWER" == *"let's stop"* ]] \
      || [[ "$PROMPT_LOWER" == *"call it"* ]]; then
-  MSG="Remember to invoke the session-end skill before closing. Run: /undercurrent:session-end"
+  MSG="Remember to invoke the session-end skill before closing. Run: /cortex:session-end"
   ESCAPED=$(escape_for_json "$MSG")
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0

@@ -29,7 +29,7 @@ fi
 # CHECK 1: IMMUTABLE violation — DENY
 # now(), CURRENT_DATE, clock_timestamp() in WHERE clause
 if echo "$content" | grep -iE 'WHERE[^;]*\b(now\(\)|CURRENT_DATE|clock_timestamp\(\))' >/dev/null 2>&1; then
-  msg=$(escape_for_json "BLOCKED: now()/CURRENT_DATE/clock_timestamp() detected in WHERE clause. These functions are NOT IMMUTABLE — PostgreSQL rejects them in partial index predicates. This is a 3x repeat offender in this codebase (convergence_events, score_performance_cache, signal_events). Use a materialized column or remove the time condition from the WHERE clause. See migration-safety skill.")
+  msg=$(escape_for_json "BLOCKED: now()/CURRENT_DATE/clock_timestamp() detected in WHERE clause. These functions are NOT IMMUTABLE — PostgreSQL rejects them in partial index predicates.. Use a materialized column or remove the time condition from the WHERE clause. See migration-safety skill.")
   printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny"},"systemMessage":"%s"}' "$msg"
   exit 0
 fi
@@ -59,7 +59,7 @@ fi
 # CHECK 5: INSERT without FK safety guard
 if echo "$content" | grep -iE 'INSERT\s+INTO' >/dev/null 2>&1; then
   if ! echo "$content" | grep -iE 'WHERE\s+EXISTS' >/dev/null 2>&1; then
-    warnings="${warnings}- INSERT INTO without WHERE EXISTS FK safety guard. If inserting rows with foreign keys, use a CTE with WHERE EXISTS to skip missing references (learned from migration 055 TWTR→X failure).\n"
+    warnings="${warnings}- INSERT INTO without WHERE EXISTS FK safety guard. If inserting rows with foreign keys, use a CTE with WHERE EXISTS to skip missing references.\n"
   fi
 fi
 

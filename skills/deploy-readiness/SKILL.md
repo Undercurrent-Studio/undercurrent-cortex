@@ -1,6 +1,6 @@
 ---
 name: deploy-readiness
-description: This skill should be used on-demand before deploying to production in the Undercurrent project — 13-item pre-deploy verification checklist. Trigger when the user says "deploy", "push to production", "ship it", "go live", "deploy readiness check", "ready to deploy", "release to prod", or "merge to master".
+description: This skill should be used on-demand before deploying to production — 13-item pre-deploy verification checklist. Trigger when the user says "deploy", "push to production", "ship it", "go live", "deploy readiness check", "ready to deploy", "release to prod", or "merge to master".
 version: 0.1.0
 ---
 
@@ -26,7 +26,7 @@ All items must pass before deploying:
 ### Configuration
 8. All new env vars added to: `src/lib/env.ts` + Vercel dashboard + GitHub Secrets
 9. Middleware matcher covers all new protected routes under `(dashboard)/`
-10. SW cache version bumped in `public/sw.js` (`CACHE_NAME = "undercurrent-YYYYMMDD"`)
+10. SW cache version bumped in `public/sw.js` (if applicable — update the `CACHE_NAME` constant)
 
 ### Data & Schema
 11. Migrations tested with `supabase db reset` locally before applying to production via Supabase dashboard

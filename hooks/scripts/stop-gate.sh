@@ -17,7 +17,7 @@ echo "$(date -Iseconds) stop-gate fired" >> "${PROJECT_DIR}/.claude/session-end-
 
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
-  legacy="${STATE_DIR}/undercurrent-state.local.md"
+  legacy="${STATE_DIR}/cortex-state.local.md"
   if [ -f "$legacy" ]; then
     STATE_FILE="$legacy"
   else

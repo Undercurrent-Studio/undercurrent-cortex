@@ -1,6 +1,6 @@
 ---
 name: security-posture
-description: This skill should be used when the user asks to "add an API route", "handle user input", "write a webhook", "add authentication", "security review", "security audit", "is this secure", "validate input", "add rate limiting", "add CSRF", "RLS", "env vars", "email template", "stripe integration", "payment flow", "send email", or before any code that touches auth, user data, API boundaries, or external inputs in the Undercurrent project. The unified security contract.
+description: This skill should be used when the user asks to "add an API route", "handle user input", "write a webhook", "add authentication", "security review", "security audit", "is this secure", "validate input", "add rate limiting", "add CSRF", "RLS", "env vars", "email template", "stripe integration", "payment flow", "send email", or before any code that touches auth, user data, API boundaries, or external inputs . The unified security contract.
 version: 0.1.0
 ---
 

@@ -1,3 +1,4 @@
+keywords: vitest,test suite,write test,add test,run test,fix test,coverage
 # Testing Conventions Context
 
 **Stack**: vitest + jsdom. `server-only` module stubbed for test imports. 1460 tests across 90 files. CI: `.github/workflows/ci.yml` runs audit -> lint -> type-check -> test -> build.

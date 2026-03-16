@@ -1,6 +1,6 @@
 # PostgREST Gotchas — Symptoms, Root Causes, and Fixes
 
-8 gotchas that cause silent data loss or corruption in Supabase/PostgREST queries. Each one has bitten the Undercurrent codebase at least once.
+8 gotchas that cause silent data loss or corruption in Supabase/PostgREST queries. Each one has bitten this codebase at least once.
 
 ---
 
@@ -71,7 +71,7 @@ const { data } = await supabase
 
 **Symptom**: Query returns exactly `max_rows` results (e.g., 1000 or 50000) with no error. Data appears complete but is silently truncated. Price history backfill broke when PIPELINE_BATCH_SIZE increased from 300 to 600 — `600 × 365 = 219,000 rows > 50,000 max_rows`.
 
-**Root cause**: Supabase has a project-level `max_rows` setting (default: 1000, Undercurrent: 50000) that hard-caps ALL query results. Even explicit `.limit(50000)` can't exceed it. When `.in("ticker", tickers)` returns `tickers × rows_per_ticker`, the total easily exceeds the cap.
+**Root cause**: Supabase has a project-level `max_rows` setting (default: 1000, project setting: 50000) that hard-caps ALL query results. Even explicit `.limit(50000)` can't exceed it. When `.in("ticker", tickers)` returns `tickers × rows_per_ticker`, the total easily exceeds the cap.
 
 **Bad**: `.in("ticker", all6000Tickers).limit(50000)` — truncated at 50K.
 

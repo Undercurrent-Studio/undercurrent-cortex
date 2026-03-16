@@ -1,3 +1,4 @@
+keywords: scoring,v10,v11,pillar,transfer function,percentile,subfactor,sub-factor,bayesian
 # Scoring Architecture Context
 
 V11 scoring engine: 5 pillars (Financial Health 25%, Growth & Momentum 25%, Smart Money 20%, Market Signals 20%, Catalysts 10%) with 43 sub-factors and peer-relative percentile ranking.

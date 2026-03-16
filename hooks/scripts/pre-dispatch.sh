@@ -19,8 +19,12 @@ case "$tool_name" in
   *) printf '{}'; exit 0 ;;
 esac
 
-# Migration linter runs on Write AND Edit
-linter_result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/migration-linter.sh")
+
+# Migration linter runs on Write AND Edit (if present — may be in domain pack)
+linter_result="{}"
+if [ -x "$SCRIPT_DIR/migration-linter.sh" ]; then
+  linter_result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/migration-linter.sh")
+fi
 
 # If migration-linter returned a deny, propagate it immediately
 if printf '%s' "$linter_result" | grep -q '"deny"' 2>/dev/null; then

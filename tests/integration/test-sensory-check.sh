@@ -22,7 +22,7 @@ export PATH="$MOCK_BIN:$PATH"
 
 # sensory-check.sh does NOT call resolve_state_file — it uses the default
 # STATE_FILE from state-io.sh, which in the sandbox is the legacy path:
-#   $_TEST_TMPDIR/.claude/undercurrent-state.local.md
+#   $_TEST_TMPDIR/.claude/cortex-state.local.md
 # So we must use create_legacy_state_file for all tests.
 
 # Test 1: Clean state, CI success — does NOT contain "CI FAILED"

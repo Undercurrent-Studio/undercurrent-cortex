@@ -16,13 +16,13 @@ resolve_state_file "$INPUT"
   echo "  INPUT=${INPUT:0:200}"
   echo "  STATE_FILE=$STATE_FILE"
   echo "  EXISTS=$([ -f "$STATE_FILE" ] && echo yes || echo no)"
-  ls -t "${STATE_DIR}"/undercurrent-state*.local.md 2>/dev/null | head -5 | sed 's/^/  state_file: /'
+  ls -t "${STATE_DIR}"/cortex-state*.local.md 2>/dev/null | head -5 | sed 's/^/  state_file: /'
 } >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
 
 # Guard: state file must exist (session-start creates it)
 # Fallback: if session-scoped file doesn't exist, try legacy file
 if [ ! -f "$STATE_FILE" ]; then
-  legacy="${STATE_DIR}/undercurrent-state.local.md"
+  legacy="${STATE_DIR}/cortex-state.local.md"
   if [ -f "$legacy" ]; then
     STATE_FILE="$legacy"
   else
@@ -134,21 +134,12 @@ fi
 domain_tag="mixed"
 if [ -n "$files_modified" ]; then
   top_dir=$(echo "$files_modified" \
-    | grep -oE 'src/[^/]+(/[^/]+)?' \
+    | grep -oE '[^/]+/[^/]+' \
     | sort | uniq -c | sort -rn | head -1 \
     | awk '{print $2}' 2>/dev/null || echo "")
-  case "$top_dir" in
-    src/lib/scoring*) domain_tag="scoring" ;;
-    src/lib/signals*) domain_tag="signals" ;;
-    src/lib/pipeline*|src/lib/data-sources*) domain_tag="pipeline" ;;
-    src/components/stock*) domain_tag="stock-ui" ;;
-    src/components/database*) domain_tag="database-ui" ;;
-    src/app/api*) domain_tag="api" ;;
-    src/__tests__*) domain_tag="testing" ;;
-    supabase/migrations*) domain_tag="migrations" ;;
-    .claude-plugin*|.claude/*) domain_tag="plugin" ;;
-    *) domain_tag="mixed" ;;
-  esac
+  if [ -n "$top_dir" ]; then
+    domain_tag="$top_dir"
+  fi
 elif [ "${total_edits:-0}" -eq 0 ]; then
   domain_tag="idle"
 fi
@@ -159,7 +150,7 @@ mkdir -p "$(dirname "$HEALTH_FILE")"
 # Create file with header if it doesn't exist
 if [ ! -f "$HEALTH_FILE" ]; then
   cat > "$HEALTH_FILE" << 'HEADER'
-# Undercurrent Health Log
+# Cortex Health Log
 # Fields: date|reasoning_misses|edits_per_commit|docs_synced|tests_delta|lessons_created|carry_resolved|carry_total|duration_min|max_re_edits|topology|domain_tag
 trend_direction=stable
 avg_reasoning_misses=0.0
@@ -208,7 +199,7 @@ if [ "$line_count" -ge 1 ]; then
 fi
 
 # --- Cross-session file tracking ---
-CROSS_FILE="${PROJECT_DIR}/.claude/undercurrent-cross-session.local.md"
+CROSS_FILE="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
 if [ ! -f "$CROSS_FILE" ]; then
   {
     echo "# Cross-Session File Edit Tracker"

@@ -13,38 +13,30 @@ file_path=$(echo "$file_path" | sed 's|\\|/|g')
 [ -z "$file_path" ] && { printf '{}'; exit 0; }
 
 # Match path pattern to curated exemplar
+# Projects can override by placing exemplar files in .claude/exemplars/
 exemplar=""
 pattern_name=""
 
-case "$file_path" in
-  *supabase/migrations/*)
-    exemplar="${PROJECT_DIR}/supabase/migrations/067_screener_signal_columns.sql"
-    pattern_name="Migration"
-    ;;
-  *src/app/api/*/route.ts)
-    exemplar="${PROJECT_DIR}/src/app/api/health/route.ts"
-    pattern_name="API Route"
-    ;;
-  *src/components/stock/*)
-    exemplar="${PROJECT_DIR}/src/components/stock/congressional-summary.tsx"
-    pattern_name="Stock Component"
-    ;;
-  *src/lib/data-sources/*)
-    exemplar="${PROJECT_DIR}/src/lib/data-sources/finnhub.ts"
-    pattern_name="Data Source"
-    ;;
-  *src/__tests__/*)
-    exemplar="${PROJECT_DIR}/src/__tests__/circuit-breaker.test.ts"
-    pattern_name="Test File"
-    ;;
-  *)
-    printf '{}'
-    exit 0
-    ;;
-esac
+EXEMPLAR_DIR="${PROJECT_DIR}/.claude/exemplars"
+
+# Generic pattern matching — check for project-provided exemplars first
+if [ -d "$EXEMPLAR_DIR" ]; then
+  # Extract the file extension and directory pattern
+  basename_file=$(basename "$file_path")
+  ext="${basename_file##*.}"
+
+  # Look for exemplar files matching the extension
+  for candidate in "$EXEMPLAR_DIR"/*."$ext"; do
+    if [ -f "$candidate" ]; then
+      exemplar="$candidate"
+      pattern_name="$(basename "$candidate" | sed 's/\.[^.]*$//' | tr '-' ' ' | tr '_' ' ')"
+      break
+    fi
+  done
+fi
 
 # Guard: exemplar file must exist
-[ -f "$exemplar" ] || { printf '{}'; exit 0; }
+[ -z "$exemplar" ] || [ ! -f "$exemplar" ] && { printf '{}'; exit 0; }
 
 # Read first 50 lines of exemplar
 snippet=$(head -50 "$exemplar" 2>/dev/null || true)

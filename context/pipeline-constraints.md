@@ -1,3 +1,4 @@
+keywords: pipeline,cron,sync-tickers,run-pipeline,sentiment worker
 # Pipeline Constraints Context
 
 **Runtime budget**: Vercel Pro 300s max. Pipeline targets ~200s (33% headroom). Single cron `/api/cron/run-pipeline` every 10 min. Time-based branching determines which tasks execute.

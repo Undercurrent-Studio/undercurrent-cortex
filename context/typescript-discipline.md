@@ -1,4 +1,5 @@
-# TypeScript Discipline — Undercurrent
+keywords: typescript,type error,tsc,nouncheckedindexedaccess,type guard,as never,use client
+# TypeScript Discipline
 
 **`noUncheckedIndexedAccess: true`** is enabled. All array/object indexed access returns `T | undefined`.
 - Use `!` post-fix assertion only when access is provably safe (e.g., after `.length` check or `.find()` guard).

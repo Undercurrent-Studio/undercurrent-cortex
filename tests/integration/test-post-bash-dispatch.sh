@@ -35,7 +35,7 @@ run_post_bash() {
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "commit-inc" "commits_count=2" > /dev/null
 run_post_bash "commit-inc" "git commit -m feat-test" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-commit-inc.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-commit-inc.local.md"
 result=$(grep '^commits_count=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "commit_increments_count" "3" "$result"
 
@@ -43,7 +43,7 @@ assert_eq "commit_increments_count" "3" "$result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "commit-reset" "edits_since_last_commit=8" > /dev/null
 run_post_bash "commit-reset" "git commit -m fix-bug" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-commit-reset.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-commit-reset.local.md"
 result=$(grep '^edits_since_last_commit=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "commit_resets_edits" "0" "$result"
 
@@ -51,7 +51,7 @@ assert_eq "commit_resets_edits" "0" "$result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "commit-flags" "stop_hook_active=true" "consecutive_blocks=2" > /dev/null
 run_post_bash "commit-flags" "git commit -m chore-cleanup" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-commit-flags.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-commit-flags.local.md"
 stop_result=$(grep '^stop_hook_active=' "$sf" | cut -d= -f2 | tr -d '\r')
 consec_result=$(grep '^consecutive_blocks=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "commit_resets_stop_hook" "false" "$stop_result"
@@ -61,7 +61,7 @@ assert_eq "commit_resets_consecutive" "0" "$consec_result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "amend-test" "commits_count=5" "edits_since_last_commit=3" > /dev/null
 run_post_bash "amend-test" "git commit --amend" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-amend-test.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-amend-test.local.md"
 result=$(grep '^commits_count=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "amend_does_not_increment" "5" "$result"
 
@@ -69,7 +69,7 @@ assert_eq "amend_does_not_increment" "5" "$result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "test-run" "tests_run=false" > /dev/null
 run_post_bash "test-run" "npm test" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-test-run.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-test-run.local.md"
 result=$(grep '^tests_run=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "npm_test_sets_flag" "true" "$result"
 
@@ -83,7 +83,7 @@ assert_eq "conventional_commit_no_warn" "{}" "$result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "vitest-run" "tests_run=false" > /dev/null
 run_post_bash "vitest-run" "npx vitest run" > /dev/null
-sf="$_TEST_TMPDIR/.claude/undercurrent-state-vitest-run.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex-state-vitest-run.local.md"
 result=$(grep '^tests_run=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "vitest_sets_flag" "true" "$result"
 

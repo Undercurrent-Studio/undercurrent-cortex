@@ -1,6 +1,6 @@
 ---
 name: session-end
-description: This skill should be used when wrapping up a working session in the Undercurrent project — writes journal entry, captures carry-over, runs reasoning audit and pattern escalation check.
+description: This skill should be used when wrapping up a working session — writes journal entry, captures carry-over, runs reasoning audit and pattern escalation check.
 version: 0.1.0
 ---
 
@@ -32,7 +32,7 @@ Tag explicit user corrections (user says "that's wrong", corrects a factual clai
 
 **Step 3 — Pattern escalation check**:
 For each journal item: seen this class of problem in `tasks/lessons.md` or prior journals?
-- YES, 2+ times → invoke `undercurrent:pattern-escalation`
+- YES, 2+ times → invoke `cortex:pattern-escalation`
 - NO → journal only
 
 **Step 4 — Auto-memory sync**:
@@ -65,8 +65,8 @@ See `examples/journal-entry.md` for a model journal entry with proper tags.
 **Step 7 — Organism health dispatch** (non-negotiable, every session):
 The SessionEnd hook does not fire reliably on Windows/VSCode. Run the dispatch script manually to ensure health metrics are recorded:
 ```
-echo '{}' | bash "C:/Users/whflo/Desktop/Code Projects/undercurrent-plugin/hooks/scripts/session-end-dispatch.sh"
+echo '{}' | bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-end-dispatch.sh"
 ```
-If this outputs `{}` silently, health was written (or the dedup guard fired). Check `undercurrent-v1/.claude/undercurrent-health.local.md` exists afterward.
+If this outputs `{}` silently, health was written (or the dedup guard fired). Check the project's `.claude/cortex-health.local.md` exists afterward.
 
 **Run session-end before closing every working session.** It takes 2 minutes.

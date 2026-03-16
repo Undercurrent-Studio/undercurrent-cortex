@@ -1,6 +1,6 @@
 ---
 name: pattern-escalation
-description: This skill should be used when a problem class has appeared 2 or more times across sessions — escalates recurring patterns up through the memory tier hierarchy.
+description: This skill should be used when a problem class has appeared 2+ times across sessions — escalates recurring patterns up through the memory tier hierarchy.
 version: 0.1.0
 ---
 
@@ -34,7 +34,7 @@ Pipeline numbers, DB patterns, and institutional checklist items are the most li
 
 ## Proposal-aware escalation
 
-Evolution proposals live at `.claude/undercurrent-proposals.local.md`. Each proposal has:
+Evolution proposals live at `.claude/cortex-proposals.local.md`. Each proposal has:
 - `id` (YYYYMMDD-HHMMSS-slug), `status` (pending/approved/rejected/expired), `domain`, `occurrences`, `severity`
 - `type`: hook-rule | skill-update | claude-md-amendment
 - `probation=3`: new hooks run in warn-only mode for 3 sessions before blocking

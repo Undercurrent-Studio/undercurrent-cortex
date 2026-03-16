@@ -1,6 +1,6 @@
 ---
 name: database-query-safety
-description: This skill should be used before writing any Supabase or PostgREST query in the Undercurrent project — 8 gotchas that cause silent failures.
+description: This skill should be used before writing any Supabase or PostgREST query — 8 gotchas that cause silent failures.
 version: 0.1.0
 ---
 

@@ -15,7 +15,7 @@ description: |
   <example>
   Context: User wants to audit their own product
   user: "Deep dive into our live product and tell me what's broken or could be better"
-  assistant: "I'll use the deep-dive agent to conduct a thorough self-audit of undercurrent.finance."
+  assistant: "I'll use the deep-dive agent to conduct a thorough self-audit of the live product."
   <commentary>
   Self-audit — the agent will visit the live site via browser, test flows, screenshot issues, and produce a findings report with prioritized recommendations.
   </commentary>

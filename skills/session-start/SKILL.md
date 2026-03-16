@@ -1,6 +1,6 @@
 ---
 name: session-start
-description: This skill should be used when starting or resuming a session in the Undercurrent project — reads memory, creates journal, surfaces carry-over and domain-relevant lessons.
+description: This skill should be used when starting or resuming a session — reads memory, creates journal, surfaces carry-over and domain-relevant lessons.
 version: 0.1.0
 ---
 
@@ -11,7 +11,7 @@ version: 0.1.0
 ## Always (every session)
 1. Read `MEMORY.md` (project root) — personal context, preferences, active decisions
 2. Read or create `memory/YYYY-MM-DD.md` — if missing, create: `# Journal - YYYY-MM-DD` + `## HH:MM - Session start`. Do not ask. Just create it.
-3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/undercurrent:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
+3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/cortex:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
 
 ## If task is non-trivial (new feature, bug, architectural decision — not a quick question)
 4. Read `tasks/todo.md` + scan `tasks/lessons.md` by domain:

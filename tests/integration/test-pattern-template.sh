@@ -18,90 +18,69 @@ run_pattern_template() {
   echo "$json" | bash "$SANDBOX/hooks/scripts/pattern-template.sh" 2>/dev/null || true
 }
 
-# Helper: create exemplar file with dummy content
+# Helper: create exemplar file in .claude/exemplars/
 create_exemplar() {
-  local rel_path="$1"
-  local full_path="$_TEST_TMPDIR/$rel_path"
-  mkdir -p "$(dirname "$full_path")"
-  echo "-- Exemplar content for testing" > "$full_path"
-  echo "-- Line 2 of exemplar" >> "$full_path"
+  local filename="$1"
+  mkdir -p "$_TEST_TMPDIR/.claude/exemplars"
+  printf '%s\n%s\n' "-- Exemplar content for testing" "-- Line 2 of exemplar" > "$_TEST_TMPDIR/.claude/exemplars/$filename"
 }
 
-# Helper: clean all exemplar directories to prevent leaking between tests
 clean_exemplars() {
-  rm -rf "$_TEST_TMPDIR/supabase" 2>/dev/null || true
-  rm -rf "$_TEST_TMPDIR/src/app" 2>/dev/null || true
-  rm -rf "$_TEST_TMPDIR/src/components" 2>/dev/null || true
-  rm -rf "$_TEST_TMPDIR/src/lib/data-sources" 2>/dev/null || true
-  rm -rf "$_TEST_TMPDIR/src/__tests__" 2>/dev/null || true
+  rm -rf "$_TEST_TMPDIR/.claude/exemplars" 2>/dev/null || true
 }
 
-# Test 1: Migration file matches → contains "Migration"
+# Test 1: SQL exemplar matches .sql file
 setup_test
 clean_exemplars
-create_exemplar "supabase/migrations/067_screener_signal_columns.sql"
+create_exemplar "migration-pattern.sql"
 result=$(run_pattern_template "supabase/migrations/073_new_table.sql")
-assert_contains "migration_match" "$result" "Migration"
+assert_contains "sql_exemplar_match" "$result" "migration pattern"
 
-# Test 2: API route matches → contains "API Route"
+# Test 2: TSX exemplar matches .tsx file
 setup_test
 clean_exemplars
-create_exemplar "src/app/api/health/route.ts"
-result=$(run_pattern_template "src/app/api/stocks/route.ts")
-assert_contains "api_route_match" "$result" "API Route"
-
-# Test 3: Stock component matches → contains "Stock Component"
-setup_test
-clean_exemplars
-create_exemplar "src/components/stock/congressional-summary.tsx"
+create_exemplar "component-pattern.tsx"
 result=$(run_pattern_template "src/components/stock/insider-trades.tsx")
-assert_contains "stock_component_match" "$result" "Stock Component"
+assert_contains "tsx_exemplar_match" "$result" "component pattern"
 
-# Test 4: Data source matches → contains "Data Source"
+# Test 3: TS exemplar matches .ts file
 setup_test
 clean_exemplars
-create_exemplar "src/lib/data-sources/finnhub.ts"
+create_exemplar "utility-pattern.ts"
 result=$(run_pattern_template "src/lib/data-sources/yahoo.ts")
-assert_contains "data_source_match" "$result" "Data Source"
+assert_contains "ts_exemplar_match" "$result" "utility pattern"
 
-# Test 5: Test file matches → contains "Test File"
+# Test 4: No exemplar for extension -> returns {}
 setup_test
 clean_exemplars
-create_exemplar "src/__tests__/circuit-breaker.test.ts"
-result=$(run_pattern_template "src/__tests__/scoring.test.ts")
-assert_contains "test_file_match" "$result" "Test File"
-
-# Test 6: Random file → returns {}
-setup_test
-clean_exemplars
+create_exemplar "migration-pattern.sql"
 result=$(run_pattern_template "package.json")
-assert_eq "random_file_empty" "{}" "$result"
+assert_eq "no_matching_extension" "{}" "$result"
 
-# Test 7: Root-level file → returns {}
+# Test 5: No exemplar dir at all -> returns {}
 setup_test
 clean_exemplars
-result=$(run_pattern_template "tsconfig.json")
-assert_eq "root_file_empty" "{}" "$result"
+result=$(run_pattern_template "src/lib/utils.ts")
+assert_eq "no_exemplar_dir" "{}" "$result"
 
-# Test 8: Missing exemplar → returns {}
+# Test 6: Empty file path -> returns {}
 setup_test
 clean_exemplars
-# Do NOT create the exemplar file — it should be missing
-result=$(run_pattern_template "supabase/migrations/099_missing.sql")
-assert_eq "missing_exemplar_empty" "{}" "$result"
+result=$(run_pattern_template "")
+assert_eq "empty_file_path" "{}" "$result"
 
-# Test 9: Output contains "systemMessage"
+# Test 7: Output contains systemMessage when matched
 setup_test
 clean_exemplars
-create_exemplar "supabase/migrations/067_screener_signal_columns.sql"
+create_exemplar "migration-pattern.sql"
 result=$(run_pattern_template "supabase/migrations/073_new_table.sql")
 assert_contains "output_has_system_message" "$result" "systemMessage"
 
-# Test 10: Windows backslash paths normalized → matches "Migration"
+# Test 8: Windows backslash paths normalized
 setup_test
 clean_exemplars
-create_exemplar "supabase/migrations/067_screener_signal_columns.sql"
+create_exemplar "migration-pattern.sql"
 result=$(run_pattern_template 'supabase\migrations\080_new.sql')
-assert_contains "windows_backslash_match" "$result" "Migration"
+assert_contains "windows_backslash_match" "$result" "migration pattern"
 
 end_suite
