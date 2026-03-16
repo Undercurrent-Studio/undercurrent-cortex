@@ -31,17 +31,23 @@ create_state_file "$_TEST_TMPDIR/.claude" "uncommitted" "edits_since_last_commit
 result=$(run_stop_gate "uncommitted")
 assert_contains "block_uncommitted_changes" "$result" "block"
 
-# Test 3: Block when docs_updated=false and edits > 3 with scoring files
+# Test 3: Block when docs_updated=false and file_count > 3 with scoring files
 setup_test
 sf=$(create_state_file "$_TEST_TMPDIR/.claude" "docs-gate" "edits_since_last_commit=5" "docs_updated=false")
 append_to_section "files_modified" "src/lib/scoring/engine.ts" "$sf"
+append_to_section "files_modified" "src/lib/scoring/v11.ts" "$sf"
+append_to_section "files_modified" "src/lib/utils.ts" "$sf"
+append_to_section "files_modified" "src/lib/constants.ts" "$sf"
 result=$(run_stop_gate "docs-gate")
 assert_contains "block_docs_not_updated" "$result" "documentation.md"
 
-# Test 4: Block when tests_run=false and edits > 3 with .ts files
+# Test 4: Block when tests_run=false and file_count > 3 with .ts files
 setup_test
 sf=$(create_state_file "$_TEST_TMPDIR/.claude" "tests-gate" "edits_since_last_commit=5" "tests_run=false")
 append_to_section "files_modified" "src/lib/utils.ts" "$sf"
+append_to_section "files_modified" "src/lib/scoring.ts" "$sf"
+append_to_section "files_modified" "src/lib/constants.ts" "$sf"
+append_to_section "files_modified" "src/lib/pipeline.ts" "$sf"
 result=$(run_stop_gate "tests-gate")
 assert_contains "block_tests_not_run" "$result" "Tests not run"
 

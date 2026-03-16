@@ -38,7 +38,7 @@ Tier check happens at data fetch time, not after fetching all data and filtering
 - Server-side enforcement in API routes and cached loaders
 - Constants from `src/lib/constants.ts` — never hardcode limits
 - Free users see teaser (blurred/limited), not empty state
-- Note: Gating philosophy overlaps with `product-identity` skill. See `references/free-pro-matrix.md` for the complete matrix.
+- Note: If a product-identity domain pack is installed, it may provide additional gating philosophy and tier matrix details.
 
 ### 6. Type Discipline
 - **BIGINT** + `Math.round()` / `int()` at ingestion boundary for: dollar amounts, volume, share counts (whole), market cap

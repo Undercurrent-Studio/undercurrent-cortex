@@ -25,7 +25,7 @@ run_post_edit() {
 # Test 1: Edit increments edits_since_last_commit
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "edit-inc" "edits_since_last_commit=2" > /dev/null
-run_post_edit "edit-inc" "src/lib/utils.ts" > /dev/null
+run_post_edit "edit-inc" "${_TEST_TMPDIR}/src/lib/utils.ts" > /dev/null
 sf="$_TEST_TMPDIR/.claude/cortex-state-edit-inc.local.md"
 result=$(grep '^edits_since_last_commit=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "edit_increments_count" "3" "$result"
@@ -67,13 +67,13 @@ assert_eq "docs_edit_sets_flag" "true" "$result"
 # Test 6: Over 15 edits triggers commit nudge
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "nudge-test" "edits_since_last_commit=15" "commit_nudge_threshold=15" > /dev/null
-result=$(run_post_edit "nudge-test" "src/lib/foo.ts")
+result=$(run_post_edit "nudge-test" "${_TEST_TMPDIR}/src/lib/foo.ts")
 assert_contains "commit_nudge_over_threshold" "$result" "commit"
 
 # Test 7: Custom threshold (5) with 6 edits triggers nudge
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "custom-thresh" "edits_since_last_commit=5" "commit_nudge_threshold=5" > /dev/null
-result=$(run_post_edit "custom-thresh" "src/lib/bar.ts")
+result=$(run_post_edit "custom-thresh" "${_TEST_TMPDIR}/src/lib/bar.ts")
 assert_contains "custom_threshold_nudge" "$result" "commit"
 
 # Test 8: Editing scoring file without docs_updated triggers reminder

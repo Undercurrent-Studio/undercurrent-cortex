@@ -46,6 +46,14 @@ CONTEXT_FILE=""
 SCAN_DIRS="$CONTEXT_DIR"
 [ -n "${CORTEX_EXTRA_CONTEXT_DIRS:-}" ] && SCAN_DIRS="$SCAN_DIRS:$CORTEX_EXTRA_CONTEXT_DIRS"
 
+# Read extra context dirs from domain pack registrations
+EXTRA_DIRS_FILE="${STATE_DIR}/cortex-context-dirs.local"
+if [ -f "$EXTRA_DIRS_FILE" ]; then
+  while IFS= read -r extra_dir; do
+    [ -n "$extra_dir" ] && [ -d "$extra_dir" ] && SCAN_DIRS="$SCAN_DIRS:$extra_dir"
+  done < "$EXTRA_DIRS_FILE"
+fi
+
 IFS=: read -ra ctx_dirs <<< "$SCAN_DIRS"
 for dir in "${ctx_dirs[@]}"; do
   for ctx_file in "$dir"/*.md; do

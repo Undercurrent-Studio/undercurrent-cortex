@@ -39,7 +39,7 @@ assert_eq "bash_routes_to_post_bash" "{}" "$result"
 # Test 2: Write tool increments edits_since_last_commit
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "pd-write" "edits_since_last_commit=3" > /dev/null
-json=$(mock_json "tool_name=Write" "session_id=pd-write" "tool_input.file_path=src/lib/utils.ts")
+json=$(mock_json "tool_name=Write" "session_id=pd-write" "tool_input.file_path=${_TEST_TMPDIR}/src/lib/utils.ts")
 run_post_dispatch "$json" > /dev/null
 sf="$_TEST_TMPDIR/.claude/cortex-state-pd-write.local.md"
 count=$(grep '^edits_since_last_commit=' "$sf" | cut -d= -f2 | tr -d '\r')
@@ -48,7 +48,7 @@ assert_eq "write_increments_edit_count" "4" "$count"
 # Test 3: Edit tool increments edits_since_last_commit
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "pd-edit" "edits_since_last_commit=1" > /dev/null
-json=$(mock_json "tool_name=Edit" "session_id=pd-edit" "tool_input.file_path=src/lib/scoring.ts")
+json=$(mock_json "tool_name=Edit" "session_id=pd-edit" "tool_input.file_path=${_TEST_TMPDIR}/src/lib/scoring.ts")
 run_post_dispatch "$json" > /dev/null
 sf="$_TEST_TMPDIR/.claude/cortex-state-pd-edit.local.md"
 count=$(grep '^edits_since_last_commit=' "$sf" | cut -d= -f2 | tr -d '\r')

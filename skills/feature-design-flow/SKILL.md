@@ -9,7 +9,7 @@ version: 0.1.0
 **TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute. Sets the bar, sequences superpowers skills.
 
 ## Before Phase 1 — Ground in product mission
-Invoke `cortex:product-identity` to verify the feature aligns with the product mission, passes the professional analyst test, and respects Free/Pro gating philosophy. If the feature involves tier gating, review `references/free-pro-matrix.md`.
+If a product-identity skill is available (e.g., via a domain pack), invoke it to verify the feature aligns with the product mission and respects gating philosophy.
 
 ## Phase 1 — Quality bar check (answer before brainstorming)
 - What problem does this solve for a professional analyst?
