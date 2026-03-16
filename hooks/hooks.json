@@ -22,14 +22,6 @@
         "matcher": "Write|Edit",
         "hooks": [
           {
-            "type": "prompt",
-            "prompt": "Dashboard security reminder: Verify for any dashboard route: (1) middleware.ts matcher includes the path, (2) API routes have path.startsWith() auth, (3) server components use getUser(). See security-posture skill."
-          },
-          {
-            "type": "prompt",
-            "prompt": "PostgREST safety reminder: Apply these 9 gotchas to all Supabase/PostgREST calls: (1) No .update().or().select() — read-then-write. (2) .in() chunk under 50K rows. (3) Upsert needs ALL NOT NULL columns. (4) max_rows 50K hard cap. (5) No .maybeSingle() after .update(). (6) Bad .select() column = silent null. (7) ntile() on deduplicated set. (8) Never re-query fetched data. (9) Verify EVERY column name in .select() exists in actual schema. See database-query-safety skill."
-          },
-          {
             "type": "command",
             "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-dispatch.sh\"",
             "timeout": 30,

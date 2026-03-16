@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# bootstrap-hooks.sh — Inject PreToolUse/PostToolUse command hooks into settings.local.json
-# WORKAROUND: Plugin hooks.json command hooks silently dropped for PreToolUse/PostToolUse
+# bootstrap-hooks.sh - Inject ALL command hooks into settings.local.json
+# WORKAROUND: Plugin hooks.json command hooks silently dropped for most events
 # See: https://github.com/anthropics/claude-code/issues/34573
+# Confirmed working from hooks.json: SessionStart only
+# All other events bootstrapped into settings.local.json to be safe.
 # Remove this entire file when the bug is fixed.
 set -euo pipefail
 
@@ -35,31 +37,78 @@ import sys
 import os
 
 settings_path = sys.argv[1]
-
-# Use absolute path — ${CLAUDE_PLUGIN_ROOT} only resolves in plugin hooks.json,
-# not in settings.local.json. We pass PLUGIN_ROOT from the shell environment.
 plugin_root_ref = os.environ.get("PLUGIN_ROOT", "")
 
-pre_hook = {
-    "_cortex_bootstrap": True,
-    "type": "command",
-    "command": f'"C:/Program Files/Git/bin/bash.exe" "{plugin_root_ref}/hooks/scripts/pre-dispatch.sh"',
-    "timeout": 30,
-    "async": False
-}
+# All command hooks to bootstrap into settings.local.json
+HOOKS_TO_INJECT = [
+    {
+        "event": "PreToolUse",
+        "matcher": "Write|Edit",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/pre-dispatch.sh"',
+            "timeout": 30,
+            "async": False
+        }
+    },
+    {
+        "event": "PostToolUse",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/post-dispatch.sh"',
+            "timeout": 30,
+            "async": True
+        }
+    },
+    {
+        "event": "UserPromptSubmit",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/context-flow.sh"',
+            "timeout": 30,
+            "async": False
+        }
+    },
+    {
+        "event": "PreCompact",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/pre-compact.sh"',
+            "timeout": 30,
+            "async": False
+        }
+    },
+    {
+        "event": "Stop",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/stop-gate.sh"',
+            "timeout": 30,
+            "async": False
+        }
+    },
+    {
+        "event": "SessionEnd",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/session-end-dispatch.sh"',
+            "timeout": 30,
+            "async": False
+        }
+    },
+]
 
-post_hook = {
-    "_cortex_bootstrap": True,
-    "type": "command",
-    "command": f'"C:/Program Files/Git/bin/bash.exe" "{plugin_root_ref}/hooks/scripts/post-dispatch.sh"',
-    "timeout": 30,
-    "async": True
-}
-
-pre_matcher = "Write|Edit"
-post_matcher = ".*"
-
-# Read existing settings or start fresh
 settings = {}
 if os.path.isfile(settings_path):
     try:
@@ -76,56 +125,37 @@ hooks = settings["hooks"]
 changed = False
 
 def has_cortex_bootstrap(hook_list):
-    """Check if any hook group already has a cortex bootstrap entry."""
     for group in hook_list:
         for h in group.get("hooks", []):
             if h.get("_cortex_bootstrap"):
                 return True
     return False
 
-# --- PreToolUse ---
-if "PreToolUse" not in hooks:
-    hooks["PreToolUse"] = []
+for entry in HOOKS_TO_INJECT:
+    event = entry["event"]
+    matcher = entry["matcher"]
+    hook = entry["hook"]
 
-if not has_cortex_bootstrap(hooks["PreToolUse"]):
-    found = False
-    for group in hooks["PreToolUse"]:
-        if group.get("matcher") == pre_matcher:
-            group["hooks"].append(pre_hook)
-            found = True
-            break
-    if not found:
-        hooks["PreToolUse"].append({
-            "matcher": pre_matcher,
-            "hooks": [pre_hook]
-        })
-    changed = True
-    print("bootstrap-hooks: injected PreToolUse command hook", file=sys.stderr)
-else:
-    print("bootstrap-hooks: PreToolUse already bootstrapped, skipping", file=sys.stderr)
+    if event not in hooks:
+        hooks[event] = []
 
-# --- PostToolUse ---
-if "PostToolUse" not in hooks:
-    hooks["PostToolUse"] = []
+    if not has_cortex_bootstrap(hooks[event]):
+        found = False
+        for group in hooks[event]:
+            if group.get("matcher") == matcher:
+                group["hooks"].append(hook)
+                found = True
+                break
+        if not found:
+            hooks[event].append({
+                "matcher": matcher,
+                "hooks": [hook]
+            })
+        changed = True
+        print(f"bootstrap-hooks: injected {event} command hook", file=sys.stderr)
+    else:
+        print(f"bootstrap-hooks: {event} already bootstrapped, skipping", file=sys.stderr)
 
-if not has_cortex_bootstrap(hooks["PostToolUse"]):
-    found = False
-    for group in hooks["PostToolUse"]:
-        if group.get("matcher") == post_matcher:
-            group["hooks"].append(post_hook)
-            found = True
-            break
-    if not found:
-        hooks["PostToolUse"].append({
-            "matcher": post_matcher,
-            "hooks": [post_hook]
-        })
-    changed = True
-    print("bootstrap-hooks: injected PostToolUse command hook", file=sys.stderr)
-else:
-    print("bootstrap-hooks: PostToolUse already bootstrapped, skipping", file=sys.stderr)
-
-# Write back only if changed
 if changed:
     os.makedirs(os.path.dirname(settings_path), exist_ok=True)
     with open(settings_path, 'w', encoding='utf-8') as f:
