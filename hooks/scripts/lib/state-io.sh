@@ -110,7 +110,7 @@ read_field() {
   local field="$1"
   local file="${2:-$STATE_FILE}"
   if [ ! -f "$file" ]; then echo ""; return 0; fi
-  grep "^${field}=" "$file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r'
+  grep "^${field}=" "$file" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true
 }
 
 # write_field "field_name" "value" "file_path"
