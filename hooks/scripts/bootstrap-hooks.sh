@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# bootstrap-hooks.sh - Inject ALL command hooks into settings.local.json
-# WORKAROUND: Plugin hooks.json command hooks silently dropped for most events
+# bootstrap-hooks.sh - Inject PreToolUse/PostToolUse command hooks into settings.local.json
+# WORKAROUND: Plugin hooks.json command hooks broken for PreToolUse/PostToolUse only
 # See: https://github.com/anthropics/claude-code/issues/34573
-# Confirmed working from hooks.json: SessionStart only
-# All other events bootstrapped into settings.local.json to be safe.
+# Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json.
 # Remove this entire file when the bug is fixed.
 set -euo pipefail
 
@@ -39,7 +38,8 @@ import os
 settings_path = sys.argv[1]
 plugin_root_ref = os.environ.get("PLUGIN_ROOT", "")
 
-# All command hooks to bootstrap into settings.local.json
+# Only PreToolUse and PostToolUse need bootstrap (hooks.json bug #34573)
+# Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json
 HOOKS_TO_INJECT = [
     {
         "event": "PreToolUse",
@@ -61,50 +61,6 @@ HOOKS_TO_INJECT = [
             "command": f'bash "{plugin_root_ref}/hooks/scripts/post-dispatch.sh"',
             "timeout": 30,
             "async": True
-        }
-    },
-    {
-        "event": "UserPromptSubmit",
-        "matcher": ".*",
-        "hook": {
-            "_cortex_bootstrap": True,
-            "type": "command",
-            "command": f'bash "{plugin_root_ref}/hooks/scripts/context-flow.sh"',
-            "timeout": 30,
-            "async": False
-        }
-    },
-    {
-        "event": "PreCompact",
-        "matcher": ".*",
-        "hook": {
-            "_cortex_bootstrap": True,
-            "type": "command",
-            "command": f'bash "{plugin_root_ref}/hooks/scripts/pre-compact.sh"',
-            "timeout": 30,
-            "async": False
-        }
-    },
-    {
-        "event": "Stop",
-        "matcher": ".*",
-        "hook": {
-            "_cortex_bootstrap": True,
-            "type": "command",
-            "command": f'bash "{plugin_root_ref}/hooks/scripts/stop-gate.sh"',
-            "timeout": 30,
-            "async": False
-        }
-    },
-    {
-        "event": "SessionEnd",
-        "matcher": ".*",
-        "hook": {
-            "_cortex_bootstrap": True,
-            "type": "command",
-            "command": f'bash "{plugin_root_ref}/hooks/scripts/session-end-dispatch.sh"',
-            "timeout": 30,
-            "async": False
         }
     },
 ]
@@ -130,6 +86,19 @@ def has_cortex_bootstrap(hook_list):
             if h.get("_cortex_bootstrap"):
                 return True
     return False
+
+# Clean up: remove bootstrap entries for events that work from hooks.json
+for event in ["UserPromptSubmit", "PreCompact", "Stop", "SessionEnd"]:
+    if event in hooks:
+        for group in hooks[event]:
+            original_len = len(group.get("hooks", []))
+            group["hooks"] = [h for h in group.get("hooks", []) if not h.get("_cortex_bootstrap")]
+            if len(group.get("hooks", [])) < original_len:
+                changed = True
+                print(f"bootstrap-hooks: removed stale {event} bootstrap (works from hooks.json)", file=sys.stderr)
+        hooks[event] = [g for g in hooks[event] if g.get("hooks")]
+        if not hooks[event]:
+            del hooks[event]
 
 for entry in HOOKS_TO_INJECT:
     event = entry["event"]

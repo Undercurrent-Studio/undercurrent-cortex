@@ -19,37 +19,11 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/pre-dispatch.sh\"",
-            "timeout": 30,
-            "async": false,
-            "_bug_workaround": "https://github.com/anthropics/claude-code/issues/34573 — these hooks are loaded but never fired by Claude Code. Actual dispatch happens via bootstrap-hooks.sh injecting into settings.local.json at session start. Remove when fixed."
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {
             "type": "prompt",
             "prompt": "Git push safety reminder: Always check before any push: (1) no untracked files imported by committed code, (2) tests pass, (3) documentation.md updated if architectural files changed, (4) never force-push to master. Warn if any check would fail."
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": ".*",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/Git/bin/bash.exe\" \"${CLAUDE_PLUGIN_ROOT}/hooks/scripts/post-dispatch.sh\"",
-            "timeout": 30,
-            "async": true,
-            "_bug_workaround": "https://github.com/anthropics/claude-code/issues/34573 — these hooks are loaded but never fired by Claude Code. Actual dispatch happens via bootstrap-hooks.sh injecting into settings.local.json at session start. Remove when fixed."
           }
         ]
       }
