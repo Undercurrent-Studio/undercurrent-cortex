@@ -20,7 +20,11 @@ file_path=$(normalize_path "$file_path")
 
 # Track the edit
 append_to_section "files_modified" "$file_path" "$STATE_FILE"
-increment_field "edits_since_last_commit" "$STATE_FILE"
+# Only count repo-internal edits toward commit obligation
+# (plan files in ~/.claude/plans/, external memory files, etc. can't be committed)
+if [[ "$file_path" == "${PROJECT_DIR}"* ]]; then
+  increment_field "edits_since_last_commit" "$STATE_FILE"
+fi
 
 # Re-edit spiral detection (skip plugin infrastructure paths)
 if ! echo "$file_path" | grep -qE '\.claude-plugin/|\.claude/'; then

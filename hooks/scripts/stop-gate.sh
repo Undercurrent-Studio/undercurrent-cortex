@@ -46,12 +46,35 @@ edits="${edits:-0}"
 
 # Gate 1: Uncommitted changes
 if [ "$edits" -gt 0 ]; then
-  failures="${failures}- Uncommitted changes (${edits} edits since last commit)\n"
+  # Self-heal: if a git commit happened since session start, counter is stale (async race)
+  session_start_ts=$(read_field "session_start" "$STATE_FILE")
+  if [ -n "$session_start_ts" ]; then
+    latest_commit_ts=$(git -C "${PROJECT_DIR}" log -1 --format="%ci" 2>/dev/null || true)
+    if [ -n "$latest_commit_ts" ]; then
+      session_epoch=$(date -d "$session_start_ts" +%s 2>/dev/null || echo "0")
+      commit_epoch=$(date -d "$latest_commit_ts" +%s 2>/dev/null || echo "0")
+      if [ "$commit_epoch" -gt "$session_epoch" ] && [ "$session_epoch" -gt 0 ]; then
+        # Commit happened after session start — counter is stale, reset it
+        write_field "edits_since_last_commit" "0" "$STATE_FILE"
+        edits=0
+      fi
+    fi
+  fi
+
+  if [ "$edits" -gt 0 ]; then
+    failures="${failures}- Uncommitted changes (${edits} edits since last commit)\n"
+  fi
 fi
 
-# Gates 2 & 3 only fire when edits > 3 (avoid nagging on quick fixes)
-if [ "$edits" -gt 3 ]; then
-  files_modified=$(read_section "files_modified" "$STATE_FILE")
+# Gates 2 & 3 only fire when many files modified (avoid nagging on quick fixes)
+# Use file count instead of edit counter (which may be reset by self-heal above)
+files_modified=$(read_section "files_modified" "$STATE_FILE")
+file_count=0
+if [ -n "$files_modified" ]; then
+  file_count=$(echo "$files_modified" | wc -l | tr -d ' ')
+fi
+
+if [ "$file_count" -gt 3 ]; then
 
   # Gate 2: documentation.md not updated after architectural changes
   docs_updated=$(read_field "docs_updated" "$STATE_FILE")
