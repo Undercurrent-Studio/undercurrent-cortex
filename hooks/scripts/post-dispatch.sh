@@ -10,6 +10,12 @@ source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 # Buffer stdin ONCE
 INPUT=$(cat)
 
+# Resolve session-scoped state file and increment tool call counter
+resolve_state_file "$INPUT"
+if [ -f "$STATE_FILE" ]; then
+  increment_field "tool_calls_count" "$STATE_FILE"
+fi
+
 # Extract tool_name for routing
 tool_name=$(printf '%s' "$INPUT" | extract_json_field "tool_name")
 case "$tool_name" in
