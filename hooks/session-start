@@ -212,6 +212,12 @@ fi
 write_field "mode" "$fb_mode" "$STATE_FILE"
 write_field "commit_nudge_threshold" "$fb_commit_threshold" "$STATE_FILE"
 
+# --- Step 4c: Statusline ---
+statusline_output=""
+if [ -f "$SCRIPT_DIR/scripts/statusline.sh" ]; then
+  statusline_output=$("$SCRIPT_DIR/scripts/statusline.sh" "$HOOK_INPUT" 2>/dev/null || echo "")
+fi
+
 # --- Step 5: Proposal surfacing ---
 proposal_summary=""
 if [ -f "$PROPOSALS_FILE" ]; then
@@ -320,7 +326,7 @@ if [ -n "$old_carry_over" ]; then
 fi
 
 # --- Output ---
-full_context="${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${sensory_output:+$'\n\n'Sensory scan:$'\n'${sensory_output}}${carry_over_msg}"
+full_context="${statusline_output:+${statusline_output}$'\n\n'}${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${sensory_output:+$'\n\n'Sensory scan:$'\n'${sensory_output}}${carry_over_msg}"
 escaped=$(escape_for_json "$full_context")
 context="<cortex-session-start>${escaped}</cortex-session-start>"
 
