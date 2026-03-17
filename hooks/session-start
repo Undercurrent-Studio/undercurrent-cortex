@@ -109,6 +109,10 @@ STATEEOF
 write_field "session_id" "$HOOK_SESSION_ID" "$STATE_FILE"
 write_field "session_start" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STATE_FILE"
 
+# --- Profile ---
+PROFILE=$(get_profile)
+write_field "profile" "$PROFILE" "$STATE_FILE"
+
 # Carry-over age tracking: increment if carry-over persists, reset if empty
 if [ -n "$old_carry_over" ]; then
   new_age=$(( old_carry_over_age + 1 ))
@@ -179,7 +183,7 @@ fi
 fb_mode="normal"
 fb_commit_threshold=15
 
-if [ -f "$HEALTH_FILE" ]; then
+if [ "$PROFILE" != "minimal" ] && [ -f "$HEALTH_FILE" ]; then
   fb_trend=$(grep '^trend_direction=' "$HEALTH_FILE" 2>/dev/null | cut -d= -f2 | tr -d '\r')
 
   # Trend-based mode
@@ -219,9 +223,9 @@ if [ -f "$SCRIPT_DIR/scripts/statusline.sh" ]; then
   statusline_output=$("$SCRIPT_DIR/scripts/statusline.sh" "$HOOK_INPUT" 2>/dev/null || echo "")
 fi
 
-# --- Step 5: Proposal surfacing ---
+# --- Step 5: Proposal surfacing (strict profile only) ---
 proposal_summary=""
-if [ -f "$PROPOSALS_FILE" ]; then
+if [ "$PROFILE" = "strict" ] && [ -f "$PROPOSALS_FILE" ]; then
   pending_count=0
   if grep -q '^status=pending' "$PROPOSALS_FILE" 2>/dev/null; then
     pending_count=$(grep -c '^status=pending' "$PROPOSALS_FILE" 2>/dev/null)
@@ -274,7 +278,7 @@ fi
 # --- Step 5b: Social System — cross-session patterns ---
 social_warnings=""
 
-if [ -f "$HEALTH_FILE" ]; then
+if [ "$PROFILE" != "minimal" ] && [ -f "$HEALTH_FILE" ]; then
   # Get last 5 data rows (skip headers/metadata)
   social_data=$(grep -v '^#' "$HEALTH_FILE" 2>/dev/null | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -5)
   social_row_count=0
@@ -316,7 +320,7 @@ fi
 
 # --- Step 5c: Sensory System — external awareness ---
 sensory_output=""
-if [ -x "$SCRIPT_DIR/scripts/sensory-check.sh" ]; then
+if [ "$PROFILE" != "minimal" ] && [ -x "$SCRIPT_DIR/scripts/sensory-check.sh" ]; then
   sensory_output=$("$SCRIPT_DIR/scripts/sensory-check.sh" 2>/dev/null || echo "")
 fi
 

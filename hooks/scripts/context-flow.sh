@@ -20,6 +20,10 @@ PROMPT=$(printf '%s' "$INPUT" | extract_json_field "user_prompt")
 # Graceful degradation
 [ -z "$PROMPT" ] && { printf '{}'; exit 0; }
 
+# Profile check for proposal handling (strict only)
+PROFILE=$(read_field "profile" "$STATE_FILE" 2>/dev/null || true)
+PROFILE="${PROFILE:-standard}"
+
 # Lowercase for case-insensitive matching
 PROMPT_LOWER=$(printf '%s' "$PROMPT" | tr '[:upper:]' '[:lower:]')
 
@@ -103,8 +107,8 @@ elif [[ "$PROMPT_LOWER" == *"[decision]"* ]] || [[ "$PROMPT_LOWER" == *"decision
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0
 
-elif [[ "$PROMPT_LOWER" == *"approve proposal"* ]] || [[ "$PROMPT_LOWER" == *"accept proposal"* ]] \
-     || [[ "$PROMPT_LOWER" == *"apply proposal"* ]] || [[ "$PROMPT_LOWER" == *"approve all"* ]]; then
+elif [[ "$PROFILE" = "strict" ]] && { [[ "$PROMPT_LOWER" == *"approve proposal"* ]] || [[ "$PROMPT_LOWER" == *"accept proposal"* ]] \
+     || [[ "$PROMPT_LOWER" == *"apply proposal"* ]] || [[ "$PROMPT_LOWER" == *"approve all"* ]]; }; then
   # Growth system: apply approved proposals
   apply_output=""
   if [ -x "$SCRIPT_DIR/apply-proposal.sh" ]; then
@@ -116,8 +120,8 @@ elif [[ "$PROMPT_LOWER" == *"approve proposal"* ]] || [[ "$PROMPT_LOWER" == *"ac
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0
 
-elif [[ "$PROMPT_LOWER" == *"reject proposal"* ]] || [[ "$PROMPT_LOWER" == *"dismiss proposal"* ]] \
-     || [[ "$PROMPT_LOWER" == *"skip proposal"* ]]; then
+elif [[ "$PROFILE" = "strict" ]] && { [[ "$PROMPT_LOWER" == *"reject proposal"* ]] || [[ "$PROMPT_LOWER" == *"dismiss proposal"* ]] \
+     || [[ "$PROMPT_LOWER" == *"skip proposal"* ]]; }; then
   apply_output=""
   if [ -x "$SCRIPT_DIR/apply-proposal.sh" ]; then
     apply_output=$("$SCRIPT_DIR/apply-proposal.sh" reject 2>/dev/null || echo "Failed to reject proposal.")
@@ -128,8 +132,8 @@ elif [[ "$PROMPT_LOWER" == *"reject proposal"* ]] || [[ "$PROMPT_LOWER" == *"dis
   printf '{"systemMessage":"%s"}' "$ESCAPED"
   exit 0
 
-elif [[ "$PROMPT_LOWER" == *"show proposals"* ]] || [[ "$PROMPT_LOWER" == *"list proposals"* ]] \
-     || [[ "$PROMPT_LOWER" == *"pending proposals"* ]]; then
+elif [[ "$PROFILE" = "strict" ]] && { [[ "$PROMPT_LOWER" == *"show proposals"* ]] || [[ "$PROMPT_LOWER" == *"list proposals"* ]] \
+     || [[ "$PROMPT_LOWER" == *"pending proposals"* ]]; }; then
   if [ -f "$PROPOSALS_FILE" ]; then
     pending=""
     if grep -q '^status=pending' "$PROPOSALS_FILE" 2>/dev/null; then

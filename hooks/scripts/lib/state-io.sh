@@ -301,5 +301,19 @@ normalize_path() {
   echo "$p"
 }
 
+# get_profile
+# Returns the active Cortex profile: minimal, standard (default), or strict.
+# Resolution: CORTEX_PROFILE env var → .claude/cortex-profile.local file → "standard".
+get_profile() {
+  local profile="${CORTEX_PROFILE:-}"
+  if [ -z "$profile" ] && [ -f "${STATE_DIR:-}/cortex-profile.local" ]; then
+    profile=$(head -1 "${STATE_DIR}/cortex-profile.local" 2>/dev/null | tr -d '[:space:]')
+  fi
+  case "$profile" in
+    minimal|strict) echo "$profile" ;;
+    *) echo "standard" ;;
+  esac
+}
+
 # Run migration on source (rename undercurrent-* -> cortex-*)
 migrate_state_files

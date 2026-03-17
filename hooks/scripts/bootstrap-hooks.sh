@@ -30,9 +30,21 @@ SETTINGS_FILE="${HOME}/.claude/settings.json"
 # Also clean up stale bootstrap entries from the old project-level location
 OLD_SETTINGS="${PROJECT_DIR:+${PROJECT_DIR}/.claude/settings.local.json}"
 
+# Read profile for Python script
+# Resolution: CORTEX_PROFILE env var → config file → "standard"
+CORTEX_PROFILE="${CORTEX_PROFILE:-}"
+if [ -z "$CORTEX_PROFILE" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "${PROJECT_DIR}/.claude/cortex-profile.local" ]; then
+  CORTEX_PROFILE=$(head -1 "${PROJECT_DIR}/.claude/cortex-profile.local" 2>/dev/null | tr -d '[:space:]')
+fi
+case "$CORTEX_PROFILE" in
+  minimal|strict) ;; # valid
+  *) CORTEX_PROFILE="standard" ;;
+esac
+
 # Export for Python script
 export PLUGIN_ROOT
 export OLD_SETTINGS="${OLD_SETTINGS:-}"
+export CORTEX_PROFILE
 
 # Use python3 for reliable JSON manipulation
 python3 - "$SETTINGS_FILE" <<'PYEOF'
@@ -111,6 +123,15 @@ HOOKS_TO_INJECT = [
         }
     },
 ]
+
+# Profile-aware event filtering
+# minimal: only enforcement + state tracking + lifecycle
+# standard/strict: all 6 events (strict enables proposals in session-start/context-flow, not here)
+profile = os.environ.get("CORTEX_PROFILE", "standard")
+MINIMAL_EVENTS = {"PreToolUse", "PostToolUse", "SessionEnd"}
+if profile == "minimal":
+    HOOKS_TO_INJECT = [h for h in HOOKS_TO_INJECT if h["event"] in MINIMAL_EVENTS]
+    print(f"bootstrap-hooks: minimal profile — injecting {len(HOOKS_TO_INJECT)} events only", file=sys.stderr)
 
 settings = {}
 if os.path.isfile(settings_path):
