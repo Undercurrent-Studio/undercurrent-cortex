@@ -40,10 +40,14 @@ plugin_root_ref = os.environ.get("PLUGIN_ROOT", "").replace("\\", "/")
 
 # Only PreToolUse and PostToolUse need bootstrap (hooks.json bug #34573)
 # Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json
+# IMPORTANT: hooks.json now also registers PreToolUse and PostToolUse.
+# When bug #34573 is confirmed fixed, REMOVE this entire file and clean up
+# settings.local.json bootstrapped entries (_cortex_bootstrap: true).
+# Until then, both hooks.json (inactive due to bug) and bootstrap (active) coexist.
 HOOKS_TO_INJECT = [
     {
         "event": "PreToolUse",
-        "matcher": "Write|Edit",
+        "matcher": ".*",
         "hook": {
             "_cortex_bootstrap": True,
             "type": "command",
