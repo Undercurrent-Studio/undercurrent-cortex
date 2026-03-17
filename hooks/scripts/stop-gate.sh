@@ -12,9 +12,6 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
-# Diagnostic: confirm hook fires (remove once verified)
-echo "$(date -Iseconds) stop-gate fired" >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
-
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
   legacy="${STATE_DIR}/cortex-state.local.md"
@@ -51,8 +48,8 @@ if [ "$edits" -gt 0 ]; then
   if [ -n "$session_start_ts" ]; then
     latest_commit_ts=$(git -C "${PROJECT_DIR}" log -1 --format="%ci" 2>/dev/null || true)
     if [ -n "$latest_commit_ts" ]; then
-      session_epoch=$(date -d "$session_start_ts" +%s 2>/dev/null || echo "0")
-      commit_epoch=$(date -d "$latest_commit_ts" +%s 2>/dev/null || echo "0")
+      session_epoch=$(date -d "${session_start_ts/T/ }" +%s 2>/dev/null || echo "0")
+      commit_epoch=$(date -d "${latest_commit_ts/T/ }" +%s 2>/dev/null || echo "0")
       if [ "$commit_epoch" -gt "$session_epoch" ] && [ "$session_epoch" -gt 0 ]; then
         # Commit happened after session start — counter is stale, reset it
         write_field "edits_since_last_commit" "0" "$STATE_FILE"
