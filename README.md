@@ -226,6 +226,38 @@ Patterns that only emerge across multiple sessions:
 
 ---
 
+## Statusline
+
+The organism displays a two-line pulse at the start of every session and on-demand via `/status`:
+
+```
+✏️  3 edits · 📦 1 commits · 🧪✅ · 📄❌
+💚 thriving │ 🧠 62 absorbed │ 🧬 1 mutations queued │ ↗ improving
+```
+
+### Line 1 — Session Activity
+
+| Icon | Meaning |
+|------|---------|
+| ✏️  `N edits` | Files edited since last commit (resets on commit) |
+| 📦 `N commits` | Commits made this session |
+| 🧪 ✅/❌ | Whether tests have been run this session |
+| 📄 ✅/❌ | Whether documentation was updated this session |
+
+### Line 2 — Organism Health
+
+| Element | Meaning |
+|---------|---------|
+| 💚 `thriving` | Organism is healthy — zero recent reasoning misses, stable trend |
+| 💛 `adapting` | Normal operation — some misses detected, learning from them |
+| 🧡 `cautious` | Feedback system activated cautious mode (high churn or degrading trend) |
+| ❤️‍🩹 `stressed` | Health trend is degrading — extra care needed |
+| 🧠 `N absorbed` | Total lessons in `tasks/lessons.md` (cumulative knowledge base) |
+| 🧬 `N mutations queued` | Pending evolution proposals waiting for approval |
+| ↗/→/↘ `trend` | Health trend direction: `improving`, `stable`, or `degrading` |
+
+---
+
 ## Components
 
 ### 12 Skills
