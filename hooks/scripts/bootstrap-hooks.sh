@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# bootstrap-hooks.sh - Inject PreToolUse/PostToolUse command hooks into settings.local.json
-# WORKAROUND: Plugin hooks.json command hooks broken for PreToolUse/PostToolUse only
+# bootstrap-hooks.sh - Inject all non-SessionStart hooks into settings.local.json
+# WORKAROUND: Plugin hooks.json command hooks are unreliable (bug #34573).
+# SessionStart stays in hooks.json (proven working, keeps bootstrap alive).
+# All other events are bootstrapped into settings.local.json at session start.
 # See: https://github.com/anthropics/claude-code/issues/34573
-# Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json.
-# Remove this entire file when the bug is fixed.
+# Remove this file when Anthropic confirms the bug is fixed and verified.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
@@ -38,12 +39,9 @@ import os
 settings_path = sys.argv[1]
 plugin_root_ref = os.environ.get("PLUGIN_ROOT", "").replace("\\", "/")
 
-# Only PreToolUse and PostToolUse need bootstrap (hooks.json bug #34573)
-# Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json
-# IMPORTANT: hooks.json now also registers PreToolUse and PostToolUse.
-# When bug #34573 is confirmed fixed, REMOVE this entire file and clean up
-# settings.local.json bootstrapped entries (_cortex_bootstrap: true).
-# Until then, both hooks.json (inactive due to bug) and bootstrap (active) coexist.
+# Bootstrap all events EXCEPT SessionStart (which stays in hooks.json as the
+# bootstrap's lifeline). hooks.json is unreliable for other events (bug #34573).
+# Each entry here must match the intended hook configuration exactly.
 HOOKS_TO_INJECT = [
     {
         "event": "PreToolUse",
@@ -57,6 +55,26 @@ HOOKS_TO_INJECT = [
         }
     },
     {
+        "event": "PreCompact",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/pre-compact.sh"',
+            "async": False
+        }
+    },
+    {
+        "event": "Stop",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/stop-gate.sh"',
+            "async": False
+        }
+    },
+    {
         "event": "PostToolUse",
         "matcher": ".*",
         "hook": {
@@ -65,6 +83,26 @@ HOOKS_TO_INJECT = [
             "command": f'bash "{plugin_root_ref}/hooks/scripts/post-dispatch.sh"',
             "timeout": 30,
             "async": True
+        }
+    },
+    {
+        "event": "SessionEnd",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/session-end-dispatch.sh"',
+            "async": False
+        }
+    },
+    {
+        "event": "UserPromptSubmit",
+        "matcher": ".*",
+        "hook": {
+            "_cortex_bootstrap": True,
+            "type": "command",
+            "command": f'bash "{plugin_root_ref}/hooks/scripts/context-flow.sh"',
+            "async": False
         }
     },
 ]
@@ -84,50 +122,76 @@ if "hooks" not in settings:
 hooks = settings["hooks"]
 changed = False
 
-def has_cortex_bootstrap(hook_list):
-    for group in hook_list:
-        for h in group.get("hooks", []):
-            if h.get("_cortex_bootstrap"):
-                return True
-    return False
 
-# Clean up: remove bootstrap entries for events that work from hooks.json
-for event in ["UserPromptSubmit", "PreCompact", "Stop", "SessionEnd"]:
-    if event in hooks:
-        for group in hooks[event]:
-            original_len = len(group.get("hooks", []))
-            group["hooks"] = [h for h in group.get("hooks", []) if not h.get("_cortex_bootstrap")]
-            if len(group.get("hooks", [])) < original_len:
-                changed = True
-                print(f"bootstrap-hooks: removed stale {event} bootstrap (works from hooks.json)", file=sys.stderr)
-        hooks[event] = [g for g in hooks[event] if g.get("hooks")]
-        if not hooks[event]:
-            del hooks[event]
+def find_cortex_bootstrap(hook_list):
+    """Find existing _cortex_bootstrap entries. Returns list of (group_idx, hook_idx, hook_obj)."""
+    results = []
+    for gi, group in enumerate(hook_list):
+        for hi, h in enumerate(group.get("hooks", [])):
+            if h.get("_cortex_bootstrap"):
+                results.append((gi, hi, h))
+    return results
+
+
+def remove_cortex_bootstrap(hook_list):
+    """Remove all _cortex_bootstrap entries from an event's hook list."""
+    for group in hook_list:
+        group["hooks"] = [h for h in group.get("hooks", []) if not h.get("_cortex_bootstrap")]
+    # Remove empty groups
+    return [g for g in hook_list if g.get("hooks")]
+
 
 for entry in HOOKS_TO_INJECT:
     event = entry["event"]
     matcher = entry["matcher"]
     hook = entry["hook"]
+    expected_command = hook["command"]
 
     if event not in hooks:
         hooks[event] = []
 
-    if not has_cortex_bootstrap(hooks[event]):
-        found = False
-        for group in hooks[event]:
-            if group.get("matcher") == matcher:
-                group["hooks"].append(hook)
-                found = True
+    existing = find_cortex_bootstrap(hooks[event])
+
+    if existing:
+        # Check if existing bootstrap matches expected command and matcher
+        all_match = True
+        for gi, hi, h in existing:
+            if h.get("command") != expected_command:
+                all_match = False
                 break
-        if not found:
-            hooks[event].append({
-                "matcher": matcher,
-                "hooks": [hook]
-            })
+            # Also check matcher on the group
+            if hooks[event][gi].get("matcher") != matcher:
+                all_match = False
+                break
+
+        if all_match:
+            print(f"bootstrap-hooks: {event} already correct, skipping", file=sys.stderr)
+            continue
+
+        # Stale entry — remove and re-inject
+        print(f"bootstrap-hooks: {event} stale (command or matcher mismatch), replacing", file=sys.stderr)
+        hooks[event] = remove_cortex_bootstrap(hooks[event])
         changed = True
-        print(f"bootstrap-hooks: injected {event} command hook", file=sys.stderr)
-    else:
-        print(f"bootstrap-hooks: {event} already bootstrapped, skipping", file=sys.stderr)
+
+    # Inject fresh entry
+    found_group = False
+    for group in hooks[event]:
+        if group.get("matcher") == matcher:
+            group["hooks"].append(hook)
+            found_group = True
+            break
+    if not found_group:
+        hooks[event].append({
+            "matcher": matcher,
+            "hooks": [hook]
+        })
+    changed = True
+    print(f"bootstrap-hooks: injected {event} command hook", file=sys.stderr)
+
+# Clean up empty events
+for event in list(hooks.keys()):
+    if not hooks[event]:
+        del hooks[event]
 
 if changed:
     os.makedirs(os.path.dirname(settings_path), exist_ok=True)
