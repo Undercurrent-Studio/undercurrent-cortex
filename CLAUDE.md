@@ -11,21 +11,21 @@ Claude Code plugin — session management, health tracking, context injection, a
 ## Architecture
 
 ### Directory Layout
-- `hooks/hooks.json` — Hook event registry (SessionStart, Stop, SessionEnd, UserPromptSubmit, PreCompact)
+- `hooks/hooks.json` — Hook event registry (SessionStart, PreToolUse, PostToolUse, Stop, SessionEnd, UserPromptSubmit, PreCompact)
 - `hooks/session-start` — Main session init script (longest script, ~335 lines)
 - `hooks/scripts/` — All hook dispatch and handler scripts
 - `hooks/scripts/lib/` — Shared libraries (state-io, escape-json, json-extract, validate-organism)
 - `skills/` — SKILL.md files with YAML frontmatter (12 skills)
 - `agents/` — Agent .md files with system prompts (2 agents)
-- `commands/` — Slash command .md files (4 commands)
+- `commands/` — Slash command .md files (5 commands)
 - `context/` — Auto-discovered context files with `keywords:` frontmatter (4 files)
 - `tests/` — Bash test suite
 
 ### Hook Dispatch
 - Single dispatcher per event: `pre-dispatch.sh` (PreToolUse), `post-dispatch.sh` (PostToolUse)
 - Dispatchers route by `tool_name` from stdin JSON to sub-handlers
-- PreToolUse/PostToolUse hooks are bootstrapped into `settings.local.json` at SessionStart (bug #34573 workaround)
-- All other events fire natively from `hooks.json`
+- PreToolUse/PostToolUse are registered in `hooks.json` AND bootstrapped into `settings.local.json` at SessionStart (bug #34573 workaround — hooks.json doesn't fire for these events yet)
+- When bug #34573 is fixed, remove `bootstrap-hooks.sh` and clean up `_cortex_bootstrap` entries from `settings.local.json`
 
 ### State Files
 - Location: `{project}/.claude/cortex-{type}-{session_id}.local.md`
