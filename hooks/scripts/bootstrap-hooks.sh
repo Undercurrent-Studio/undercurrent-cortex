@@ -33,8 +33,8 @@ OLD_SETTINGS="${PROJECT_DIR:+${PROJECT_DIR}/.claude/settings.local.json}"
 # Read profile for Python script
 # Resolution: CORTEX_PROFILE env var → config file → "standard"
 CORTEX_PROFILE="${CORTEX_PROFILE:-}"
-if [ -z "$CORTEX_PROFILE" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "${PROJECT_DIR}/.claude/cortex-profile.local" ]; then
-  CORTEX_PROFILE=$(head -1 "${PROJECT_DIR}/.claude/cortex-profile.local" 2>/dev/null | tr -d '[:space:]')
+if [ -z "$CORTEX_PROFILE" ] && [ -n "${PROJECT_DIR:-}" ] && [ -f "${PROJECT_DIR}/.claude/cortex/profile.local" ]; then
+  CORTEX_PROFILE=$(head -1 "${PROJECT_DIR}/.claude/cortex/profile.local" 2>/dev/null | tr -d '[:space:]')
 fi
 case "$CORTEX_PROFILE" in
   minimal|strict) ;; # valid

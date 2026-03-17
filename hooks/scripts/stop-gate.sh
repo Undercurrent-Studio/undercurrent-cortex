@@ -17,9 +17,10 @@ echo "stop-gate: resolved STATE_FILE=$(basename "$STATE_FILE" 2>/dev/null)" >&2
 
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
-  legacy="${STATE_DIR}/cortex-state.local.md"
-  if [ -f "$legacy" ]; then
-    STATE_FILE="$legacy"
+  # Try newest file across new layout + legacy flat
+  local_fallback=$(ls -t "${SESSIONS_DIR}"/*/*.local.md "${STATE_DIR}"/cortex-state-*.local.md "${STATE_DIR}/cortex-state.local.md" 2>/dev/null | head -1 || true)
+  if [ -n "$local_fallback" ] && [ -f "$local_fallback" ]; then
+    STATE_FILE="$local_fallback"
   else
     printf '{}'
     exit 0

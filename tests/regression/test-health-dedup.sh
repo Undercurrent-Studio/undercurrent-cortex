@@ -36,7 +36,7 @@ run_session_end "dedup-test" > /dev/null
 # Second call — should be blocked by health_written=true
 run_session_end "dedup-test" > /dev/null
 # Count data rows (lines with | separator, excluding header/comments)
-health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex/health.local.md"
 data_rows=0
 if [ -f "$health_file" ]; then
   data_rows=$(grep -c '|' "$health_file" | tr -d ' ')
@@ -53,7 +53,7 @@ sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 mkdir -p "$_TEST_TMPDIR/memory"
 echo "# Journal" > "$_TEST_TMPDIR/memory/$(date +%Y-%m-%d).md"
 run_session_end "allow-write" > /dev/null
-health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
+health_file="$_TEST_TMPDIR/.claude/cortex/health.local.md"
 assert_file_exists "health_file_created" "$health_file"
 # Verify at least one data row was written
 if [ -f "$health_file" ]; then

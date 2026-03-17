@@ -70,7 +70,7 @@ assert_not_contains "skip_docs_gate_low_edits" "$result" "documentation.md"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "first-block" "edits_since_last_commit=3" "consecutive_blocks=0" > /dev/null
 run_stop_gate "first-block" > /dev/null
-sf="$_TEST_TMPDIR/.claude/cortex-state-first-block.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/first-block.local.md"
 consec=$(grep '^consecutive_blocks=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "first_block_increments" "1" "$consec"
 
@@ -79,7 +79,7 @@ setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "force-approve" "edits_since_last_commit=5" "consecutive_blocks=2" > /dev/null
 result=$(run_stop_gate "force-approve")
 assert_contains "force_approve_after_two_blocks" "$result" "force-approved"
-sf="$_TEST_TMPDIR/.claude/cortex-state-force-approve.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/force-approve.local.md"
 consec=$(grep '^consecutive_blocks=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "force_approve_resets_counter" "0" "$consec"
 

@@ -33,12 +33,12 @@ assert_eq "env_var_strict" "strict" "$result"
 # Test 4: Config file works when env var is absent
 setup_test
 unset CORTEX_PROFILE 2>/dev/null || true
-STATE_DIR="$_TEST_TMPDIR/.claude"
-mkdir -p "$STATE_DIR"
-echo "strict" > "$STATE_DIR/cortex-profile.local"
+CORTEX_DIR="$_TEST_TMPDIR/.claude/cortex"
+mkdir -p "$CORTEX_DIR"
+echo "strict" > "$CORTEX_DIR/profile.local"
 result=$(get_profile)
 assert_eq "config_file_strict" "strict" "$result"
-rm -f "$STATE_DIR/cortex-profile.local"
+rm -f "$CORTEX_DIR/profile.local"
 
 # Test 5: Invalid profile value falls back to "standard"
 setup_test

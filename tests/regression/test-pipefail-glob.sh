@@ -11,12 +11,11 @@ begin_suite "pipefail-glob"
 # when the glob matches nothing. The fix is to append `|| true`.
 # These tests verify the pattern doesn't crash.
 
-# Test 1: State file glob with no matches
+# Test 1: State file glob with no matches (new layout + legacy)
 setup_test
-# Ensure no state files exist in the temp dir
-rm -f "$_TEST_TMPDIR/.claude/"cortex-state-*.local.md 2>/dev/null || true
+mkdir -p "$_TEST_TMPDIR/.claude/cortex/sessions"
 # This pattern mirrors resolve_state_file() in state-io.sh
-result=$(ls -t "$_TEST_TMPDIR/.claude/"cortex-state-*.local.md 2>/dev/null | head -1 || true)
+result=$(ls -t "$_TEST_TMPDIR/.claude/cortex/sessions/"*/*.local.md "$_TEST_TMPDIR/.claude/"cortex-state-*.local.md 2>/dev/null | head -1 || true)
 exit_code=$?
 assert_eq "state_glob_no_match_survives" "0" "$exit_code"
 

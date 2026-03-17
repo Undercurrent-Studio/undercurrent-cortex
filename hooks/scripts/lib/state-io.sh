@@ -9,13 +9,22 @@
 # remain singleton.
 
 PROJECT_DIR="${CORTEX_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-STATE_DIR="${PROJECT_DIR}/.claude"
+STATE_DIR="${PROJECT_DIR}/.claude"                      # UNCHANGED — other tools depend on this
+CORTEX_DIR="${STATE_DIR}/cortex"                        # NEW — cortex-specific subdir
+SESSIONS_DIR="${CORTEX_DIR}/sessions"                   # NEW — weekly-bucketed session files
 # STATE_FILE is set dynamically by resolve_state_file() or init_state_file()
 # Default fallback for scripts that don't call either:
-STATE_FILE="${STATE_DIR}/cortex-state.local.md"
-HEALTH_FILE="${STATE_DIR}/cortex-health.local.md"
-PROPOSALS_FILE="${STATE_DIR}/cortex-proposals.local.md"
-DECISIONS_FILE="${STATE_DIR}/cortex-decisions.local.md"
+STATE_FILE="${SESSIONS_DIR}/fallback.local.md"
+HEALTH_FILE="${CORTEX_DIR}/health.local.md"
+PROPOSALS_FILE="${CORTEX_DIR}/proposals.local.md"
+DECISIONS_FILE="${CORTEX_DIR}/decisions.local.md"
+
+# get_week_dir — returns the ISO week directory path (YYYY-WNN)
+get_week_dir() {
+  local week
+  week=$(date +%G-W%V 2>/dev/null || date +%Y-W%V 2>/dev/null || echo "unknown")
+  echo "${SESSIONS_DIR}/${week}"
+}
 
 # resolve_state_file "json_input"
 # Extracts session_id from hook stdin JSON and sets STATE_FILE to the
@@ -24,6 +33,9 @@ DECISIONS_FILE="${STATE_DIR}/cortex-decisions.local.md"
 resolve_state_file() {
   local json_input="${1:-}"
   local sid=""
+
+  # Ensure directories exist (audit finding #1 — glob on non-existent dir returns nothing)
+  mkdir -p "$SESSIONS_DIR" 2>/dev/null || true
 
   # Try to extract session_id from JSON input
   if [ -n "$json_input" ]; then
@@ -44,33 +56,50 @@ resolve_state_file() {
   fi
 
   if [ -n "$sid" ]; then
-    STATE_FILE="${STATE_DIR}/cortex-state-${sid}.local.md"
-    # If session-specific file doesn't exist, try legacy single file
+    # Try new week-dir layout first: sessions/YYYY-WNN/{sid}.local.md
+    STATE_FILE="$(get_week_dir)/${sid}.local.md"
     if [ ! -f "$STATE_FILE" ]; then
-      local legacy="${STATE_DIR}/cortex-state.local.md"
-      if [ -f "$legacy" ]; then
-        local legacy_sid
-        legacy_sid=$(grep '^session_id=' "$legacy" 2>/dev/null | cut -d= -f2- | tr -d '\r')
-        # If legacy file has the same session_id, migrate it
-        if [ "$legacy_sid" = "$sid" ]; then
-          mv "$legacy" "$STATE_FILE" 2>/dev/null || true
+      # Search all week dirs for this session_id
+      local found=""
+      for d in "${SESSIONS_DIR}"/*/; do
+        [ -d "$d" ] || continue
+        if [ -f "${d}${sid}.local.md" ]; then
+          found="${d}${sid}.local.md"
+          break
+        fi
+      done
+      if [ -n "$found" ]; then
+        STATE_FILE="$found"
+      else
+        # Check legacy flat path (pre-v3.7 migration compat)
+        local legacy_flat="${STATE_DIR}/cortex-state-${sid}.local.md"
+        if [ -f "$legacy_flat" ]; then
+          STATE_FILE="$legacy_flat"
+        else
+          # Check legacy single file
+          local legacy="${STATE_DIR}/cortex-state.local.md"
+          if [ -f "$legacy" ]; then
+            local legacy_sid
+            legacy_sid=$(grep '^session_id=' "$legacy" 2>/dev/null | cut -d= -f2- | tr -d '\r')
+            if [ "$legacy_sid" = "$sid" ]; then
+              STATE_FILE="$legacy"
+            fi
+          fi
         fi
       fi
     fi
   else
     # No session_id available — find the state file with the most activity
-    # (not just newest). This handles manual invocation from session-end skill
-    # where the newest file may be idle but an older one has tracked edits.
-    # Recency filter: only consider files modified in the last 2 hours to avoid
-    # picking stale files from old sessions (fixes stop-gate escape hatch bug).
+    # Recency filter: only consider files modified in the last 2 hours
     local best_file=""
     local best_count=0
     local now_epoch
     now_epoch=$(date +%s 2>/dev/null || echo "0")
     local cutoff_epoch=$((now_epoch - 7200))  # 2 hours ago
-    for f in "${STATE_DIR}"/cortex-state-*.local.md; do
+
+    # Search new layout: sessions/*/*.local.md
+    for f in "${SESSIONS_DIR}"/*/*.local.md; do
       [ -f "$f" ] || continue
-      # Recency check: skip files not modified in the last 2 hours
       local file_epoch=0
       if command -v stat >/dev/null 2>&1; then
         file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
@@ -79,8 +108,6 @@ resolve_state_file() {
         continue
       fi
       local count=0
-      # Audit fix: grep -c returns 0 AND exits non-zero on empty input,
-      # causing || echo "0" to double-output. Use grep -q guard first.
       if sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -q . 2>/dev/null; then
         count=$(sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -c .)
       fi
@@ -89,35 +116,59 @@ resolve_state_file() {
         best_file="$f"
       fi
     done
+
+    # Also search legacy flat layout (backward compat)
+    for f in "${STATE_DIR}"/cortex-state-*.local.md; do
+      [ -f "$f" ] || continue
+      local file_epoch=0
+      if command -v stat >/dev/null 2>&1; then
+        file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
+      fi
+      if [ "$now_epoch" -gt 0 ] && [ "$file_epoch" -gt 0 ] && [ "$file_epoch" -lt "$cutoff_epoch" ]; then
+        continue
+      fi
+      local count=0
+      if sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -q . 2>/dev/null; then
+        count=$(sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -c .)
+      fi
+      if [ "$count" -gt "$best_count" ]; then
+        best_count=$count
+        best_file="$f"
+      fi
+    done
+
     if [ -n "$best_file" ]; then
       STATE_FILE="$best_file"
     else
-      # All empty or all stale — fall back to newest
+      # All empty or all stale — fall back to newest across both layouts
       local newest
-      newest=$(ls -t "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
+      newest=$(ls -t "${SESSIONS_DIR}"/*/*.local.md "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
       if [ -n "$newest" ]; then
         STATE_FILE="$newest"
       else
-        STATE_FILE="${STATE_DIR}/cortex-state.local.md"
+        STATE_FILE="${SESSIONS_DIR}/fallback.local.md"
       fi
     fi
   fi
 }
 
 # init_state_file "session_id"
-# Creates a new session-scoped state file. Called by session-start.
+# Creates a new session-scoped state file in the current week dir.
 init_state_file() {
   local sid="$1"
-  STATE_FILE="${STATE_DIR}/cortex-state-${sid}.local.md"
+  mkdir -p "$(get_week_dir)"
+  STATE_FILE="$(get_week_dir)/${sid}.local.md"
 }
 
 # cleanup_stale_state_files
-# Removes state files older than 24 hours. Called by session-start.
+# Removes legacy FLAT state files from .claude/ root (migration leftovers).
+# Does NOT touch anything inside sessions/ — no auto-pruning of week dirs.
 cleanup_stale_state_files() {
   local cutoff_epoch
   cutoff_epoch=$(date -d "24 hours ago" +%s 2>/dev/null || date -v-24H +%s 2>/dev/null || echo "0")
   [ "$cutoff_epoch" -eq 0 ] && return 0
 
+  # Remove flat legacy cortex-state-*.local.md stragglers (should have been migrated)
   for f in "${STATE_DIR}"/cortex-state-*.local.md; do
     [ -f "$f" ] || continue
     local file_epoch
@@ -127,14 +178,10 @@ cleanup_stale_state_files() {
     fi
   done
 
-  # Clean up legacy undercurrent-state-*.local.md files (same age check)
+  # Clean up legacy undercurrent-state-*.local.md files unconditionally
   for f in "${STATE_DIR}"/undercurrent-state-*.local.md; do
     [ -f "$f" ] || continue
-    local file_epoch
-    file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
-    if [ "$file_epoch" -gt 0 ] && [ "$file_epoch" -lt "$cutoff_epoch" ]; then
-      rm -f "$f"
-    fi
+    rm -f "$f"
   done
 
   # Delete the massive legacy singleton unconditionally (pre-session-scoping artifact)
@@ -152,56 +199,52 @@ cleanup_stale_state_files() {
 }
 
 # migrate_state_files
-# Merges data from undercurrent-* files into cortex-* equivalents, then
-# deletes the old files. For singleton files (health, proposals, decisions),
-# merges content rows. For session-scoped files, simple rename.
+# Two-phase migration:
+# Phase 1 (legacy): undercurrent-* → cortex-* flat files (pre-v3.3)
+# Phase 2 (v3.7): flat cortex-* → cortex/sessions/YYYY-WNN/ weekly buckets
 migrate_state_files() {
+  # === Phase 1: undercurrent-* → cortex-* (flat, same as before) ===
+
   # --- Health file merge ---
   local old_health="${STATE_DIR}/undercurrent-health.local.md"
-  local new_health="${STATE_DIR}/cortex-health.local.md"
+  local flat_health="${STATE_DIR}/cortex-health.local.md"
   if [ -f "$old_health" ]; then
-    if [ -f "$new_health" ]; then
-      # Both exist — merge data rows from old into new (dedup by full row content)
+    if [ -f "$flat_health" ]; then
       local old_data
       old_data=$(sed -n '/^---$/,$p' "$old_health" 2>/dev/null | tail -n +2)
       if [ -n "$old_data" ]; then
         local existing_rows
-        existing_rows=$(sed -n '/^---$/,$p' "$new_health" 2>/dev/null | tail -n +2)
+        existing_rows=$(sed -n '/^---$/,$p' "$flat_health" 2>/dev/null | tail -n +2)
         while IFS= read -r row; do
           [ -z "$row" ] && continue
-          # Dedup by full row content (not just date — same day can have multiple sessions)
           if [ -z "$existing_rows" ] || ! echo "$existing_rows" | grep -qxF "$row" 2>/dev/null; then
-            # Use awk with ENVIRON for safe append (avoids sed special char issues)
             ROW_DATA="$row" awk '/^---$/ { print; print ENVIRON["ROW_DATA"]; next } { print }' \
-              "$new_health" > "$new_health.tmp.$$" && mv "$new_health.tmp.$$" "$new_health"
+              "$flat_health" > "$flat_health.tmp.$$" && mv "$flat_health.tmp.$$" "$flat_health"
           fi
         done <<< "$old_data"
       fi
-      # Copy rolling averages from old if new has all zeros
       local old_avg_misses
       old_avg_misses=$(grep '^avg_reasoning_misses=' "$old_health" 2>/dev/null | cut -d= -f2-)
       local new_avg_misses
-      new_avg_misses=$(grep '^avg_reasoning_misses=' "$new_health" 2>/dev/null | cut -d= -f2-)
+      new_avg_misses=$(grep '^avg_reasoning_misses=' "$flat_health" 2>/dev/null | cut -d= -f2-)
       if [ "${new_avg_misses:-0.0}" = "0.0" ] && [ -n "$old_avg_misses" ] && [ "$old_avg_misses" != "0.0" ]; then
-        # Carry forward old averages
         for field in avg_reasoning_misses avg_edits_per_commit avg_duration_min; do
           local old_val
           old_val=$(grep "^${field}=" "$old_health" 2>/dev/null | cut -d= -f2-)
           if [ -n "$old_val" ]; then
-            sed "s|^${field}=.*|${field}=${old_val}|" "$new_health" > "$new_health.tmp.$$" \
-              && mv "$new_health.tmp.$$" "$new_health"
+            sed "s|^${field}=.*|${field}=${old_val}|" "$flat_health" > "$flat_health.tmp.$$" \
+              && mv "$flat_health.tmp.$$" "$flat_health"
           fi
         done
       fi
       rm -f "$old_health"
       echo "migrate_state_files: merged undercurrent health into cortex" >&2
     else
-      # Only old exists — simple rename
-      mv "$old_health" "$new_health" 2>/dev/null || true
+      mv "$old_health" "$flat_health" 2>/dev/null || true
     fi
   fi
 
-  # --- Proposals/decisions: simple rename (content is just headers) ---
+  # --- Proposals/decisions: simple rename ---
   for suffix in proposals decisions; do
     local old_f="${STATE_DIR}/undercurrent-${suffix}.local.md"
     local new_f="${STATE_DIR}/cortex-${suffix}.local.md"
@@ -210,12 +253,81 @@ migrate_state_files() {
     fi
   done
 
-  # --- Session-scoped state files: rename remaining undercurrent-state-* ---
+  # --- Session-scoped: undercurrent-state-* → cortex-state-* ---
   for old_file in "${STATE_DIR}"/undercurrent-state-*.local.md; do
     [ -f "$old_file" ] || continue
     local new_file="${old_file/undercurrent-/cortex-}"
     [ -f "$new_file" ] || mv "$old_file" "$new_file" 2>/dev/null || true
   done
+
+  # === Phase 2: v3.7 directory reorganization ===
+  # Sentinel check — skip if already migrated
+  if [ -f "${CORTEX_DIR}/.migrated-v3.7" ]; then
+    return 0
+  fi
+
+  # Create target directories
+  mkdir -p "${CORTEX_DIR}" "${SESSIONS_DIR}"
+
+  # --- Move singletons from flat .claude/ to cortex/ subdir ---
+  for pair in \
+    "cortex-health.local.md:health.local.md" \
+    "cortex-proposals.local.md:proposals.local.md" \
+    "cortex-decisions.local.md:decisions.local.md" \
+    "cortex-cross-session.local.md:cross-session.local.md" \
+    "cortex-profile.local:profile.local"; do
+    local old_name="${pair%%:*}"
+    local new_name="${pair##*:}"
+    if [ -f "${STATE_DIR}/${old_name}" ]; then
+      mv "${STATE_DIR}/${old_name}" "${CORTEX_DIR}/${new_name}" 2>/dev/null || true
+      echo "migrate_state_files: moved ${old_name} → cortex/${new_name}" >&2
+    fi
+  done
+
+  # --- Move session files into weekly buckets ---
+  for f in "${STATE_DIR}"/cortex-state-*.local.md; do
+    [ -f "$f" ] || continue
+    # Get mtime epoch for week computation
+    local file_epoch
+    file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
+    local week
+    if [ "$file_epoch" -gt 0 ]; then
+      # Use ENVIRON pattern to avoid awk -v path mangling on Windows
+      week=$(EPOCH="$file_epoch" bash -c 'date -d @"$EPOCH" +%G-W%V 2>/dev/null || date -r "$EPOCH" +%G-W%V 2>/dev/null || echo "unknown"')
+    else
+      week="unknown"
+    fi
+    # Extract session_id: strip prefix and suffix
+    local base
+    base=$(basename "$f")
+    local sid="${base#cortex-state-}"
+    sid="${sid%.local.md}"
+    mkdir -p "${SESSIONS_DIR}/${week}"
+    mv "$f" "${SESSIONS_DIR}/${week}/${sid}.local.md" 2>/dev/null || true
+    echo "migrate_state_files: moved ${base} → sessions/${week}/${sid}.local.md" >&2
+  done
+
+  # --- Also move the legacy singleton cortex-state.local.md ---
+  if [ -f "${STATE_DIR}/cortex-state.local.md" ]; then
+    local sid
+    sid=$(grep '^session_id=' "${STATE_DIR}/cortex-state.local.md" 2>/dev/null | cut -d= -f2- | tr -d '\r')
+    sid="${sid:-legacy}"
+    local week
+    week=$(date +%G-W%V 2>/dev/null || echo "unknown")
+    mkdir -p "${SESSIONS_DIR}/${week}"
+    mv "${STATE_DIR}/cortex-state.local.md" "${SESSIONS_DIR}/${week}/${sid}.local.md" 2>/dev/null || true
+    echo "migrate_state_files: moved cortex-state.local.md → sessions/${week}/${sid}.local.md" >&2
+  fi
+
+  # --- Delete known junk files ---
+  rm -f "${STATE_DIR}/old_state.md" 2>/dev/null || true
+  rm -f "${STATE_DIR}/hook-fire-test.txt" 2>/dev/null || true
+  rm -f "${STATE_DIR}/trace.log" 2>/dev/null || true
+  rm -f "${STATE_DIR}/session-end-diagnostic.log" 2>/dev/null || true
+
+  # Write sentinel
+  echo "migrated $(date -Iseconds 2>/dev/null || date +%Y-%m-%dT%H:%M:%S)" > "${CORTEX_DIR}/.migrated-v3.7"
+  echo "migrate_state_files: v3.7 migration complete" >&2
 }
 
 # read_field "field_name" "file_path"
@@ -316,11 +428,11 @@ normalize_path() {
 
 # get_profile
 # Returns the active Cortex profile: minimal, standard (default), or strict.
-# Resolution: CORTEX_PROFILE env var → .claude/cortex-profile.local file → "standard".
+# Resolution: CORTEX_PROFILE env var → cortex/profile.local file → "standard".
 get_profile() {
   local profile="${CORTEX_PROFILE:-}"
-  if [ -z "$profile" ] && [ -f "${STATE_DIR:-}/cortex-profile.local" ]; then
-    profile=$(head -1 "${STATE_DIR}/cortex-profile.local" 2>/dev/null | tr -d '[:space:]')
+  if [ -z "$profile" ] && [ -f "${CORTEX_DIR:-}/profile.local" ]; then
+    profile=$(head -1 "${CORTEX_DIR}/profile.local" 2>/dev/null | tr -d '[:space:]')
   fi
   case "$profile" in
     minimal|strict) echo "$profile" ;;

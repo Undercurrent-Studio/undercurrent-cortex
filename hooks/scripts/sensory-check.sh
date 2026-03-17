@@ -7,6 +7,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/state-io.sh" || exit 0
 
+# Resolve state file (no JSON input — finds best active session file)
+resolve_state_file ""
+
 MID_SESSION=false
 if [ "${1:-}" = "--mid-session" ]; then
   MID_SESSION=true

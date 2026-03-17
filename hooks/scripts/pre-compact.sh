@@ -14,9 +14,9 @@ resolve_state_file "$INPUT"
 
 # Graceful degradation: no state file → try legacy, else nothing to preserve
 if [ ! -f "$STATE_FILE" ]; then
-  legacy="${STATE_DIR}/cortex-state.local.md"
-  if [ -f "$legacy" ]; then
-    STATE_FILE="$legacy"
+  local_fallback=$(ls -t "${SESSIONS_DIR}"/*/*.local.md "${STATE_DIR}"/cortex-state-*.local.md "${STATE_DIR}/cortex-state.local.md" 2>/dev/null | head -1 || true)
+  if [ -n "$local_fallback" ] && [ -f "$local_fallback" ]; then
+    STATE_FILE="$local_fallback"
   else
     printf '{}'
     exit 0

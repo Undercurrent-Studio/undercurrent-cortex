@@ -57,7 +57,7 @@ PLUGIN_ROOT="$PLUGIN_ROOT" "$SCRIPT_DIR/scripts/bootstrap-hooks.sh" 2>/dev/null 
 # --- Step 1: Read old carry-over from ANY existing state files ---
 old_carry_over=""
 old_carry_over_age="0"
-for sf in "${STATE_DIR}"/cortex-state-*.local.md "${STATE_DIR}/cortex-state.local.md"; do
+for sf in "${SESSIONS_DIR}"/*/*.local.md "${STATE_DIR}"/cortex-state-*.local.md; do
   [ -f "$sf" ] || continue
   [ "$sf" = "$STATE_FILE" ] && continue  # skip our own (not created yet)
   co=$(read_section "carry_over" "$sf")
@@ -310,7 +310,7 @@ if [ "$PROFILE" != "minimal" ] && [ -f "$HEALTH_FILE" ]; then
 fi
 
 # Recurring file edits (from cross-session tracker)
-CROSS_FILE="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
+CROSS_FILE="${CORTEX_DIR}/cross-session.local.md"
 if [ -f "$CROSS_FILE" ]; then
   hot_files=$(awk -F'|' '/^[^#]/ && $2+0 >= 4 { printf "  - %s (%s sessions)\n", $1, $2 }' "$CROSS_FILE")
   if [ -n "$hot_files" ]; then

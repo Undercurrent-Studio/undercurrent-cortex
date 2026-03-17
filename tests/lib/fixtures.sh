@@ -10,8 +10,8 @@ PLUGIN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 create_state_file() {
   local dir="$1" sid="$2"
   shift 2
-  mkdir -p "$dir"
-  local file="$dir/cortex-state-${sid}.local.md"
+  mkdir -p "$dir/cortex/sessions/test-week"
+  local file="$dir/cortex/sessions/test-week/${sid}.local.md"
   cat > "$file" << 'EOF'
 session_id=PLACEHOLDER_SID
 session_start=2026-03-14T00:00:00Z
@@ -226,11 +226,13 @@ override_state_paths() {
   local dir="$1"
   PROJECT_DIR="$dir"
   STATE_DIR="$dir/.claude"
-  STATE_FILE="$dir/.claude/cortex-state.local.md"
-  HEALTH_FILE="$dir/.claude/cortex-health.local.md"
-  PROPOSALS_FILE="$dir/.claude/cortex-proposals.local.md"
-  DECISIONS_FILE="$dir/.claude/cortex-decisions.local.md"
-  export PROJECT_DIR STATE_DIR STATE_FILE HEALTH_FILE PROPOSALS_FILE DECISIONS_FILE
+  CORTEX_DIR="$dir/.claude/cortex"
+  SESSIONS_DIR="$dir/.claude/cortex/sessions"
+  STATE_FILE="$dir/.claude/cortex/sessions/test-week/fallback.local.md"
+  HEALTH_FILE="$dir/.claude/cortex/health.local.md"
+  PROPOSALS_FILE="$dir/.claude/cortex/proposals.local.md"
+  DECISIONS_FILE="$dir/.claude/cortex/decisions.local.md"
+  export PROJECT_DIR STATE_DIR CORTEX_DIR SESSIONS_DIR STATE_FILE HEALTH_FILE PROPOSALS_FILE DECISIONS_FILE
 }
 
 # setup_script_sandbox <tmpdir> [plugin_root]
@@ -272,6 +274,9 @@ setup_script_sandbox() {
   sed "s|^PROJECT_DIR=.*|PROJECT_DIR=\"$tmpdir\"|" \
     "$plugin_root/hooks/scripts/lib/state-io.sh" \
     > "$sandbox/hooks/scripts/lib/state-io.sh"
+
+  # Create cortex directory structure in sandbox
+  mkdir -p "$tmpdir/.claude/cortex/sessions"
 
   # Copy context files (small, read-only)
   for f in "$plugin_root/context/"*.md; do

@@ -166,7 +166,7 @@ validate_organism() {
   fi
 
   # --- 9.5. Cross-session file pruning (>500 lines) ---
-  local cross_file="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
+  local cross_file="${CORTEX_DIR:-${PROJECT_DIR}/.claude/cortex}/cross-session.local.md"
   if [ -f "$cross_file" ]; then
     local cross_lines
     cross_lines=$(wc -l < "$cross_file" | tr -d ' ')

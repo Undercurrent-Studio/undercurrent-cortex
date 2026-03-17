@@ -105,13 +105,13 @@ setup_test
 override_state_paths "$_TEST_TMPDIR"
 create_state_file "$_TEST_TMPDIR/.claude" "resolve-test" > /dev/null
 resolve_state_file '{"session_id":"resolve-test"}'
-assert_eq "resolve_state_file_with_session_id" "$_TEST_TMPDIR/.claude/cortex-state-resolve-test.local.md" "$STATE_FILE"
+assert_contains "resolve_state_file_with_session_id" "$STATE_FILE" "resolve-test.local.md"
 
 setup_test
 override_state_paths "$_TEST_TMPDIR"
 create_state_file "$_TEST_TMPDIR/.claude" "newest-file" > /dev/null
 resolve_state_file '{}'
-assert_contains "resolve_state_file_fallback_newest" "$STATE_FILE" "cortex-state"
+assert_contains "resolve_state_file_fallback_newest" "$STATE_FILE" ".local.md"
 
 # --- validate_state_file tests ---
 setup_test

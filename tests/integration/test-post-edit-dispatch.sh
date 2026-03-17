@@ -26,7 +26,7 @@ run_post_edit() {
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "edit-inc" "edits_since_last_commit=2" > /dev/null
 run_post_edit "edit-inc" "${_TEST_TMPDIR}/src/lib/utils.ts" > /dev/null
-sf="$_TEST_TMPDIR/.claude/cortex-state-edit-inc.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/edit-inc.local.md"
 result=$(grep '^edits_since_last_commit=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "edit_increments_count" "3" "$result"
 
@@ -34,7 +34,7 @@ assert_eq "edit_increments_count" "3" "$result"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "edit-track" "edits_since_last_commit=0" > /dev/null
 run_post_edit "edit-track" "src/lib/scoring.ts" > /dev/null
-sf="$_TEST_TMPDIR/.claude/cortex-state-edit-track.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/edit-track.local.md"
 result=$(read_section "files_modified" "$sf")
 assert_contains "file_path_tracked" "$result" "src/lib/scoring.ts"
 
@@ -60,7 +60,7 @@ assert_not_contains "plugin_path_skips_re_edit" "$result" "Re-edit"
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "docs-edit" "docs_updated=false" > /dev/null
 run_post_edit "docs-edit" "documentation.md" > /dev/null
-sf="$_TEST_TMPDIR/.claude/cortex-state-docs-edit.local.md"
+sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/docs-edit.local.md"
 result=$(grep '^docs_updated=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "docs_edit_sets_flag" "true" "$result"
 

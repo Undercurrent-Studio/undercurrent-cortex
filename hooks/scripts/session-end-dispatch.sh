@@ -13,9 +13,10 @@ resolve_state_file "$INPUT"
 # Guard: state file must exist (session-start creates it)
 # Fallback: if session-scoped file doesn't exist, try legacy file
 if [ ! -f "$STATE_FILE" ]; then
-  legacy="${STATE_DIR}/cortex-state.local.md"
-  if [ -f "$legacy" ]; then
-    STATE_FILE="$legacy"
+  # Try newest file across new layout + legacy flat
+  local_fallback=$(ls -t "${SESSIONS_DIR}"/*/*.local.md "${STATE_DIR}"/cortex-state-*.local.md "${STATE_DIR}/cortex-state.local.md" 2>/dev/null | head -1 || true)
+  if [ -n "$local_fallback" ] && [ -f "$local_fallback" ]; then
+    STATE_FILE="$local_fallback"
   else
     printf '{}'
     exit 0
@@ -131,7 +132,7 @@ fi
 # --- Cross-session file tracking (runs before zero-metric skip) ---
 # Cross-session tracks file edit patterns across sessions — this should happen
 # regardless of whether we write a health row. Moved before zero-metric exit.
-CROSS_FILE="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
+CROSS_FILE="${CORTEX_DIR}/cross-session.local.md"
 if [ ! -f "$CROSS_FILE" ]; then
   {
     echo "# Cross-Session File Edit Tracker"
