@@ -12,6 +12,7 @@ version: 0.1.0
 1. Read `MEMORY.md` (project root) — personal context, preferences, active decisions
 2. Read or create `memory/YYYY-MM-DD.md` — if missing, create: `# Journal - YYYY-MM-DD` + `## HH:MM - Session start`. Do not ask. Just create it.
 3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/cortex:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
+4. **Display the organism statusline.** The SessionStart hook injects it into system context (inside `<cortex-session-start>` tags), but the user cannot see system context. Copy the two statusline lines and display them verbatim in your first response to the user so they are visible in the chat.
 
 ## If task is non-trivial (new feature, bug, architectural decision — not a quick question)
 4. Read `tasks/todo.md` + scan `tasks/lessons.md` by domain:
