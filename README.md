@@ -350,7 +350,7 @@ To create a domain pack:
 
 ## Test Suite
 
-25 test scripts organized by type:
+26 test scripts organized by type:
 
 ```text
 tests/
@@ -402,13 +402,14 @@ cortex/
   commands/         # 5 slash commands
   agents/           # conversation-analyzer + deep-dive
   context/          # 4 context files (keyword-matched)
-  tests/            # 25 bash test scripts (run-all.sh)
+  tests/            # 26 bash test scripts (run-all.sh)
 ```
 
 ---
 
 ## Version History
 
+- **3.6.0** — Genericized reference files for public distribution. Hook profiles (`CORTEX_PROFILE=minimal|standard|strict`). Blog post outline.
 - **3.5.0** — Bootstrap targets global `~/.claude/settings.json` (proven reliable) instead of project-level `settings.local.json`. Cleans up stale project-level entries on upgrade.
 - **3.4.x** — Wire up `tool_calls_count` increment in post-dispatch (was tracked but never incremented). Bootstrap all 6 non-SessionStart events with smart idempotency.
 - **3.3.0** — Comprehensive audit fixes: state file resolution, health dedup, legacy migration, `hooks.json` cleanup.
