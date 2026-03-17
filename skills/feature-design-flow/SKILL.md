@@ -6,6 +6,8 @@ version: 0.1.0
 
 # Feature Design Flow
 
+> **Dependencies**: This skill orchestrates skills from the `superpowers` plugin (`brainstorming`, `writing-plans`, `code-reviewer`, `executing-plans`). If superpowers is not installed, perform each phase manually.
+
 **TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute. Sets the bar, sequences superpowers skills.
 
 ## Before Phase 1 — Ground in product mission
