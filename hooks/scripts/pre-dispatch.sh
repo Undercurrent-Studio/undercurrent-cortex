@@ -15,10 +15,23 @@ INPUT=$(cat)
 tool_name=$(printf '%s' "$INPUT" | extract_json_field "tool_name")
 # Early exit for irrelevant tools
 case "$tool_name" in
-  Write|Edit) ;;
+  Write|Edit|Bash) ;;
   *) printf '{}'; exit 0 ;;
 esac
 
+# --- Bash: git push safety check ---
+if [ "$tool_name" = "Bash" ]; then
+  command_str=$(printf '%s' "$INPUT" | extract_json_field "tool_input.command")
+  if echo "$command_str" | grep -qE 'git\s+push'; then
+    source "$SCRIPT_DIR/lib/escape-json.sh" || true
+    msg=$(escape_for_json "Git push safety: (1) no untracked files imported by committed code, (2) tests pass, (3) docs updated if architectural files changed, (4) never force-push to master.")
+    printf '{"systemMessage":"%s"}' "$msg"
+    exit 0
+  fi
+  # Non-push bash commands — pass through
+  printf '{}'
+  exit 0
+fi
 
 # Migration linter runs on Write AND Edit (if present — may be in domain pack)
 linter_result="{}"
