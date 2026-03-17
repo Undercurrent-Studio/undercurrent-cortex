@@ -6,14 +6,14 @@
 
 ## 1. `.update().or().select()` Returns Empty
 
-**Symptom**: The UPDATE executes successfully (data changes in DB), but `data` comes back as `null` or `[]`. Code thinks the operation failed. In the pipeline, this caused the lock to silently fail on every cron run — the lock was acquired but the code returned "skipped."
+**Symptom**: The UPDATE executes successfully (data changes in DB), but `data` comes back as `null` or `[]`. Code thinks the operation failed. In a job scheduler, this caused the lock to silently fail on every run — the lock was acquired but the code returned "skipped."
 
 **Root cause**: PostgREST response parsing fails when conditional WHERE clauses (`.or()`) are combined with `.update().select()`. The rows are updated but the SELECT portion returns nothing.
 
 **Bad**:
 ```ts
 const { data } = await supabase
-  .from("pipeline_state")
+  .from("job_state")
   .update({ locked: true })
   .eq("id", 1)
   .or("locked.is.null,locked.eq.false")
@@ -26,13 +26,13 @@ const { data } = await supabase
 ```ts
 // Read first
 const { data: state } = await supabase
-  .from("pipeline_state")
+  .from("job_state")
   .select("locked")
   .eq("id", 1)
   .single();
 if (state?.locked) return "skipped";
 // Then write
-await supabase.from("pipeline_state").update({ locked: true }).eq("id", 1);
+await supabase.from("job_state").update({ locked: true }).eq("id", 1);
 ```
 
 ---
@@ -58,8 +58,8 @@ await supabase.from("pipeline_state").update({ locked: true }).eq("id", 1);
 **Bad**:
 ```ts
 const { data } = await supabase
-  .from("scores")
-  .select("ticker, nonexistent_column")  // typo or renamed column
+  .from("metrics")
+  .select("entity_id, nonexistent_column")  // typo or renamed column
 // data is null, no throw — downstream gets []
 ```
 
@@ -69,18 +69,18 @@ const { data } = await supabase
 
 ## 4. `.in()` Query Exceeds `max_rows`
 
-**Symptom**: Query returns exactly `max_rows` results (e.g., 1000 or 50000) with no error. Data appears complete but is silently truncated. Price history backfill broke when PIPELINE_BATCH_SIZE increased from 300 to 600 — `600 × 365 = 219,000 rows > 50,000 max_rows`.
+**Symptom**: Query returns exactly `max_rows` results (e.g., 1000 or 50000) with no error. Data appears complete but is silently truncated. History backfill broke when BATCH_SIZE increased from 300 to 600 — `600 × 365 = 219,000 rows > 50,000 max_rows`.
 
-**Root cause**: Supabase has a project-level `max_rows` setting (default: 1000, project setting: 50000) that hard-caps ALL query results. Even explicit `.limit(50000)` can't exceed it. When `.in("ticker", tickers)` returns `tickers × rows_per_ticker`, the total easily exceeds the cap.
+**Root cause**: Supabase has a project-level `max_rows` setting (default: 1000, project setting: 50000) that hard-caps ALL query results. Even explicit `.limit(50000)` can't exceed it. When `.in("entity_id", ids)` returns `ids × rows_per_id`, the total easily exceeds the cap.
 
-**Bad**: `.in("ticker", all6000Tickers).limit(50000)` — truncated at 50K.
+**Bad**: `.in("entity_id", all6000Ids).limit(50000)` — truncated at 50K.
 
-**Good**: Calculate worst-case: `num_tickers × max_rows_per_ticker`. Chunk to stay under limit:
+**Good**: Calculate worst-case: `num_entities × max_rows_per_entity`. Chunk to stay under limit:
 ```ts
 const CHUNK_SIZE = 100; // 100 × 365 = 36,500 < 50,000
-for (let i = 0; i < tickers.length; i += CHUNK_SIZE) {
-  const chunk = tickers.slice(i, i + CHUNK_SIZE);
-  const { data } = await supabase.from("price_history").select("*").in("ticker", chunk);
+for (let i = 0; i < entities.length; i += CHUNK_SIZE) {
+  const chunk = entities.slice(i, i + CHUNK_SIZE);
+  const { data } = await supabase.from("daily_records").select("*").in("entity_id", chunk);
 }
 ```
 
@@ -88,24 +88,24 @@ for (let i = 0; i < tickers.length; i += CHUNK_SIZE) {
 
 ## 5. Upsert Requires ALL NOT NULL Columns
 
-**Symptom**: `null value in column "company_name" of relation "stocks" violates not-null constraint` — even though the row already exists and `company_name` is already set.
+**Symptom**: `null value in column "display_name" of relation "entities" violates not-null constraint` — even though the row already exists and `display_name` is already set.
 
 **Root cause**: PostgreSQL checks NOT NULL constraints on the INSERT path BEFORE evaluating the ON CONFLICT clause. The upsert payload must include every NOT NULL column, even for rows that will hit the UPDATE path.
 
 **Bad**:
 ```ts
-await supabase.from("stocks").upsert(
-  [{ ticker: "AAPL", market_cap: 3e12 }],
-  { onConflict: "ticker" }
-); // Fails: company_name is NOT NULL
+await supabase.from("entities").upsert(
+  [{ code: "AAPL", market_cap: 3e12 }],
+  { onConflict: "code" }
+); // Fails: display_name is NOT NULL
 ```
 
 **Good**:
 ```ts
-const nameMap = new Map(existingStocks.map(s => [s.ticker, s.company_name]));
-await supabase.from("stocks").upsert(
-  [{ ticker: "AAPL", market_cap: 3e12, company_name: nameMap.get("AAPL")! }],
-  { onConflict: "ticker" }
+const nameMap = new Map(existing.map(e => [e.code, e.display_name]));
+await supabase.from("entities").upsert(
+  [{ code: "AAPL", market_cap: 3e12, display_name: nameMap.get("AAPL")! }],
+  { onConflict: "code" }
 );
 ```
 
@@ -125,9 +125,9 @@ await supabase.from("stocks").upsert(
 
 **Symptom**: Skewed quintile distribution in scatter charts — some quintiles have 5× more dots than others.
 
-**Root cause**: `ntile(5) OVER (ORDER BY score DESC)` applied to a `ticker × date` matrix (96K rows) assigns quintiles per-row, not per-ticker. When deduplicating to one dot per ticker via `DISTINCT ON`, the distribution is uneven.
+**Root cause**: `ntile(5) OVER (ORDER BY score DESC)` applied to an `entity × date` matrix (96K rows) assigns quintiles per-row, not per-entity. When deduplicating to one dot per entity via `DISTINCT ON`, the distribution is uneven.
 
-**Good**: Two-CTE approach — first CTE deduplicates (`DISTINCT ON (ticker)`), second CTE runs `ntile(5)` on the deduplicated set. Guarantees even 20/20/20/20/20 distribution.
+**Good**: Two-CTE approach — first CTE deduplicates (`DISTINCT ON (entity_id)`), second CTE runs `ntile(5)` on the deduplicated set. Guarantees even 20/20/20/20/20 distribution.
 
 ---
 
@@ -139,8 +139,8 @@ await supabase.from("stocks").upsert(
 
 **Good**: Build Maps from initial query results:
 ```ts
-const nameMap = new Map(stocks.map(s => [s.ticker, s.company_name]));
-// Use nameMap.get(ticker) instead of querying again
+const nameMap = new Map(entities.map(e => [e.code, e.display_name]));
+// Use nameMap.get(code) instead of querying again
 ```
 
 Never make a new `.in()` query for NOT NULL column lookup — use the data you already have.

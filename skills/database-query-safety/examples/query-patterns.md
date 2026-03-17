@@ -9,7 +9,7 @@
 ```ts
 // BAD — .update().or().select() returns null
 const { data } = await supabase
-  .from("pipeline_state")
+  .from("job_state")
   .update({ locked: true })
   .eq("id", 1)
   .or("locked.is.null,locked.eq.false")
@@ -18,32 +18,32 @@ const { data } = await supabase
 
 // GOOD — read-then-write
 const { data: state } = await supabase
-  .from("pipeline_state")
+  .from("job_state")
   .select("locked")
   .eq("id", 1)
   .single();
 if (state?.locked) return "skipped";
-await supabase.from("pipeline_state").update({ locked: true }).eq("id", 1);
+await supabase.from("job_state").update({ locked: true }).eq("id", 1);
 ```
 
 ### 2. Bulk Upsert with NOT NULL Columns
 
 ```ts
 // BAD — missing NOT NULL columns on upsert
-await supabase.from("stocks").upsert(
-  tickers.map(t => ({ ticker: t, market_cap: caps.get(t) })),
-  { onConflict: "ticker" }
+await supabase.from("entities").upsert(
+  tickers.map(t => ({ code: t, market_cap: caps.get(t) })),
+  { onConflict: "code" }
 );
 
 // GOOD — include all NOT NULL columns from existing data
-const nameMap = new Map(existingStocks.map(s => [s.ticker, s.company_name]));
-await supabase.from("stocks").upsert(
+const nameMap = new Map(existing.map(e => [e.code, e.display_name]));
+await supabase.from("entities").upsert(
   tickers.map(t => ({
-    ticker: t,
+    code: t,
     market_cap: caps.get(t),
-    company_name: nameMap.get(t) ?? "Unknown",
+    display_name: nameMap.get(t) ?? "Unknown",
   })),
-  { onConflict: "ticker" }
+  { onConflict: "code" }
 );
 ```
 
@@ -52,18 +52,18 @@ await supabase.from("stocks").upsert(
 ```ts
 // BAD — exceeds max_rows (600 × 365 = 219K > 50K)
 const { data } = await supabase
-  .from("price_history")
+  .from("daily_records")
   .select("*")
-  .in("ticker", allTickers);
+  .in("entity_id", allIds);
 
 // GOOD — chunk to stay under limit
 const CHUNK = 100; // 100 × 365 = 36,500 < 50K
-const results: PriceRow[] = [];
-for (let i = 0; i < tickers.length; i += CHUNK) {
+const results: RecordRow[] = [];
+for (let i = 0; i < ids.length; i += CHUNK) {
   const { data } = await supabase
-    .from("price_history")
+    .from("daily_records")
     .select("*")
-    .in("ticker", tickers.slice(i, i + CHUNK));
+    .in("entity_id", ids.slice(i, i + CHUNK));
   if (data) results.push(...data);
 }
 ```
@@ -72,11 +72,11 @@ for (let i = 0; i < tickers.length; i += CHUNK) {
 
 ```ts
 // BAD — crashes on null
-const formatted = row.earnings_per_share.toFixed(2);
+const formatted = row.metric_value.toFixed(2);
 
 // GOOD — null guard
-const formatted = row.earnings_per_share != null
-  ? row.earnings_per_share.toFixed(2)
+const formatted = row.metric_value != null
+  ? row.metric_value.toFixed(2)
   : "-";
 ```
 
@@ -87,7 +87,7 @@ const formatted = row.earnings_per_share != null
 async function getScores() {
   "use cache";
   const { data, error } = await adminClient
-    .from("scores")
+    .from("metrics")
     .select("*");
   return data; // null on error — cached as null
 }
@@ -96,9 +96,9 @@ async function getScores() {
 async function getScores() {
   "use cache";
   const { data, error } = await adminClient
-    .from("scores")
+    .from("metrics")
     .select("*");
-  if (error) throw new Error(`scores: ${error.message}`);
+  if (error) throw new Error(`metrics: ${error.message}`);
   return data;
 }
 ```
@@ -108,12 +108,12 @@ async function getScores() {
 ```sql
 -- BAD — ntile on raw ticker×date matrix
 SELECT ticker, score, ntile(5) OVER (ORDER BY score DESC) AS quintile
-FROM score_daily_snapshots;
+FROM metric_snapshots;
 
 -- GOOD — deduplicate first, then ntile
 WITH latest AS (
   SELECT DISTINCT ON (ticker) ticker, score
-  FROM score_daily_snapshots
+  FROM metric_snapshots
   ORDER BY ticker, snapshot_date DESC
 ),
 ranked AS (
@@ -128,12 +128,12 @@ SELECT * FROM ranked;
 ```ts
 // BAD — typo silently returns null (no throw)
 const { data } = await supabase
-  .from("scores")
+  .from("metrics")
   .select("ticker, composit_score"); // should be composite_score
 
 // GOOD — verify columns exist, check for error
 const { data, error } = await supabase
-  .from("scores")
+  .from("metrics")
   .select("ticker, composite_score");
 if (error) throw new Error(`Query error: ${error.message}`);
 ```
@@ -142,9 +142,8 @@ if (error) throw new Error(`Query error: ${error.message}`);
 
 ```ts
 // BAD — single INSERT of 5000 rows
-await supabase.from("stock_prices").insert(allRows);
+await supabase.from("daily_prices").insert(allRows);
 
-// GOOD — use batchUpsert (500-row chunks, count verification)
-import { batchUpsert } from "@/lib/utils/batch-upsert";
-await batchUpsert(adminClient, "stock_prices", allRows, "ticker,price_date");
+// GOOD — use a batch upsert utility (500-row chunks, count verification)
+await batchUpsert(adminClient, "daily_prices", allRows, "entity_id,record_date");
 ```
