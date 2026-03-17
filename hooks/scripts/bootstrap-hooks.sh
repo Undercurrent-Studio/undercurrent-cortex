@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# bootstrap-hooks.sh - Inject all non-SessionStart hooks into settings.local.json
+# bootstrap-hooks.sh - Inject all non-SessionStart hooks into ~/.claude/settings.json
 # WORKAROUND: Plugin hooks.json command hooks are unreliable (bug #34573).
 # SessionStart stays in hooks.json (proven working, keeps bootstrap alive).
-# All other events are bootstrapped into settings.local.json at session start.
+# All other events are bootstrapped into GLOBAL settings.json (not project-level).
+# Global settings.json is the only location proven to reliably fire hooks.
 # See: https://github.com/anthropics/claude-code/issues/34573
 # Remove this file when Anthropic confirms the bug is fixed and verified.
 set -euo pipefail
@@ -10,7 +11,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-# Source state-io for PROJECT_DIR
+# Source state-io for PROJECT_DIR (needed for stale cleanup)
 source "$SCRIPT_DIR/lib/state-io.sh" 2>/dev/null || true
 
 # Fallback: derive PROJECT_DIR from git root
@@ -18,17 +19,20 @@ if [ -z "${PROJECT_DIR:-}" ]; then
   PROJECT_DIR="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
 fi
 
-if [ -z "$PROJECT_DIR" ]; then
-  echo "bootstrap-hooks: no PROJECT_DIR, skipping" >&2
-  exit 0
-fi
-
 if [ -z "${PLUGIN_ROOT:-}" ]; then
   echo "bootstrap-hooks: no PLUGIN_ROOT, skipping" >&2
   exit 0
 fi
 
-SETTINGS_FILE="${PROJECT_DIR}/.claude/settings.local.json"
+# Global settings — the only location proven to reliably fire hooks
+SETTINGS_FILE="${HOME}/.claude/settings.json"
+
+# Also clean up stale bootstrap entries from the old project-level location
+OLD_SETTINGS="${PROJECT_DIR:+${PROJECT_DIR}/.claude/settings.local.json}"
+
+# Export for Python script
+export PLUGIN_ROOT
+export OLD_SETTINGS="${OLD_SETTINGS:-}"
 
 # Use python3 for reliable JSON manipulation
 python3 - "$SETTINGS_FILE" <<'PYEOF'
@@ -38,9 +42,10 @@ import os
 
 settings_path = sys.argv[1]
 plugin_root_ref = os.environ.get("PLUGIN_ROOT", "").replace("\\", "/")
+old_settings_path = os.environ.get("OLD_SETTINGS", "")
 
-# Bootstrap all events EXCEPT SessionStart (which stays in hooks.json as the
-# bootstrap's lifeline). hooks.json is unreliable for other events (bug #34573).
+# Bootstrap all events EXCEPT SessionStart into GLOBAL ~/.claude/settings.json.
+# hooks.json is unreliable for other events (bug #34573).
 # Each entry here must match the intended hook configuration exactly.
 HOOKS_TO_INJECT = [
     {
@@ -198,9 +203,34 @@ if changed:
     with open(settings_path, 'w', encoding='utf-8') as f:
         json.dump(settings, f, indent=2, ensure_ascii=False)
         f.write('\n')
-    print("bootstrap-hooks: wrote updated settings.local.json", file=sys.stderr)
+    print("bootstrap-hooks: wrote updated ~/.claude/settings.json", file=sys.stderr)
 else:
     print("bootstrap-hooks: no changes needed", file=sys.stderr)
+
+# Clean up stale bootstrap entries from old project-level settings.local.json
+if old_settings_path and os.path.isfile(old_settings_path):
+    try:
+        with open(old_settings_path, 'r', encoding='utf-8') as f:
+            old_settings = json.load(f)
+        old_hooks = old_settings.get("hooks", {})
+        old_changed = False
+        for event in list(old_hooks.keys()):
+            cleaned = remove_cortex_bootstrap(old_hooks[event])
+            if len(cleaned) != len(old_hooks[event]):
+                old_changed = True
+                if cleaned:
+                    old_hooks[event] = cleaned
+                else:
+                    del old_hooks[event]
+        if old_changed:
+            if not old_hooks:
+                del old_settings["hooks"]
+            with open(old_settings_path, 'w', encoding='utf-8') as f:
+                json.dump(old_settings, f, indent=2, ensure_ascii=False)
+                f.write('\n')
+            print(f"bootstrap-hooks: cleaned stale entries from project settings.local.json", file=sys.stderr)
+    except (json.JSONDecodeError, IOError, KeyError):
+        pass  # Old file is broken or missing — ignore
 PYEOF
 
 exit 0
