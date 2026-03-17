@@ -69,4 +69,17 @@ echo '{}' | bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-end-dispatch.sh"
 ```
 If this outputs `{}` silently, health was written (or the dedup guard fired). Check the project's `.claude/cortex-health.local.md` exists afterward.
 
+**Step 8 — Display session statusline diff** (every session):
+Display the organism statusline at the end, showing what changed during the session. Compare the values from session start (displayed in your first response) against current values. Format:
+
+```
+── Session Pulse ──────────────────────────────
+START  ✏️  0 edits · 📦 0 commits · 🧪❌ · 📄❌
+END    ✏️  4 edits · 📦 2 commits · 🧪✅ · 📄✅
+       💚 thriving │ 🧠 63 absorbed │ 🧬 0 mutations queued │ → stable
+───────────────────────────────────────────────
+```
+
+Show the START line (from session start), the END line (current values), and the organism health line (current). This gives the user a visible summary of session productivity.
+
 **Run session-end before closing every working session.** It takes 2 minutes.
