@@ -350,13 +350,13 @@ To create a domain pack:
 
 ## Test Suite
 
-26 test scripts organized by type:
+23 test scripts organized by type:
 
 ```text
 tests/
   run-all.sh                              # Test runner
   unit/                                   # 4 tests — state-io, json-extract, escape-json, validate-organism
-  integration/                            # 14 tests — one per hook script
+  integration/                            # 15 tests — one per hook script + profiles
   edge/                                   # 2 tests — empty stdin, Windows paths
   regression/                             # 2 tests — health dedup, pipefail glob
   lib/                                    # 3 shared helpers — fixtures, mocks, test framework
@@ -409,6 +409,7 @@ cortex/
 
 ## Version History
 
+- **3.6.1** — Fix stop-gate escape hatch (debug logging + recency filter for state file resolution). Fix health dedup ordering (zero-metric sessions no longer burn the dedup flag). Fix cross-session tracking (runs before zero-metric exit). Test fixture updates (7 failures → 0).
 - **3.6.0** — Genericized reference files for public distribution. Hook profiles (`CORTEX_PROFILE=minimal|standard|strict`). Blog post outline.
 - **3.5.0** — Bootstrap targets global `~/.claude/settings.json` (proven reliable) instead of project-level `settings.local.json`. Cleans up stale project-level entries on upgrade.
 - **3.4.x** — Wire up `tool_calls_count` increment in post-dispatch (was tracked but never incremented). Bootstrap all 6 non-SessionStart events with smart idempotency.

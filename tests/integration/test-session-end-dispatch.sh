@@ -40,7 +40,8 @@ run_session_end() {
 
 # Test 1: Creates health file with header
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "se-health" "health_written=false" > /dev/null
+sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-health" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-health" > /dev/null
 health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
@@ -49,7 +50,8 @@ assert_file_contains "health_has_header" "$health_file" "# Cortex Health Log"
 
 # Test 2: Appends data row with today's date
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "se-row" "health_written=false" > /dev/null
+sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-row" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-row" > /dev/null
 health_file="$_TEST_TMPDIR/.claude/cortex-health.local.md"
@@ -57,7 +59,8 @@ assert_file_contains "row_has_today_date" "$health_file" "$TODAY"
 
 # Test 3: Dedup prevents duplicate rows (run twice, count rows = 1)
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "se-dedup" "health_written=false" > /dev/null
+sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-dedup" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-dedup" > /dev/null
 run_session_end "se-dedup" > /dev/null
@@ -116,6 +119,7 @@ assert_eq "no_state_file_empty" "{}" "$result"
 # Test 7: Sets health_written=true in state file
 setup_test
 sf=$(create_state_file "$_TEST_TMPDIR/.claude" "se-flag" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 make_journal "$_TEST_TMPDIR"
 run_session_end "se-flag" > /dev/null
 hw=$(grep '^health_written=' "$sf" | head -1 | cut -d= -f2 | tr -d '\r')

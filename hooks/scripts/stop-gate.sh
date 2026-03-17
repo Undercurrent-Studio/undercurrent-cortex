@@ -12,6 +12,9 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
+# Debug: trace state file resolution for forensic analysis
+echo "stop-gate: resolved STATE_FILE=$(basename "$STATE_FILE" 2>/dev/null)" >&2
+
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
   legacy="${STATE_DIR}/cortex-state.local.md"
@@ -30,6 +33,7 @@ if ! grep -q '^consecutive_blocks=' "$STATE_FILE" 2>/dev/null; then
 fi
 consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")
 consecutive="${consecutive:-0}"
+echo "stop-gate: consecutive_blocks=${consecutive} (file exists: $([ -f "$STATE_FILE" ] && echo yes || echo no))" >&2
 
 if [ "$consecutive" -ge 2 ]; then
   write_field "consecutive_blocks" "0" "$STATE_FILE"
@@ -114,6 +118,7 @@ fi
 if [ -n "$failures" ]; then
   new_consecutive=$((consecutive + 1))
   write_field "consecutive_blocks" "$new_consecutive" "$STATE_FILE"
+  echo "stop-gate: BLOCKED — incremented consecutive_blocks to ${new_consecutive}" >&2
 
   reason=$(escape_for_json "Stop blocked. Address obligations above, then stop again to override.\nUnmet gates:\n${failures}")
   printf '{"decision":"block","reason":"%s"}' "$reason"

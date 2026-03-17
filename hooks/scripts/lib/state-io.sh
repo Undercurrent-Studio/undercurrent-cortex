@@ -61,10 +61,23 @@ resolve_state_file() {
     # No session_id available — find the state file with the most activity
     # (not just newest). This handles manual invocation from session-end skill
     # where the newest file may be idle but an older one has tracked edits.
+    # Recency filter: only consider files modified in the last 2 hours to avoid
+    # picking stale files from old sessions (fixes stop-gate escape hatch bug).
     local best_file=""
     local best_count=0
+    local now_epoch
+    now_epoch=$(date +%s 2>/dev/null || echo "0")
+    local cutoff_epoch=$((now_epoch - 7200))  # 2 hours ago
     for f in "${STATE_DIR}"/cortex-state-*.local.md; do
       [ -f "$f" ] || continue
+      # Recency check: skip files not modified in the last 2 hours
+      local file_epoch=0
+      if command -v stat >/dev/null 2>&1; then
+        file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
+      fi
+      if [ "$now_epoch" -gt 0 ] && [ "$file_epoch" -gt 0 ] && [ "$file_epoch" -lt "$cutoff_epoch" ]; then
+        continue
+      fi
       local count=0
       # Audit fix: grep -c returns 0 AND exits non-zero on empty input,
       # causing || echo "0" to double-output. Use grep -q guard first.
@@ -79,7 +92,7 @@ resolve_state_file() {
     if [ -n "$best_file" ]; then
       STATE_FILE="$best_file"
     else
-      # All empty — fall back to newest
+      # All empty or all stale — fall back to newest
       local newest
       newest=$(ls -t "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
       if [ -n "$newest" ]; then

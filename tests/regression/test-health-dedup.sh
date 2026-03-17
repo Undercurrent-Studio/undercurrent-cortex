@@ -27,7 +27,8 @@ run_session_end() {
 
 # Test 1: health_written=true blocks second write (only 1 data row after 2 calls)
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "dedup-test" "health_written=false" > /dev/null
+sf=$(create_state_file "$_TEST_TMPDIR/.claude" "dedup-test" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 mkdir -p "$_TEST_TMPDIR/memory"
 echo "# Journal" > "$_TEST_TMPDIR/memory/$(date +%Y-%m-%d).md"
 # First call — writes health row and sets health_written=true
@@ -47,7 +48,8 @@ assert_eq "health_dedup_one_row" "1" "$data_rows"
 
 # Test 2: health_written=false allows write
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "allow-write" "health_written=false" > /dev/null
+sf=$(create_state_file "$_TEST_TMPDIR/.claude" "allow-write" "health_written=false")
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 mkdir -p "$_TEST_TMPDIR/memory"
 echo "# Journal" > "$_TEST_TMPDIR/memory/$(date +%Y-%m-%d).md"
 run_session_end "allow-write" > /dev/null
@@ -69,6 +71,7 @@ setup_test
 sf=$(create_state_file "$_TEST_TMPDIR/.claude" "missing-field")
 # Remove health_written line to simulate missing field
 sed -i '/^health_written=/d' "$sf"
+sed -i '/^\[files_modified\]$/a src/lib/a.ts' "$sf"
 mkdir -p "$_TEST_TMPDIR/memory"
 echo "# Journal" > "$_TEST_TMPDIR/memory/$(date +%Y-%m-%d).md"
 run_session_end "missing-field" > /dev/null

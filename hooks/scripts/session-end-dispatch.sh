@@ -22,20 +22,6 @@ if [ ! -f "$STATE_FILE" ]; then
   fi
 fi
 
-# Dedup guard: prevent duplicate health writes if hook fires multiple times
-health_written=$(grep '^health_written=' "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true)
-if [ "$health_written" = "true" ]; then
-  printf '{}'
-  exit 0
-fi
-# Mark as written — append field if missing, replace if present
-if grep -q '^health_written=' "$STATE_FILE" 2>/dev/null; then
-  write_field "health_written" "true" "$STATE_FILE"
-else
-  # Insert before first section header (only first match via 0,/pattern/)
-  sed '0,/^\[/{s/^\[/health_written=true\n[/}' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
-fi
-
 # --- Compute metrics ---
 today=$(date +%Y-%m-%d)
 journal="${PROJECT_DIR}/memory/${today}.md"
@@ -142,15 +128,77 @@ elif [ "${total_edits:-0}" -eq 0 ]; then
   domain_tag="idle"
 fi
 
+# --- Cross-session file tracking (runs before zero-metric skip) ---
+# Cross-session tracks file edit patterns across sessions — this should happen
+# regardless of whether we write a health row. Moved before zero-metric exit.
+CROSS_FILE="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
+if [ ! -f "$CROSS_FILE" ]; then
+  {
+    echo "# Cross-Session File Edit Tracker"
+    echo "# Format: filepath|session_count|last_session_date"
+  } > "$CROSS_FILE"
+fi
+
+if [ -n "$files_modified" ]; then
+  unique_files=$(echo "$files_modified" | sort -u)
+  while IFS= read -r raw_filepath; do
+    [ -z "$raw_filepath" ] && continue
+    # Fix 2: Skip non-path lines (state flags like health_written=true leak into [files_modified])
+    echo "$raw_filepath" | grep -qE '[/\\]' || continue
+    # Fix 1: Normalize path format (backslash→forward slash, lowercase drive→uppercase)
+    filepath=$(normalize_path "$raw_filepath")
+    # Skip plugin infrastructure files
+    echo "$filepath" | grep -qE '\.claude-plugin/|\.claude/' && continue
+    if grep -qF "${filepath}|" "$CROSS_FILE" 2>/dev/null; then
+      old_count=$(grep -F "${filepath}|" "$CROSS_FILE" | head -1 | cut -d'|' -f2)
+      new_count=$((old_count + 1))
+      # Use awk + ENVIRON to avoid Windows path mangling
+      FILEPATH="$filepath" NEWCOUNT="$new_count" TODAY="$today" awk '
+        BEGIN { fp=ENVIRON["FILEPATH"]; nc=ENVIRON["NEWCOUNT"]; td=ENVIRON["TODAY"] }
+        index($0, fp"|") == 1 { print fp"|"nc"|"td; next }
+        { print }
+      ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
+    else
+      echo "${filepath}|1|${today}" >> "$CROSS_FILE"
+    fi
+  done <<< "$unique_files"
+fi
+
+# Prune cross-session entries older than 30 days
+cutoff=$(date -d "30 days ago" +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d 2>/dev/null || echo "")
+if [ -n "$cutoff" ] && [ -f "$CROSS_FILE" ]; then
+  CUTOFF="$cutoff" awk -F'|' '
+    /^#/ { print; next }
+    NF < 3 { print; next }
+    $3 >= ENVIRON["CUTOFF"] { print }
+  ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
+fi
+
 # --- Skip health row if session had zero tracked activity (noise prevention) ---
 # Prevents writing all-zero rows from idle/exploratory sessions.
 # Includes carry_total so carry-over resolution tracking isn't lost.
+# NOTE: cross-session tracking runs BEFORE this exit — file patterns are always tracked.
 if [ "${total_edits:-0}" -eq 0 ] && [ "${commits_count:-0}" -eq 0 ] && \
    [ "${reasoning_misses:-0}" -eq 0 ] && [ "${tests_delta:-0}" -eq 0 ] && \
    [ "${lessons_created:-0}" -eq 0 ] && [ "${carry_total:-0}" -eq 0 ]; then
   echo "session-end-dispatch: all metrics zero, skipping health row" >&2
   printf '{}'
   exit 0
+fi
+
+# --- Dedup guard: prevent duplicate health writes if hook fires multiple times ---
+# Placed AFTER zero-metric skip so idle sessions don't burn the flag.
+health_written=$(grep '^health_written=' "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true)
+if [ "$health_written" = "true" ]; then
+  printf '{}'
+  exit 0
+fi
+# Mark as written — append field if missing, replace if present
+if grep -q '^health_written=' "$STATE_FILE" 2>/dev/null; then
+  write_field "health_written" "true" "$STATE_FILE"
+else
+  # Insert before first section header (only first match via 0,/pattern/)
+  sed '0,/^\[/{s/^\[/health_written=true\n[/}' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
 fi
 
 # --- Write to health file ---
@@ -205,50 +253,6 @@ if [ "$line_count" -ge 1 ]; then
     /^avg_duration_min=/ { print "avg_duration_min=" adur; next }
     { print }
   ' "$HEALTH_FILE" > "$HEALTH_FILE.tmp.$$" && mv "$HEALTH_FILE.tmp.$$" "$HEALTH_FILE"
-fi
-
-# --- Cross-session file tracking ---
-CROSS_FILE="${PROJECT_DIR}/.claude/cortex-cross-session.local.md"
-if [ ! -f "$CROSS_FILE" ]; then
-  {
-    echo "# Cross-Session File Edit Tracker"
-    echo "# Format: filepath|session_count|last_session_date"
-  } > "$CROSS_FILE"
-fi
-
-if [ -n "$files_modified" ]; then
-  unique_files=$(echo "$files_modified" | sort -u)
-  while IFS= read -r raw_filepath; do
-    [ -z "$raw_filepath" ] && continue
-    # Fix 2: Skip non-path lines (state flags like health_written=true leak into [files_modified])
-    echo "$raw_filepath" | grep -qE '[/\\]' || continue
-    # Fix 1: Normalize path format (backslash→forward slash, lowercase drive→uppercase)
-    filepath=$(normalize_path "$raw_filepath")
-    # Skip plugin infrastructure files
-    echo "$filepath" | grep -qE '\.claude-plugin/|\.claude/' && continue
-    if grep -qF "${filepath}|" "$CROSS_FILE" 2>/dev/null; then
-      old_count=$(grep -F "${filepath}|" "$CROSS_FILE" | head -1 | cut -d'|' -f2)
-      new_count=$((old_count + 1))
-      # Use awk + ENVIRON to avoid Windows path mangling
-      FILEPATH="$filepath" NEWCOUNT="$new_count" TODAY="$today" awk '
-        BEGIN { fp=ENVIRON["FILEPATH"]; nc=ENVIRON["NEWCOUNT"]; td=ENVIRON["TODAY"] }
-        index($0, fp"|") == 1 { print fp"|"nc"|"td; next }
-        { print }
-      ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
-    else
-      echo "${filepath}|1|${today}" >> "$CROSS_FILE"
-    fi
-  done <<< "$unique_files"
-fi
-
-# Prune cross-session entries older than 30 days
-cutoff=$(date -d "30 days ago" +%Y-%m-%d 2>/dev/null || date -v-30d +%Y-%m-%d 2>/dev/null || echo "")
-if [ -n "$cutoff" ] && [ -f "$CROSS_FILE" ]; then
-  CUTOFF="$cutoff" awk -F'|' '
-    /^#/ { print; next }
-    NF < 3 { print; next }
-    $3 >= ENVIRON["CUTOFF"] { print }
-  ' "$CROSS_FILE" > "$CROSS_FILE.tmp.$$" && mv "$CROSS_FILE.tmp.$$" "$CROSS_FILE"
 fi
 
 # --- Proposal count warning ---
