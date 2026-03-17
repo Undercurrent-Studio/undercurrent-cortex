@@ -142,6 +142,17 @@ elif [ "${total_edits:-0}" -eq 0 ]; then
   domain_tag="idle"
 fi
 
+# --- Skip health row if session had zero tracked activity (noise prevention) ---
+# Prevents writing all-zero rows from idle/exploratory sessions.
+# Includes carry_total so carry-over resolution tracking isn't lost.
+if [ "${total_edits:-0}" -eq 0 ] && [ "${commits_count:-0}" -eq 0 ] && \
+   [ "${reasoning_misses:-0}" -eq 0 ] && [ "${tests_delta:-0}" -eq 0 ] && \
+   [ "${lessons_created:-0}" -eq 0 ] && [ "${carry_total:-0}" -eq 0 ]; then
+  echo "session-end-dispatch: all metrics zero, skipping health row" >&2
+  printf '{}'
+  exit 0
+fi
+
 # --- Write to health file ---
 mkdir -p "$(dirname "$HEALTH_FILE")"
 

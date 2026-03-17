@@ -58,14 +58,35 @@ resolve_state_file() {
       fi
     fi
   else
-    # No session_id available — find the newest state file
-    local newest
-    newest=$(ls -t "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
-    if [ -n "$newest" ]; then
-      STATE_FILE="$newest"
+    # No session_id available — find the state file with the most activity
+    # (not just newest). This handles manual invocation from session-end skill
+    # where the newest file may be idle but an older one has tracked edits.
+    local best_file=""
+    local best_count=0
+    for f in "${STATE_DIR}"/cortex-state-*.local.md; do
+      [ -f "$f" ] || continue
+      local count=0
+      # Audit fix: grep -c returns 0 AND exits non-zero on empty input,
+      # causing || echo "0" to double-output. Use grep -q guard first.
+      if sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -q . 2>/dev/null; then
+        count=$(sed -n '/^\[files_modified\]/,/^\[/{//!p;}' "$f" 2>/dev/null | grep -c .)
+      fi
+      if [ "$count" -gt "$best_count" ]; then
+        best_count=$count
+        best_file="$f"
+      fi
+    done
+    if [ -n "$best_file" ]; then
+      STATE_FILE="$best_file"
     else
-      # Fall back to legacy single file
-      STATE_FILE="${STATE_DIR}/cortex-state.local.md"
+      # All empty — fall back to newest
+      local newest
+      newest=$(ls -t "${STATE_DIR}"/cortex-state-*.local.md 2>/dev/null | head -1 || true)
+      if [ -n "$newest" ]; then
+        STATE_FILE="$newest"
+      else
+        STATE_FILE="${STATE_DIR}/cortex-state.local.md"
+      fi
     fi
   fi
 }
