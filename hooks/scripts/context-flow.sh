@@ -43,19 +43,25 @@ fi
 CONTEXT_FILE=""
 
 # --- Context file auto-discovery ---
-SCAN_DIRS="$CONTEXT_DIR"
-[ -n "${CORTEX_EXTRA_CONTEXT_DIRS:-}" ] && SCAN_DIRS="$SCAN_DIRS:$CORTEX_EXTRA_CONTEXT_DIRS"
+# Use newline-separated list (not colon) to handle Windows paths with drive letters
+SCAN_DIRS_NL="$CONTEXT_DIR"
+
+# CORTEX_EXTRA_CONTEXT_DIRS uses newlines (not colons) to avoid Windows drive letter splitting
+if [ -n "${CORTEX_EXTRA_CONTEXT_DIRS:-}" ]; then
+  SCAN_DIRS_NL="${SCAN_DIRS_NL}"$'\n'"${CORTEX_EXTRA_CONTEXT_DIRS}"
+fi
 
 # Read extra context dirs from domain pack registrations
 EXTRA_DIRS_FILE="${STATE_DIR}/cortex-context-dirs.local"
 if [ -f "$EXTRA_DIRS_FILE" ]; then
   while IFS= read -r extra_dir; do
-    [ -n "$extra_dir" ] && [ -d "$extra_dir" ] && SCAN_DIRS="$SCAN_DIRS:$extra_dir"
+    [ -n "$extra_dir" ] && [ -d "$extra_dir" ] && SCAN_DIRS_NL="${SCAN_DIRS_NL}"$'\n'"$extra_dir"
   done < "$EXTRA_DIRS_FILE"
 fi
 
-IFS=: read -ra ctx_dirs <<< "$SCAN_DIRS"
-for dir in "${ctx_dirs[@]}"; do
+while IFS= read -r dir; do
+  [ -n "$dir" ] || continue
+  [ -d "$dir" ] || continue
   for ctx_file in "$dir"/*.md; do
     [ -f "$ctx_file" ] || continue
     IFS= read -r kw_line < "$ctx_file"
@@ -71,7 +77,7 @@ for dir in "${ctx_dirs[@]}"; do
       fi
     done
   done
-done
+done <<< "$SCAN_DIRS_NL"
 
 if [[ "$PADDED" == *" ci "* ]] || [[ "$PROMPT_LOWER" == *"pipeline status"* ]] \
      || [[ "$PROMPT_LOWER" == *"build status"* ]] || [[ "$PROMPT_LOWER" == *"github actions"* ]] \

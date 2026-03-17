@@ -10,15 +10,6 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
-# Diagnostic: log every invocation with full context (remove after confirming health writes work)
-{
-  echo "$(date -Iseconds) session-end-dispatch fired"
-  echo "  INPUT=${INPUT:0:200}"
-  echo "  STATE_FILE=$STATE_FILE"
-  echo "  EXISTS=$([ -f "$STATE_FILE" ] && echo yes || echo no)"
-  ls -t "${STATE_DIR}"/cortex-state*.local.md 2>/dev/null | head -5 | sed 's/^/  state_file: /'
-} >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
-
 # Guard: state file must exist (session-start creates it)
 # Fallback: if session-scoped file doesn't exist, try legacy file
 if [ ! -f "$STATE_FILE" ]; then
@@ -137,6 +128,13 @@ if [ -n "$files_modified" ]; then
     | grep -oE '[^/]+/[^/]+' \
     | sort | uniq -c | sort -rn | head -1 \
     | awk '{print $2}' 2>/dev/null || echo "")
+  # Fallback for root-level files (no subdirectory)
+  if [ -z "$top_dir" ]; then
+    top_dir=$(echo "$files_modified" \
+      | grep -oE '[^/]+$' \
+      | sort | uniq -c | sort -rn | head -1 \
+      | awk '{print $2}' 2>/dev/null || echo "root")
+  fi
   if [ -n "$top_dir" ]; then
     domain_tag="$top_dir"
   fi

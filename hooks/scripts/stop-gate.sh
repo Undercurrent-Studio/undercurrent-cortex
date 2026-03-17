@@ -24,6 +24,10 @@ if [ ! -f "$STATE_FILE" ]; then
 fi
 
 # --- ESCAPE HATCH: consecutive_blocks >= 2 → force-approve ---
+# Ensure field exists (write_field only does sed substitution, fails if field missing)
+if ! grep -q '^consecutive_blocks=' "$STATE_FILE" 2>/dev/null; then
+  sed '0,/^\[/{s/^\[/consecutive_blocks=0\n[/}' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
+fi
 consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")
 consecutive="${consecutive:-0}"
 

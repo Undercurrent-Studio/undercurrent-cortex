@@ -12,9 +12,6 @@ INPUT=$(cat)
 # Resolve session-scoped state file from session_id in hook JSON
 resolve_state_file "$INPUT"
 
-# Diagnostic: confirm hook fires (remove once verified)
-echo "$(date -Iseconds) pre-compact fired" >> "${PROJECT_DIR}/.claude/session-end-diagnostic.log" 2>/dev/null || true
-
 # Graceful degradation: no state file → try legacy, else nothing to preserve
 if [ ! -f "$STATE_FILE" ]; then
   legacy="${STATE_DIR}/cortex-state.local.md"
@@ -29,7 +26,7 @@ fi
 # --- Optional transcript scan: write discovered items to [carry_over] (I3 fix) ---
 transcript_path=$(printf '%s' "$INPUT" | extract_json_field "transcript_path")
 if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
-  tagged_items=$(grep -oE '\[carry-over\][^"]*' "$transcript_path" 2>/dev/null | head -10 || true)
+  tagged_items=$(grep -oE '\[carry-over\].*' "$transcript_path" 2>/dev/null | head -10 || true)
   if [ -n "$tagged_items" ]; then
     while IFS= read -r item; do
       if [ -n "$item" ]; then
@@ -38,7 +35,7 @@ if [ -n "$transcript_path" ] && [ -f "$transcript_path" ]; then
     done <<< "$tagged_items"
   fi
 
-  pin_items=$(grep -oE '\[mid-session pin\][^"]*' "$transcript_path" 2>/dev/null | head -10 || true)
+  pin_items=$(grep -oE '\[mid-session pin\].*' "$transcript_path" 2>/dev/null | head -10 || true)
   if [ -n "$pin_items" ]; then
     while IFS= read -r item; do
       if [ -n "$item" ]; then

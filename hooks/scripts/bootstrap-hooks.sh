@@ -36,7 +36,7 @@ import sys
 import os
 
 settings_path = sys.argv[1]
-plugin_root_ref = os.environ.get("PLUGIN_ROOT", "")
+plugin_root_ref = os.environ.get("PLUGIN_ROOT", "").replace("\\", "/")
 
 # Only PreToolUse and PostToolUse need bootstrap (hooks.json bug #34573)
 # Other events (Stop, SessionEnd, PreCompact, UserPromptSubmit) work from hooks.json

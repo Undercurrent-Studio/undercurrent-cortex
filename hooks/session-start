@@ -71,9 +71,10 @@ for sf in "${STATE_DIR}"/cortex-state-*.local.md "${STATE_DIR}/cortex-state.loca
     fi
   fi
 done
-# Deduplicate carry-over lines
+# Filter carry-over: only keep lines that look like actual items (not raw journal content)
+# Valid patterns: starts with "- ", "* ", "TODO", "[carry-over]", "[mid-session pin]"
 if [ -n "$old_carry_over" ]; then
-  old_carry_over=$(echo "$old_carry_over" | sort -u | sed '/^$/d')
+  old_carry_over=$(echo "$old_carry_over" | grep -E '^[-*] |^TODO|^\[carry-over\]|^\[mid-session pin\]' | sort -u | sed '/^$/d')
 fi
 
 # --- Step 2: Create fresh session-scoped state file ---
