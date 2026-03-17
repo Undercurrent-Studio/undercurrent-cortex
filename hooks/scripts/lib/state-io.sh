@@ -114,7 +114,20 @@ cleanup_stale_state_files() {
     fi
   done
 
-  # Also remove legacy single file if it exists and is stale
+  # Clean up legacy undercurrent-state-*.local.md files (same age check)
+  for f in "${STATE_DIR}"/undercurrent-state-*.local.md; do
+    [ -f "$f" ] || continue
+    local file_epoch
+    file_epoch=$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f" 2>/dev/null || echo "0")
+    if [ "$file_epoch" -gt 0 ] && [ "$file_epoch" -lt "$cutoff_epoch" ]; then
+      rm -f "$f"
+    fi
+  done
+
+  # Delete the massive legacy singleton unconditionally (pre-session-scoping artifact)
+  rm -f "${STATE_DIR}/undercurrent-state.local.md" 2>/dev/null || true
+
+  # Also remove legacy single cortex file if stale
   local legacy="${STATE_DIR}/cortex-state.local.md"
   if [ -f "$legacy" ]; then
     local file_epoch
@@ -126,10 +139,66 @@ cleanup_stale_state_files() {
 }
 
 # migrate_state_files
-# One-time rename of undercurrent-* state files to cortex-*.
-# Uses mv with error suppression for race condition safety.
+# Merges data from undercurrent-* files into cortex-* equivalents, then
+# deletes the old files. For singleton files (health, proposals, decisions),
+# merges content rows. For session-scoped files, simple rename.
 migrate_state_files() {
-  for old_file in "${STATE_DIR}"/undercurrent-*.local.md; do
+  # --- Health file merge ---
+  local old_health="${STATE_DIR}/undercurrent-health.local.md"
+  local new_health="${STATE_DIR}/cortex-health.local.md"
+  if [ -f "$old_health" ]; then
+    if [ -f "$new_health" ]; then
+      # Both exist — merge data rows from old into new (dedup by full row content)
+      local old_data
+      old_data=$(sed -n '/^---$/,$p' "$old_health" 2>/dev/null | tail -n +2)
+      if [ -n "$old_data" ]; then
+        local existing_rows
+        existing_rows=$(sed -n '/^---$/,$p' "$new_health" 2>/dev/null | tail -n +2)
+        while IFS= read -r row; do
+          [ -z "$row" ] && continue
+          # Dedup by full row content (not just date — same day can have multiple sessions)
+          if [ -z "$existing_rows" ] || ! echo "$existing_rows" | grep -qxF "$row" 2>/dev/null; then
+            # Use awk with ENVIRON for safe append (avoids sed special char issues)
+            ROW_DATA="$row" awk '/^---$/ { print; print ENVIRON["ROW_DATA"]; next } { print }' \
+              "$new_health" > "$new_health.tmp.$$" && mv "$new_health.tmp.$$" "$new_health"
+          fi
+        done <<< "$old_data"
+      fi
+      # Copy rolling averages from old if new has all zeros
+      local old_avg_misses
+      old_avg_misses=$(grep '^avg_reasoning_misses=' "$old_health" 2>/dev/null | cut -d= -f2-)
+      local new_avg_misses
+      new_avg_misses=$(grep '^avg_reasoning_misses=' "$new_health" 2>/dev/null | cut -d= -f2-)
+      if [ "${new_avg_misses:-0.0}" = "0.0" ] && [ -n "$old_avg_misses" ] && [ "$old_avg_misses" != "0.0" ]; then
+        # Carry forward old averages
+        for field in avg_reasoning_misses avg_edits_per_commit avg_duration_min; do
+          local old_val
+          old_val=$(grep "^${field}=" "$old_health" 2>/dev/null | cut -d= -f2-)
+          if [ -n "$old_val" ]; then
+            sed "s|^${field}=.*|${field}=${old_val}|" "$new_health" > "$new_health.tmp.$$" \
+              && mv "$new_health.tmp.$$" "$new_health"
+          fi
+        done
+      fi
+      rm -f "$old_health"
+      echo "migrate_state_files: merged undercurrent health into cortex" >&2
+    else
+      # Only old exists — simple rename
+      mv "$old_health" "$new_health" 2>/dev/null || true
+    fi
+  fi
+
+  # --- Proposals/decisions: simple rename (content is just headers) ---
+  for suffix in proposals decisions; do
+    local old_f="${STATE_DIR}/undercurrent-${suffix}.local.md"
+    local new_f="${STATE_DIR}/cortex-${suffix}.local.md"
+    if [ -f "$old_f" ]; then
+      [ -f "$new_f" ] && rm -f "$old_f" || mv "$old_f" "$new_f" 2>/dev/null || true
+    fi
+  done
+
+  # --- Session-scoped state files: rename remaining undercurrent-state-* ---
+  for old_file in "${STATE_DIR}"/undercurrent-state-*.local.md; do
     [ -f "$old_file" ] || continue
     local new_file="${old_file/undercurrent-/cortex-}"
     [ -f "$new_file" ] || mv "$old_file" "$new_file" 2>/dev/null || true
