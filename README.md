@@ -8,7 +8,7 @@ A Claude Code plugin that works like a **living organism** — 13 biological sys
 
 Imagine a second brain sitting alongside Claude that:
 
-- **Remembers** every file you edit, every commit you make, every decision you explain
+- **Remembers** every file you edit, every commit you make, every tool call
 - **Blocks** dangerous operations before they happen (like using `now()` in a Postgres migration)
 - **Injects context** when you mention a topic — keyword-matched context files flow to where they're needed
 - **Nudges** you to commit when edits pile up, and validates commit message format
@@ -29,6 +29,7 @@ All of this happens through bash hooks that fire at specific moments in your Cla
 
 - **Claude Code** (CLI or VS Code extension)
 - **Git Bash** on your PATH (Windows: comes with [Git for Windows](https://git-scm.com/))
+- **Python 3** on your PATH (needed for bootstrap and JSON manipulation)
 - **GitHub CLI** (`gh`) — optional, but needed for the Sensory system (CI/PR checks)
 
 ### Installation
@@ -38,7 +39,23 @@ claude plugins marketplace add Undercurrent-Studio/undercurrent-cortex
 claude plugins install cortex@undercurrent-studio
 ```
 
-Restart Claude Code. All hooks auto-load from the plugin's `hooks/hooks.json`.
+Restart Claude Code. On first session start, the plugin bootstraps all hook events into your global `~/.claude/settings.json` automatically.
+
+### Hook Architecture
+
+Cortex uses a two-tier hook dispatch system due to a [known bug](https://github.com/anthropics/claude-code/issues/34573) where plugin `hooks.json` command hooks are unreliable for most events:
+
+| Tier | Location | Events | Why |
+|------|----------|--------|-----|
+| **hooks.json** | Plugin manifest | SessionStart only | Proven working; serves as the bootstrap's lifeline |
+| **Global settings.json** | `~/.claude/settings.json` | PreToolUse, PostToolUse, PreCompact, Stop, SessionEnd, UserPromptSubmit | Bootstrapped on every session start; the only location proven to reliably fire hooks |
+
+The `bootstrap-hooks.sh` script runs on every SessionStart and:
+1. Injects 6 hook events into `~/.claude/settings.json` (idempotent — skips if already correct)
+2. Replaces stale entries when the plugin version changes (path-aware)
+3. Cleans up legacy entries from the old project-level `settings.local.json`
+
+All bootstrapped entries are tagged with `"_cortex_bootstrap": true` for identification.
 
 ---
 
@@ -51,9 +68,9 @@ Think of the plugin as a body. Each system has a specific job, and they work tog
 These fire every session and handle the basics.
 
 **1. Nervous System — State Tracking**
-Every edit, commit, and tool call gets counted in a state file. The nervous system is how the organism "feels" what's happening — it's the raw sensory data that other systems read.
+Every edit, commit, and tool call gets counted in a session-scoped state file. The nervous system is how the organism "feels" what's happening — it's the raw sensory data that other systems read.
 
-*Where:* `post-edit-dispatch.sh`, `post-bash-dispatch.sh`
+*Where:* `post-dispatch.sh` (universal counter), `post-edit-dispatch.sh`, `post-bash-dispatch.sh`
 *State:* `edits_since_last_commit`, `commits_count`, `tool_calls_count`, `[files_modified]` section
 
 **2. Immune System — Dangerous Operation Blocking**
@@ -220,18 +237,17 @@ Patterns that only emerge across multiple sessions:
 | **Workflow** | feature-design-flow, pre-commit-checklist, deploy-readiness, plan-audit, plan-estimation |
 | **Learning** | session-start, session-end, pattern-escalation |
 
-### 14 Hooks
+### 7 Hook Events
 
-| Event | Script | What |
-|-------|--------|------|
-| SessionStart | session-start | Init state, load health, healing, sensory, feedback, social |
-| SessionStart | drift-detector.sh | Async codebase spot-checks |
-| UserPromptSubmit | context-flow.sh | Context injection, decision detection, cautious mode |
-| PreToolUse | pre-dispatch.sh | Routes to migration-linter + plan-file-guard |
-| PostToolUse | post-dispatch.sh | Routes to edit/bash tracking + patterns |
-| Stop | stop-gate.sh | 4-gate session end |
-| PreCompact | pre-compact.sh | Preserve carry-over |
-| SessionEnd | session-end-dispatch.sh | Health metrics, domain tag, cross-session tracking |
+| Event | Source | Script | What |
+|-------|--------|--------|------|
+| SessionStart | hooks.json | session-start | Init state, load health, healing, sensory, feedback, social, bootstrap |
+| PreToolUse | bootstrap | pre-dispatch.sh | Routes to migration-linter + plan-file-guard |
+| PostToolUse | bootstrap | post-dispatch.sh | Universal tool counter + routes to edit/bash tracking + patterns |
+| UserPromptSubmit | bootstrap | context-flow.sh | Context injection, decision detection, cautious mode |
+| Stop | bootstrap | stop-gate.sh | 4-gate session end |
+| PreCompact | bootstrap | pre-compact.sh | Preserve carry-over |
+| SessionEnd | bootstrap | session-end-dispatch.sh | Health metrics, domain tag, cross-session tracking |
 
 ### 2 Agents
 
@@ -240,12 +256,13 @@ Patterns that only emerge across multiple sessions:
 | conversation-analyzer | Detects correction patterns, proposes evolution rules |
 | deep-dive | Exhaustive research with browser, hypothesis-driven methodology |
 
-### 4 Commands
+### 5 Commands
 
 | Command | What it does |
 |---------|-------------|
-| `/deep-dive <topic>` | Launch exhaustive research — produces a comprehensive written report |
+| `/status` | Display the organism statusline — session activity, health pulse, lessons absorbed, pending mutations |
 | `/session-end` | Write journal entry, carry-over, reasoning audit, health metrics |
+| `/deep-dive <topic>` | Launch exhaustive research — produces a comprehensive written report |
 | `/analyze-session` | Deep adaptive immunity scan (triggered by corrections or reasoning misses) |
 | `/review-decisions` | Review decisions from 7-14 days ago for validation |
 
@@ -255,7 +272,7 @@ All in `.claude/`, all gitignored:
 
 | File | Purpose |
 |------|---------|
-| `cortex-state-{id}.local.md` | Current session: edit counts, commit counts, mode, thresholds, file list |
+| `cortex-state-{id}.local.md` | Current session: edit counts, commit counts, tool calls, mode, thresholds, file list |
 | `cortex-health.local.md` | Historical: one row per session with 12 metrics |
 | `cortex-proposals.local.md` | Pending/applied/rejected evolution proposals |
 | `cortex-decisions.local.md` | Decision journal entries with metadata |
@@ -269,7 +286,7 @@ Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` fron
 |------|----------|
 | deploy-readiness.md | deploy, vercel, production, ship |
 | testing-conventions.md | vitest, test suite, coverage |
-| math-review.md | formula, statistics, probability |
+| math-review.md | formula, statistics, probability, monte carlo, sigmoid, z-score |
 | typescript-discipline.md | typescript, type error, tsc |
 
 ---
@@ -294,9 +311,26 @@ To create a domain pack:
 | Add a skill | Create `skills/<name>/SKILL.md` with YAML frontmatter |
 | Add a context file | Create in `context/` with `keywords:` first line |
 | Add a hook (PreToolUse/PostToolUse) | Add routing in the dispatcher script |
-| Add a hook (other events) | Add to `hooks/hooks.json` |
 | Add a command | Create `commands/<name>.md` |
 | Add an agent | Create `agents/<name>.md` |
+
+---
+
+## Test Suite
+
+25 test scripts organized by type:
+
+```text
+tests/
+  run-all.sh                              # Test runner
+  unit/                                   # 4 tests — state-io, json-extract, escape-json, validate-organism
+  integration/                            # 14 tests — one per hook script
+  edge/                                   # 2 tests — empty stdin, Windows paths
+  regression/                             # 2 tests — health dedup, pipefail glob
+  lib/                                    # 3 shared helpers — fixtures, mocks, test framework
+```
+
+Run all tests: `bash tests/run-all.sh`
 
 ---
 
@@ -305,48 +339,66 @@ To create a domain pack:
 ```text
 cortex/
   .claude-plugin/
-    plugin.json
-    marketplace.json
+    plugin.json                            # Plugin manifest (name, version)
+    marketplace.json                       # Marketplace listing metadata
   hooks/
-    hooks.json
-    session-start                        # SessionStart: init + healing + sensory + feedback + social
+    hooks.json                             # SessionStart only (bootstrap lifeline)
+    session-start                          # SessionStart: init + healing + sensory + feedback + social + bootstrap
     scripts/
-      pre-dispatch.sh                    # PreToolUse dispatcher
-      post-dispatch.sh                   # PostToolUse dispatcher
-      post-edit-dispatch.sh              # Edit tracking + commit nudge
-      post-bash-dispatch.sh              # Bash tracking + commit format validation
-      migration-linter.sh               # Block now() in migrations
-      plan-file-guard.sh                # Block plan overwrites
-      context-flow.sh                    # Keyword context + decisions + cautious mode
-      drift-detector.sh                 # Async codebase spot-checks
-      pattern-template.sh               # Convention exemplar injection
-      stop-gate.sh                       # 4-gate session end
-      sensory-check.sh                   # External awareness (git, CI, PRs)
-      apply-proposal.sh                  # Proposal approve/reject lifecycle
-      pre-compact.sh                    # Preserve carry-over on context compaction
-      session-end-dispatch.sh           # Health metrics + domain tag + cross-session tracking
-      bootstrap-hooks.sh                # Workaround for hooks.json bug #34573
+      bootstrap-hooks.sh                   # Injects 6 events into ~/.claude/settings.json
+      pre-dispatch.sh                      # PreToolUse dispatcher
+      post-dispatch.sh                     # PostToolUse dispatcher (universal counter + routing)
+      post-edit-dispatch.sh                # Edit tracking + commit nudge
+      post-bash-dispatch.sh                # Bash tracking + commit format validation
+      migration-linter.sh                  # Block now() in migrations
+      plan-file-guard.sh                   # Block plan overwrites
+      context-flow.sh                      # Keyword context + decisions + cautious mode
+      drift-detector.sh                    # Async codebase spot-checks
+      pattern-template.sh                  # Convention exemplar injection
+      stop-gate.sh                         # 4-gate session end
+      sensory-check.sh                     # External awareness (git, CI, PRs)
+      apply-proposal.sh                    # Proposal approve/reject lifecycle
+      pre-compact.sh                       # Preserve carry-over on context compaction
+      session-end-dispatch.sh              # Health metrics + domain tag + cross-session tracking
+      statusline.sh                        # Organism statusline renderer
       lib/
-        escape-json.sh                  # JSON string escaping
-        json-extract.sh                 # Lightweight JSON field extraction
-        state-io.sh                      # read_field/write_field/read_section/append_to_section
-        validate-organism.sh            # Healing system: 9 self-repair checks
-  skills/          # 12 skill directories
-  commands/        # 4 slash commands
-  agents/          # conversation-analyzer + deep-dive
-  context/         # 4 context files (keyword-matched)
-  tests/           # Bash test suite (run-all.sh)
+        escape-json.sh                     # JSON string escaping
+        json-extract.sh                    # Lightweight JSON field extraction
+        state-io.sh                        # read_field/write_field/read_section/append_to_section
+        validate-organism.sh               # Healing system: 9 self-repair checks
+  skills/           # 12 skill directories
+  commands/         # 5 slash commands
+  agents/           # conversation-analyzer + deep-dive
+  context/          # 4 context files (keyword-matched)
+  tests/            # 25 bash test scripts (run-all.sh)
 ```
 
 ---
 
 ## Version History
 
-- **3.1.0** — Genericized for any project. Domain pack extraction. Hook system fixes (bootstrap only PreToolUse/PostToolUse). Context auto-discovery via keywords frontmatter. Platform-agnostic bash paths.
-- **3.0.0** — 13 systems: added sensory, healing, growth, feedback, social
-- **2.1.0** — Dispatcher architecture, global plugin (no project guards), Windows path fixes
-- **2.0.0** — Full organism: skills, hooks, agents, context files, commands
-- **1.0.0** — Initial scaffold (session-start hook only)
+- **3.5.0** — Bootstrap targets global `~/.claude/settings.json` (proven reliable) instead of project-level `settings.local.json`. Cleans up stale project-level entries on upgrade.
+- **3.4.x** — Wire up `tool_calls_count` increment in post-dispatch (was tracked but never incremented). Bootstrap all 6 non-SessionStart events with smart idempotency.
+- **3.3.0** — Comprehensive audit fixes: state file resolution, health dedup, legacy migration, `hooks.json` cleanup.
+- **3.2.0** — Organism statusline (visible in chat), session-end statusline diff.
+- **3.1.0** — Genericized for any project. Domain pack extraction. Hook bootstrap system. Context auto-discovery via keywords frontmatter. Platform-agnostic bash paths.
+- **3.0.0** — 13 systems: added sensory, healing, growth, feedback, social.
+- **2.1.0** — Dispatcher architecture, global plugin (no project guards), Windows path fixes.
+- **2.0.0** — Full organism: skills, hooks, agents, context files, commands.
+- **1.0.0** — Initial scaffold (session-start hook only).
+
+---
+
+## Updating
+
+The plugin is installed from GitHub via Claude Code's marketplace system. To update:
+
+```bash
+claude plugins marketplace update undercurrent-studio   # Refresh index from GitHub
+claude plugins update cortex@undercurrent-studio         # Install new version
+```
+
+These are **two separate operations** — `plugins update` only checks the cached index. Always run both.
 
 ---
 
