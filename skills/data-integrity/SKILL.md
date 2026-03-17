@@ -82,4 +82,4 @@ Always display:
 | Yahoo batch failure | Mass false delistings | Track failed batch tickers, exclude from streak |
 | Cache null result | Stale error cached for TTL | Throw inside `'use cache'` functions |
 
-See `references/data-source-map.md` for the full source inventory.
+See `references/data-source-map.md` for the data source inventory template.

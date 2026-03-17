@@ -91,5 +91,5 @@ Verify all of:
 | `src/lib/stripe/server.ts` | Stripe client, apiVersion pin | Stripe integration changes |
 | `src/lib/email.ts` | escapeHtml, email templates | Email template changes |
 
-See `references/security-audit-history.md` for real findings from 9 audit sessions.
-See `references/known-limitations.md` for accepted risks and their mitigation status.
+See `references/security-audit-history.md` for the security audit history template.
+See `references/known-limitations.md` for the known limitations template.

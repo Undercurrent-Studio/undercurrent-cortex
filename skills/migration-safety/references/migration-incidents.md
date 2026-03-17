@@ -1,4 +1,4 @@
-# Migration Incidents — Real Failures from This Codebase
+# Migration Incidents — Real Failures Worth Learning From
 
 5 incidents that shaped the migration safety rules. Each one caused real downtime or required a fix migration.
 
@@ -17,44 +17,44 @@
 
 ---
 
-## 2. Migration 055 — Ticker Aliases FK Violation
+## 2. Lookup Table FK Violation
 
-**Migration**: `055_ticker_aliases.sql`
+**Migration**: `NNN_lookup_table.sql`
 **Error**: Foreign key constraint violation during seed data INSERT
 
-**What happened**: Seed data included `INSERT INTO ticker_aliases (alias, canonical_ticker) VALUES ('TWTR', 'X')` but the `stocks` table didn't have ticker 'X' (it had been renamed). The FK violation rolled back the entire migration — including the CREATE TABLE and all policies.
+**What happened**: Seed data included `INSERT INTO lookup_aliases (alias, canonical_code) VALUES ('OLD_CODE', 'NEW_CODE')` but the `entities` table didn't have code 'NEW_CODE' (it had been renamed). The FK violation rolled back the entire migration — including the CREATE TABLE and all policies.
 
-**Fix**: Added `WHERE EXISTS (SELECT 1 FROM stocks WHERE ticker = ...)` guard on all seed INSERT statements. Created migration 056 as an idempotent retry with the guard.
+**Fix**: Added `WHERE EXISTS (SELECT 1 FROM entities WHERE code = ...)` guard on all seed INSERT statements. Created a follow-up migration as an idempotent retry with the guard.
 
 **Lesson**: Supabase migrations are fully transactional. A failed INSERT rolls back CREATE TABLE too.
 
 ---
 
-## 3. Migration 063 — Constraint Name Mismatch
+## 3. Constraint Name Mismatch
 
-**Migration**: `063_ai_briefs_brief_type.sql`
-**Error**: `constraint "uq_ai_briefs_ticker" for relation "ai_briefs" does not exist`
+**Migration**: `NNN_add_column.sql`
+**Error**: `constraint "uq_reports_entity" for relation "reports" does not exist`
 
-**What happened**: The original migration (022) created a UNIQUE constraint on `ai_briefs(ticker)`. The plan assumed the constraint was named `uq_ai_briefs_ticker` (the explicit name used in the migration). But Supabase/Postgres auto-named it `ai_briefs_ticker_key` using the default pattern. The `DROP CONSTRAINT` failed.
+**What happened**: An earlier migration created a UNIQUE constraint on `reports(entity_id)`. The plan assumed the constraint was named `uq_reports_entity` (the explicit name used in the migration). But Supabase/Postgres auto-named it `reports_entity_id_key` using the default pattern. The `DROP CONSTRAINT` failed.
 
-**Fix**: Created migration 064 as an idempotent retry with `DROP CONSTRAINT IF EXISTS` for BOTH names:
+**Fix**: Created a follow-up migration with `DROP CONSTRAINT IF EXISTS` for BOTH names:
 ```sql
-ALTER TABLE ai_briefs DROP CONSTRAINT IF EXISTS uq_ai_briefs_ticker;
-ALTER TABLE ai_briefs DROP CONSTRAINT IF EXISTS ai_briefs_ticker_key;
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS uq_reports_entity;
+ALTER TABLE reports DROP CONSTRAINT IF EXISTS reports_entity_id_key;
 ```
 
-**This was the 3rd constraint naming incident** (055 FK, 063 UNIQUE, plus earlier partial index naming). Prevention: always verify production constraint names before writing DROP CONSTRAINT.
+**This was the 3rd constraint naming incident** across the project. Prevention: always verify production constraint names before writing DROP CONSTRAINT.
 
 ---
 
-## 4. Migration 052 — Convergence Atomic Upsert
+## 4. Event Tracking Seed Data FK Violation
 
-**Migration**: `052_convergence_atomic_upsert.sql`
-**Error**: FK violation on seed data referencing stocks that don't exist
+**Migration**: `NNN_event_tracking.sql`
+**Error**: FK violation on seed data referencing entities that don't exist
 
-**What happened**: The migration included seed data for `convergence_events` that referenced tickers via FK. Some tickers didn't exist in the `stocks` table (they had been delisted between when the seed data was written and when the migration ran).
+**What happened**: The migration included seed data for `events` that referenced entities via FK. Some entities didn't exist in the `entities` table (they had been removed between when the seed data was written and when the migration ran).
 
-**Fix**: Added `WHERE EXISTS` guard on all FK-referencing INSERTs. The atomic upsert logic itself was correct — only the seed data caused the failure.
+**Fix**: Added `WHERE EXISTS` guard on all FK-referencing INSERTs. The table logic itself was correct — only the seed data caused the failure.
 
 **Lesson**: Seed data with FK constraints must always guard against missing references. The data state when you write the migration may differ from when it runs.
 

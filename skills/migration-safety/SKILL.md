@@ -6,7 +6,7 @@ version: 0.1.0
 
 # Migration Safety
 
-**TL;DR**: 8 rules that prevent migration failures. Every one has caused a real incident in this codebase.
+**TL;DR**: 8 rules that prevent migration failures. Every one is based on a real incident.
 
 ## The 8 Rules
 

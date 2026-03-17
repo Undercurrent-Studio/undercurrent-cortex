@@ -5,7 +5,7 @@ description: |
 
   <example>
   Context: User wants to understand the competitive landscape
-  user: "Do a deep dive on all the stock research platforms competing with us"
+  user: "Do a deep dive on all the SaaS platforms competing with us"
   assistant: "I'll use the deep-dive agent to conduct an exhaustive competitive analysis."
   <commentary>
   Market/competitor research — the agent will search the web, visit competitor sites via browser, analyze pricing/features/positioning, and produce a strategic report.
