@@ -68,19 +68,19 @@ assert_not_contains "skip_docs_gate_low_edits" "$result" "documentation.md"
 
 # Test 7: First block increments consecutive_blocks to 1
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "first-block" "edits_since_last_commit=3" "consecutive_blocks=0" > /dev/null
+create_state_file "$_TEST_TMPDIR/.claude" "first-block" "edits_since_last_commit=3" > /dev/null
+echo "0" > "$_TEST_TMPDIR/.claude/cortex/stop-gate-counter"
 run_stop_gate "first-block" > /dev/null
-sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/first-block.local.md"
-consec=$(grep '^consecutive_blocks=' "$sf" | cut -d= -f2 | tr -d '\r')
+consec=$(cat "$_TEST_TMPDIR/.claude/cortex/stop-gate-counter" 2>/dev/null | tr -d '\r')
 assert_eq "first_block_increments" "1" "$consec"
 
 # Test 8: Second block (consecutive_blocks=2) force-approves and resets to 0
 setup_test
-create_state_file "$_TEST_TMPDIR/.claude" "force-approve" "edits_since_last_commit=5" "consecutive_blocks=2" > /dev/null
+create_state_file "$_TEST_TMPDIR/.claude" "force-approve" "edits_since_last_commit=5" > /dev/null
+echo "2" > "$_TEST_TMPDIR/.claude/cortex/stop-gate-counter"
 result=$(run_stop_gate "force-approve")
 assert_contains "force_approve_after_two_blocks" "$result" "force-approved"
-sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/force-approve.local.md"
-consec=$(grep '^consecutive_blocks=' "$sf" | cut -d= -f2 | tr -d '\r')
+consec=$(cat "$_TEST_TMPDIR/.claude/cortex/stop-gate-counter" 2>/dev/null | tr -d '\r')
 assert_eq "force_approve_resets_counter" "0" "$consec"
 
 # Test 9: Fallback to legacy state file

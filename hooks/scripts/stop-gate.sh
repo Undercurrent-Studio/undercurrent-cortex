@@ -6,6 +6,8 @@ source "$SCRIPT_DIR/lib/state-io.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 source "$SCRIPT_DIR/lib/escape-json.sh" || { printf '{}'; exit 0; }
 
+STOP_GATE_FILE="${CORTEX_DIR}/stop-gate-counter"
+
 # Buffer stdin ONCE (C1 fix — extract_json_field uses cat internally)
 INPUT=$(cat)
 
@@ -27,17 +29,14 @@ if [ ! -f "$STATE_FILE" ]; then
   fi
 fi
 
-# --- ESCAPE HATCH: consecutive_blocks >= 2 → force-approve ---
-# Ensure field exists (write_field only does sed substitution, fails if field missing)
-if ! grep -q '^consecutive_blocks=' "$STATE_FILE" 2>/dev/null; then
-  sed '0,/^\[/{s/^\[/consecutive_blocks=0\n[/}' "$STATE_FILE" > "$STATE_FILE.tmp.$$" && mv "$STATE_FILE.tmp.$$" "$STATE_FILE"
-fi
-consecutive=$(read_field "consecutive_blocks" "$STATE_FILE")
+# --- ESCAPE HATCH: dedicated counter file (decoupled from session state) ---
+mkdir -p "$CORTEX_DIR" 2>/dev/null || true
+consecutive=$(cat "$STOP_GATE_FILE" 2>/dev/null || echo "0")
 consecutive="${consecutive:-0}"
-echo "stop-gate: consecutive_blocks=${consecutive} (file exists: $([ -f "$STATE_FILE" ] && echo yes || echo no))" >&2
+echo "stop-gate: consecutive_blocks=${consecutive}" >&2
 
 if [ "$consecutive" -ge 2 ]; then
-  write_field "consecutive_blocks" "0" "$STATE_FILE"
+  echo "0" > "$STOP_GATE_FILE"
   msg=$(escape_for_json "Stop gate: force-approved after acknowledgment. Some obligations may be unmet.")
   printf '{"systemMessage":"%s"}' "$msg"
   exit 0
@@ -64,6 +63,16 @@ if [ "$edits" -gt 0 ]; then
         write_field "edits_since_last_commit" "0" "$STATE_FILE"
         edits=0
       fi
+    fi
+  fi
+
+  # Belt-and-suspenders: verify with git status (catches gitignored, already-committed, stale counters)
+  if [ "$edits" -gt 0 ] && git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+    actual_changes=$(git -C "${PROJECT_DIR}" status --porcelain 2>/dev/null | grep -vE '^\?\?' | wc -l | tr -d ' ')
+    actual_changes="${actual_changes:-0}"
+    if [ "$actual_changes" -eq 0 ]; then
+      write_field "edits_since_last_commit" "0" "$STATE_FILE"
+      edits=0
     fi
   fi
 
@@ -118,7 +127,7 @@ fi
 # --- DECISION ---
 if [ -n "$failures" ]; then
   new_consecutive=$((consecutive + 1))
-  write_field "consecutive_blocks" "$new_consecutive" "$STATE_FILE"
+  echo "$new_consecutive" > "$STOP_GATE_FILE"
   echo "stop-gate: BLOCKED — incremented consecutive_blocks to ${new_consecutive}" >&2
 
   reason=$(escape_for_json "Stop blocked. Address obligations above, then stop again to override.\nUnmet gates:\n${failures}")
@@ -127,6 +136,6 @@ if [ -n "$failures" ]; then
 fi
 
 # All gates pass → approve, reset counter
-write_field "consecutive_blocks" "0" "$STATE_FILE"
+echo "0" > "$STOP_GATE_FILE"
 printf '{}'
 exit 0
