@@ -406,6 +406,15 @@ validate_state_file() {
     fi
     i=$((i + 1))
   done
+
+  # Phase 1 fields — added separately to avoid empty-string positional parsing issues
+  for extra_field_pair in "test_files_this_session:" "root_cause_documented:false" "debug_hypotheses_count:0"; do
+    local fname="${extra_field_pair%%:*}"
+    local fdefault="${extra_field_pair#*:}"
+    if ! grep -q "^${fname}=" "$file" 2>/dev/null; then
+      sed "/^\[/i\\${fname}=${fdefault}" "$file" > "$file.tmp.$$" && mv "$file.tmp.$$" "$file"
+    fi
+  done
 }
 
 # normalize_path "path"

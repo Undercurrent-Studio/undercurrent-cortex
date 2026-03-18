@@ -54,6 +54,22 @@ if [ "$tool_name" = "Write" ]; then
   fi
 fi
 
+# TDD guard — warn/deny src/ edits without test file this session
+if [ "$tool_name" = "Write" ] || [ "$tool_name" = "Edit" ]; then
+  tdd_result=$(printf '%s' "$INPUT" | "$SCRIPT_DIR/tdd-guard.sh" 2>/dev/null || echo "{}")
+  if printf '%s' "$tdd_result" | grep -q '"deny"' 2>/dev/null; then
+    printf '%s' "$tdd_result"
+    exit 0
+  fi
+  if [ "$tdd_result" != "{}" ] && [ -n "$tdd_result" ]; then
+    # TDD warning — but let migration-linter warning take priority if both fire
+    if [ "$linter_result" = "{}" ] || [ -z "$linter_result" ]; then
+      printf '%s' "$tdd_result"
+      exit 0
+    fi
+  fi
+fi
+
 # If migration-linter returned a warning (systemMessage but not deny), output it
 if [ "$linter_result" != "{}" ] && [ -n "$linter_result" ]; then
   printf '%s' "$linter_result"

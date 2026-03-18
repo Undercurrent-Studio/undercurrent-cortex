@@ -1,0 +1,64 @@
+---
+name: setup
+description: Initialize a project workspace with Cortex skeleton files and verify plugin installation status
+---
+
+# Setup
+
+Initialize a project workspace for Cortex. Idempotent — safe to run multiple times. Never overwrites existing files.
+
+## Steps
+
+### 1. Detect environment
+
+Run these checks and print findings:
+- `uname -a` — OS and architecture
+- `bash --version | head -1` — bash version
+- `git --version` — git version
+- `python3 --version 2>/dev/null || echo "python3 not found"` — python3 (needed for bootstrap)
+- `jq --version 2>/dev/null || echo "jq not found (optional)"` — jq (optional, used for JSON parsing)
+
+### 2. Verify CLAUDE.md
+
+Check if `CLAUDE.md` exists in the project root.
+- If present: "CLAUDE.md found."
+- If missing: Warn — "No CLAUDE.md found. Create one with project-specific instructions for Claude Code."
+
+### 3. Create skeleton files
+
+For each file, check existence first. Only create if missing — **never overwrite**.
+
+| File | Content if created |
+|------|-------------------|
+| `MEMORY.md` | `# Project Memory` with sections: `## About [User]`, `## Goals`, `## Preferences`, `## Active Projects`, `## Lessons Learned`, `## Key Decisions` |
+| `tasks/todo.md` | `# Tasks` with empty checklist placeholder |
+| `tasks/lessons.md` | `# Lessons Learned` with template comment |
+| `memory/` directory | Create empty directory |
+| `documentation.md` | `# Documentation` with sections: `## Architecture`, `## Schema`, `## API Routes`, `## Patterns`, `## Environment Variables` |
+
+For each item, report: "Created [file]" or "Already exists: [file]".
+
+### 4. Verify Cortex installation
+
+Run: `bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/statusline.sh"`
+- If it produces output: display the statusline
+- If it fails: warn — "Statusline unavailable. Cortex hooks may not be bootstrapped yet. Start a new session to trigger bootstrap."
+
+### 5. Display profile
+
+Check the current Cortex profile and explain:
+- Read `CORTEX_PROFILE` env var or `.claude/cortex/profile.local`
+- Display current profile (default: `standard`)
+- Explain options:
+  - **minimal** — Enforcement only. Blocks dangerous operations. Suppresses advisory warnings.
+  - **standard** — Full organism. Enforcement + learning + context injection + adaptive behavior.
+  - **strict** — All features plus: planning reminders, TDD enforcement blocks (not just warns), extra validation gates.
+- To change: `export CORTEX_PROFILE=strict` or write profile name to `.claude/cortex/profile.local`
+
+### 6. Print summary
+
+List:
+- Files created (count)
+- Files already existing (count)
+- Any warnings (missing CLAUDE.md, missing python3, etc.)
+- Next steps: "Start working. Cortex will track your session, enforce quality gates, and learn from corrections."

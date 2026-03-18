@@ -124,6 +124,32 @@ if [ "$carry_over_age" -ge 3 ]; then
   failures="${failures}- Stale carry-over: items unresolved for ${carry_over_age} sessions. Address or explicitly discard.\n"
 fi
 
+# Gate 6: Root cause documentation for fix: commits
+commits_count_g6=$(read_field "commits_count" "$STATE_FILE")
+commits_count_g6="${commits_count_g6:-0}"
+if [ "$commits_count_g6" -gt 0 ]; then
+  session_start_g6=$(read_field "session_start" "$STATE_FILE")
+  has_fix_commit=false
+  if [ -n "$session_start_g6" ] && git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+    fix_commits=$(git -C "${PROJECT_DIR}" log --format=%s --since="${session_start_g6}" --grep="^fix:" 2>/dev/null || true)
+    if [ -n "$fix_commits" ]; then
+      has_fix_commit=true
+    fi
+  fi
+  if [ "$has_fix_commit" = true ]; then
+    root_cause_doc=$(read_field "root_cause_documented" "$STATE_FILE")
+    if [ "$root_cause_doc" != "true" ]; then
+      profile=$(get_profile)
+      case "$profile" in
+        minimal) ;; # no enforcement
+        *)
+          failures="${failures}- Root cause not documented after fix: commit. Update tasks/lessons.md with pattern + prevention rule.\n"
+          ;;
+      esac
+    fi
+  fi
+fi
+
 # --- DECISION ---
 if [ -n "$failures" ]; then
   new_consecutive=$((consecutive + 1))

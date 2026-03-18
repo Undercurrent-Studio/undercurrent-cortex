@@ -50,6 +50,21 @@ if [[ "$file_path" == *"documentation.md"* ]]; then
   write_field "docs_updated" "true" "$STATE_FILE"
 fi
 
+# Track test file edits for TDD enforcement
+if echo "$file_path" | grep -qiE '\.(test|spec)\.(ts|tsx|js|jsx)$|__tests__/'; then
+  current_tests=$(read_field "test_files_this_session" "$STATE_FILE")
+  if [ -z "$current_tests" ]; then
+    write_field "test_files_this_session" "$file_path" "$STATE_FILE"
+  elif ! echo "$current_tests" | grep -qF "$file_path"; then
+    write_field "test_files_this_session" "${current_tests},${file_path}" "$STATE_FILE"
+  fi
+fi
+
+# Track lessons.md updates for root cause documentation gate
+if echo "$file_path" | grep -qiE '/lessons\.md$'; then
+  write_field "root_cause_documented" "true" "$STATE_FILE"
+fi
+
 # Commit cadence nudge (dynamic threshold from feedback loop)
 edits=$(read_field "edits_since_last_commit" "$STATE_FILE")
 threshold=$(read_field "commit_nudge_threshold" "$STATE_FILE")

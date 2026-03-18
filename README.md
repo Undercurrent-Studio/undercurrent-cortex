@@ -260,12 +260,13 @@ The organism displays a two-line pulse at the start of every session and on-dema
 
 ## Components
 
-### 12 Skills
+### 14 Skills
 
 | Layer | Skills |
 |-------|--------|
 | **Mission** | security-posture, data-integrity |
 | **Domain** | database-query-safety, migration-safety |
+| **Methodology** | tdd-enforcement, systematic-debugging |
 | **Workflow** | feature-design-flow, pre-commit-checklist, deploy-readiness, plan-audit, plan-estimation |
 | **Learning** | session-start, session-end, pattern-escalation |
 
@@ -274,10 +275,10 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | Event | Source | Script | What |
 |-------|--------|--------|------|
 | SessionStart | hooks.json | session-start | Init state, load health, healing, sensory, feedback, social, bootstrap |
-| PreToolUse | bootstrap | pre-dispatch.sh | Routes to migration-linter + plan-file-guard |
+| PreToolUse | bootstrap | pre-dispatch.sh | Routes to migration-linter + plan-file-guard + tdd-guard |
 | PostToolUse | bootstrap | post-dispatch.sh | Universal tool counter + routes to edit/bash tracking + patterns |
 | UserPromptSubmit | bootstrap | context-flow.sh | Context injection, decision detection, cautious mode |
-| Stop | bootstrap | stop-gate.sh | 4-gate session end |
+| Stop | bootstrap | stop-gate.sh | 6-gate session end (includes root cause documentation) |
 | PreCompact | bootstrap | pre-compact.sh | Preserve carry-over |
 | SessionEnd | bootstrap | session-end-dispatch.sh | Health metrics, domain tag, cross-session tracking |
 
@@ -288,7 +289,7 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | conversation-analyzer | Detects correction patterns, proposes evolution rules |
 | deep-dive | Exhaustive research with browser, hypothesis-driven methodology |
 
-### 5 Commands
+### 6 Commands
 
 | Command | What it does |
 |---------|-------------|
@@ -297,6 +298,7 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | `/deep-dive <topic>` | Launch exhaustive research — produces a comprehensive written report |
 | `/analyze-session` | Deep adaptive immunity scan (triggered by corrections or reasoning misses) |
 | `/review-decisions` | Review decisions from 7-14 days ago for validation |
+| `/setup` | Initialize project workspace — create skeleton files, verify Cortex installation, display profile |
 
 ### 5 State Files
 
