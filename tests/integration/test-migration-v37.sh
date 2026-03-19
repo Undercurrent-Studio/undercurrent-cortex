@@ -7,6 +7,12 @@ source "$TESTS_DIR/lib/fixtures.sh"
 
 begin_suite "migration-v37"
 
+# This test sources the real state-io.sh (not sandbox) to test migration.
+# Unset CI so the CI guard in migrate_state_files doesn't skip migration.
+unset CI 2>/dev/null || true
+# Reset the sentinel so migration runs on each source
+unset _CORTEX_STATE_IO_MIGRATED 2>/dev/null || true
+
 # Test 1: Flat session files migrate to weekly buckets
 setup_test
 # Create flat cortex-state-* files in .claude/ (pre-v3.7 layout)
@@ -100,7 +106,8 @@ echo "# Should stay" > "$_TEST_TMPDIR/.claude/cortex-state-should-stay.local.md"
 # Ensure sentinel exists
 mkdir -p "$_TEST_TMPDIR/.claude/cortex"
 echo "migrated 2026-03-17T00:00:00" > "$_TEST_TMPDIR/.claude/cortex/.migrated-v3.7"
-# Re-source state-io.sh — migration should be skipped
+# Re-source state-io.sh — migration should be skipped (by .migrated-v3.7 sentinel)
+unset _CORTEX_STATE_IO_MIGRATED 2>/dev/null || true
 export CORTEX_PROJECT_DIR="$_TEST_TMPDIR"
 source "$TESTS_DIR/../hooks/scripts/lib/state-io.sh" 2>/dev/null || true
 # The flat file should still be there (not migrated)
@@ -108,6 +115,7 @@ assert_file_exists "sentinel_prevents_remigration" "$_TEST_TMPDIR/.claude/cortex
 
 # Test 3: init_state_file creates in week dir
 setup_test
+unset _CORTEX_STATE_IO_MIGRATED 2>/dev/null || true
 export CORTEX_PROJECT_DIR="$_TEST_TMPDIR"
 mkdir -p "$_TEST_TMPDIR/.claude/cortex"
 echo "migrated" > "$_TEST_TMPDIR/.claude/cortex/.migrated-v3.7"
@@ -122,6 +130,7 @@ assert_eq "week_dir_created" "yes" "$([ -d "$week_dir" ] && echo yes || echo no)
 
 # Test 4: get_profile reads from cortex/profile.local
 setup_test
+unset _CORTEX_STATE_IO_MIGRATED 2>/dev/null || true
 export CORTEX_PROJECT_DIR="$_TEST_TMPDIR"
 mkdir -p "$_TEST_TMPDIR/.claude/cortex"
 echo "migrated" > "$_TEST_TMPDIR/.claude/cortex/.migrated-v3.7"
