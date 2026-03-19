@@ -83,3 +83,8 @@ Always display:
 | Cache null result | Stale error cached for TTL | Throw inside `'use cache'` functions |
 
 See `references/data-source-map.md` for the data source inventory template.
+
+---
+## See Also
+- [database-query-safety](../database-query-safety/SKILL.md) — Query correctness is the foundation of data accuracy [enforcement]
+- [feature-design-flow](../feature-design-flow/SKILL.md) — Design phase must account for data integrity rules before implementation [downstream]

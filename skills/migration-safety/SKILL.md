@@ -94,3 +94,8 @@ Match the ingestion boundary:
 - If a migration fails in production, write a NEW fix migration (don't edit the failed one) with ALL statements from the original plus corrections
 
 See `references/migration-incidents.md` for 5 real incidents from this codebase.
+
+---
+## See Also
+- [database-query-safety](../database-query-safety/SKILL.md) — Shared database domain: query patterns depend on correct schema [related]
+- [security-posture](../security-posture/SKILL.md) — RLS + policies + grants are part of both migration and security contracts [enforcement]

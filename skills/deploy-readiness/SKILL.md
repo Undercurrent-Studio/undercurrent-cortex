@@ -43,3 +43,9 @@ This checklist is for production deploys, not for every commit. Run it when:
 - User explicitly says "deploy", "ship it", "go live"
 
 For per-commit checks, use the `pre-commit-checklist` skill instead.
+
+---
+## See Also
+- [pre-commit-checklist](../pre-commit-checklist/SKILL.md) — Per-commit gates complement per-deploy gates in the release pipeline [workflow]
+- [plan-audit](../plan-audit/SKILL.md) — Plan audit catches issues at design time; deploy readiness catches them at ship time [workflow]
+- [security-posture](../security-posture/SKILL.md) — Security invariants are a subset of deploy readiness verification [enforcement]

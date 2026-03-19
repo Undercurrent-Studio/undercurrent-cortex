@@ -93,3 +93,8 @@ Verify all of:
 
 See `references/security-audit-history.md` for the security audit history template.
 See `references/known-limitations.md` for the known limitations template.
+
+---
+## See Also
+- [database-query-safety](../database-query-safety/SKILL.md) — RLS policies and query patterns overlap: both enforce data access boundaries [related]
+- [deploy-readiness](../deploy-readiness/SKILL.md) — Security invariants must be verified before production deploy [enforcement]

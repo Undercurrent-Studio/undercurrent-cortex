@@ -67,3 +67,9 @@ If the `superpowers` plugin is installed, invoke `superpowers:executing-plans`. 
 - What's being built doesn't solve the original problem
 - Institutional checklist can no longer be answered "yes"
 Do not push through degraded implementation. Re-read design doc, re-run Phase 1, adjust or surface to Will.
+
+---
+## See Also
+- [data-integrity](../data-integrity/SKILL.md) — Design phase must ensure data accuracy rules are met before implementation [downstream]
+- [plan-audit](../plan-audit/SKILL.md) — Feature design invokes plan audit as the Phase 4 gate [workflow]
+- [plan-estimation](../plan-estimation/SKILL.md) — Estimation calibrates wave count before design proceeds to planning [upstream]

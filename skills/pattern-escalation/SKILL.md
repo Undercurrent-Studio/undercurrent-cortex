@@ -62,3 +62,9 @@ When `session-start` surfaces pending proposals:
 
 ### Staleness rule
 Proposals pending for 10+ sessions without review → mark `status=expired`. The pattern may resurface later if it recurs, generating a fresh proposal with updated evidence.
+
+---
+## See Also
+- [session-end](../session-end/SKILL.md) — Session end triggers pattern escalation check for recurring issues [lifecycle]
+- [session-start](../session-start/SKILL.md) — Session start surfaces pending escalation proposals for review [lifecycle]
+- [systematic-debugging](../systematic-debugging/SKILL.md) — Debugging discovers patterns that feed into escalation [upstream]

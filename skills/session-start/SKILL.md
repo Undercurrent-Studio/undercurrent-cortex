@@ -39,3 +39,8 @@ When surfacing carry-over items from previous sessions, explicitly write them as
 See `references/memory-tiers.md` for the full memory hierarchy and rules.
 
 **Default to reading** — skip only if the session is purely conversational (no files, no decisions, no code). When in doubt, read.
+
+---
+## See Also
+- [session-end](../session-end/SKILL.md) — Session lifecycle pair: start reads memory, end writes it [lifecycle]
+- [pattern-escalation](../pattern-escalation/SKILL.md) — Session start surfaces pending escalation proposals for review [lifecycle]

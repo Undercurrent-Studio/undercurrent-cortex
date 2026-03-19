@@ -8,6 +8,12 @@ Claude Code plugin — session management, health tracking, context injection, a
 - Python3 (JSON manipulation in bootstrap-hooks.sh only)
 - No npm dependencies, no build step
 
+### Plugin References
+@docs/hook-architecture.md
+@docs/state-files.md
+@docs/context-flow.md
+@docs/skill-authoring.md
+
 ## Architecture
 
 ### Directory Layout

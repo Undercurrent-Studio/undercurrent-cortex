@@ -58,3 +58,8 @@ The hook automatically skips: test files themselves, type definitions (`.d.ts`),
 - Emergency hotfixes (but add the regression test immediately after)
 
 For emergency skips, set `CORTEX_PROFILE=minimal` or acknowledge the TDD warning twice.
+
+---
+## See Also
+- [systematic-debugging](../systematic-debugging/SKILL.md) — Test-driven development and systematic debugging form a complementary pair: TDD prevents bugs, debugging resolves them [related]
+- [pre-commit-checklist](../pre-commit-checklist/SKILL.md) — Tests must pass before committing; TDD ensures they exist [enforcement]

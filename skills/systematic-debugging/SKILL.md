@@ -66,3 +66,8 @@ The existing 2-block escape hatch allows force-approval if needed.
 - **Don't skip the regression test.** A fix without a test is a fix that will break again.
 - **Don't commit without documenting.** If you understood the bug well enough to fix it, you understand it well enough to write 3 lines in lessons.md.
 - **Don't expand scope.** A bug fix is not an opportunity to refactor. Fix the bug, commit, then open a separate task for cleanup.
+
+---
+## See Also
+- [tdd-enforcement](../tdd-enforcement/SKILL.md) — Debugging produces regression tests; TDD prevents the bug class from recurring [related]
+- [pattern-escalation](../pattern-escalation/SKILL.md) — Recurring bug patterns discovered during debugging should be escalated [downstream]

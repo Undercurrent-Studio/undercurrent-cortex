@@ -89,3 +89,8 @@ END    ✏️  4 edits · 📦 2 commits · 🧪✅ · 📄✅
 Show the START line (from session start), the END line (current values), and the organism health line (current). This gives the user a visible summary of session productivity.
 
 **Run session-end before closing every working session.** It takes 2 minutes.
+
+---
+## See Also
+- [session-start](../session-start/SKILL.md) — Session lifecycle pair: end writes memory, start reads it [lifecycle]
+- [pattern-escalation](../pattern-escalation/SKILL.md) — Session end triggers pattern escalation check for recurring issues [downstream]

@@ -31,3 +31,8 @@ description: |
 
 If the plan has significantly more or fewer waves than historical precedent for similar work, flag it:
 - "This plan has N waves but similar past work averaged M. Consider whether scope is right."
+
+---
+## See Also
+- [plan-audit](../plan-audit/SKILL.md) — Estimation feeds into audit Gate 9 for scope and wave validation [downstream]
+- [feature-design-flow](../feature-design-flow/SKILL.md) — Estimation calibrates complexity before design planning begins [workflow]

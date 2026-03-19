@@ -34,3 +34,9 @@ See `scripts/pre-commit-gates.sh` for an automated runner covering gates 1-6.
 - No half-built sections
 
 All checks are gates, not warnings. Fix before committing.
+
+---
+## See Also
+- [deploy-readiness](../deploy-readiness/SKILL.md) — Per-commit gates feed into per-deploy verification in the release pipeline [workflow]
+- [plan-audit](../plan-audit/SKILL.md) — Plan audit validates design; pre-commit checklist validates each commit [workflow]
+- [tdd-enforcement](../tdd-enforcement/SKILL.md) — TDD ensures tests exist; pre-commit gates ensure they pass [enforcement]

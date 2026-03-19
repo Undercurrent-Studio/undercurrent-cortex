@@ -168,3 +168,10 @@ Not every gate applies to every plan. Skip gates that are genuinely irrelevant (
 | Migrations | 4, 8, 11, 12, 13 |
 | Bash/plugin scripts | 8, 9, 11, 12, 13 |
 | Math/algorithms | 5, 8, 11, 12, 13 |
+
+---
+## See Also
+- [plan-estimation](../plan-estimation/SKILL.md) — Estimation feeds audit: wave count and scope validated by Gate 9 [upstream]
+- [deploy-readiness](../deploy-readiness/SKILL.md) — Plan audit catches issues pre-implementation; deploy readiness verifies pre-ship [workflow]
+- [pre-commit-checklist](../pre-commit-checklist/SKILL.md) — Audit gates validate planning; pre-commit gates validate execution [workflow]
+- [feature-design-flow](../feature-design-flow/SKILL.md) — Feature design invokes plan audit as Phase 4 gate before implementation [workflow]
