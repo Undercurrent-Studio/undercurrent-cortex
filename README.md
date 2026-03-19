@@ -328,7 +328,7 @@ Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` fron
 | typescript-discipline.md | typescript, type error, tsc |
 | python-patterns.md | python, pyproject.toml, pytest, django, flask, fastapi |
 | go-patterns.md | golang, go.mod, goroutine, cobra, fiber |
-| rust-patterns.md | rust, cargo, cargo.toml, tokio, serde, clippy |
+| rust-patterns.md | rustc, cargo.toml, lifetime, tokio, serde, clippy, rust-lang |
 
 ---
 

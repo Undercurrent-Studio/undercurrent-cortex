@@ -90,10 +90,10 @@ setup_test
 result=$(run_context_flow "fix the goroutine leak")
 assert_contains "goroutine_keyword" "$result" "Go patterns"
 
-# Test 15: "rust" injects rust-patterns content
+# Test 15: "rustc" injects rust-patterns content
 setup_test
-result=$(run_context_flow "update the rust crate dependencies")
-assert_contains "rust_keyword" "$result" "Rust patterns"
+result=$(run_context_flow "install rustc and cargo toolchain")
+assert_contains "rustc_keyword" "$result" "Rust patterns"
 
 # Test 16: "cargo.toml" injects rust-patterns content
 setup_test
@@ -110,12 +110,22 @@ setup_test
 result=$(run_context_flow "update the search engine")
 assert_eq "no_gin_collision" "{}" "$result"
 
-# Test 19: "[decision]" in prompt triggers decision message
+# Test 19: "trust" does NOT inject rust-patterns (rust collision avoided)
+setup_test
+result=$(run_context_flow "I trust this approach")
+assert_eq "no_rust_collision" "{}" "$result"
+
+# Test 20: "borrow" does NOT inject rust-patterns (borrow collision avoided)
+setup_test
+result=$(run_context_flow "borrow the logic from that module")
+assert_eq "no_borrow_collision" "{}" "$result"
+
+# Test 21: "[decision]" in prompt triggers decision message
 setup_test
 result=$(run_context_flow "[decision] use Postgres for this")
 assert_contains "decision_keyword" "$result" "Decision detected"
 
-# Test 20: "done for today" triggers session-end reminder
+# Test 22: "done for today" triggers session-end reminder
 setup_test
 result=$(run_context_flow "done for today")
 assert_contains "session_end_reminder" "$result" "session-end"

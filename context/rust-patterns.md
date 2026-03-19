@@ -1,4 +1,4 @@
-keywords: rust,cargo,cargo.toml,crate,borrow,lifetime,tokio,async-std,serde,clippy
+keywords: rustc,cargo.toml,lifetime,tokio,async-std,serde,clippy,rust-lang
 
 # Rust Patterns
 
