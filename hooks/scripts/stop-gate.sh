@@ -15,7 +15,7 @@ INPUT=$(cat)
 resolve_state_file "$INPUT"
 
 # Debug: trace state file resolution for forensic analysis
-echo "stop-gate: resolved STATE_FILE=$(basename "$STATE_FILE" 2>/dev/null)" >&2
+[ "${CORTEX_DEBUG:-}" = "true" ] && echo "stop-gate: resolved STATE_FILE=$(basename "$STATE_FILE" 2>/dev/null)" >&2
 
 # Graceful degradation: no state file → try legacy, else approve
 if [ ! -f "$STATE_FILE" ]; then
@@ -33,7 +33,7 @@ fi
 mkdir -p "$CORTEX_DIR" 2>/dev/null || true
 consecutive=$(cat "$STOP_GATE_FILE" 2>/dev/null || echo "0")
 consecutive="${consecutive:-0}"
-echo "stop-gate: consecutive_blocks=${consecutive}" >&2
+[ "${CORTEX_DEBUG:-}" = "true" ] && echo "stop-gate: consecutive_blocks=${consecutive}" >&2
 
 if [ "$consecutive" -ge 2 ]; then
   echo "0" > "$STOP_GATE_FILE"

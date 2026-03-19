@@ -30,9 +30,7 @@ journal="${PROJECT_DIR}/memory/${today}.md"
 # 1. reasoning_misses: count [reasoning-miss] tags in today's journal
 reasoning_misses=0
 if [ -f "$journal" ]; then
-  if grep -c '\[reasoning-miss\]' "$journal" >/dev/null 2>&1; then
-    reasoning_misses=$(grep -c '\[reasoning-miss\]' "$journal" 2>/dev/null)
-  fi
+  reasoning_misses=$(grep -c '\[reasoning-miss\]' "$journal" 2>/dev/null || echo 0)
 fi
 
 # 2. edits_per_commit: total edit operations / max(commits, 1)

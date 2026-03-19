@@ -54,7 +54,7 @@ if [ -n "$MIGRATION_FILES" ]; then
   echo "[5/5] Migration file detected — running safety checks..."
 
   # Check for now() in WHERE clauses (IMMUTABLE violation, 3x repeat offender)
-  NOW_HITS=$(grep -n 'now()' $MIGRATION_FILES 2>/dev/null | grep -i 'WHERE' || true)
+  NOW_HITS=$(echo "$MIGRATION_FILES" | xargs grep -n 'now()' 2>/dev/null | grep -i 'WHERE' || true)
   if [ -n "$NOW_HITS" ]; then
     echo "  ERROR: now() found in WHERE clause — not IMMUTABLE for partial indexes!"
     echo "$NOW_HITS" | sed 's/^/    /'
@@ -63,7 +63,7 @@ if [ -n "$MIGRATION_FILES" ]; then
   fi
 
   # Check for DROP CONSTRAINT without IF EXISTS
-  DROP_HITS=$(grep -n 'DROP CONSTRAINT' $MIGRATION_FILES 2>/dev/null | grep -v 'IF EXISTS' || true)
+  DROP_HITS=$(echo "$MIGRATION_FILES" | xargs grep -n 'DROP CONSTRAINT' 2>/dev/null | grep -v 'IF EXISTS' || true)
   if [ -n "$DROP_HITS" ]; then
     echo "  WARNING: DROP CONSTRAINT without IF EXISTS — may fail if constraint name differs in production."
     echo "$DROP_HITS" | sed 's/^/    /'
@@ -71,13 +71,14 @@ if [ -n "$MIGRATION_FILES" ]; then
   fi
 
   # Check for CREATE TABLE without RLS
-  CREATE_HITS=$(grep -l 'CREATE TABLE' $MIGRATION_FILES 2>/dev/null || true)
+  CREATE_HITS=$(echo "$MIGRATION_FILES" | xargs grep -l 'CREATE TABLE' 2>/dev/null || true)
   if [ -n "$CREATE_HITS" ]; then
-    for f in $CREATE_HITS; do
+    while IFS= read -r f; do
+      [ -z "$f" ] && continue
       if ! grep -q 'ENABLE ROW LEVEL SECURITY' "$f"; then
         echo "  WARNING: CREATE TABLE in $f without ENABLE ROW LEVEL SECURITY."
       fi
-    done
+    done <<< "$CREATE_HITS"
   fi
 
   echo "  OK: Migration safety checks complete."

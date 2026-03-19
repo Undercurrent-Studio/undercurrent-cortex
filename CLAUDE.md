@@ -17,7 +17,7 @@ Claude Code plugin — session management, health tracking, context injection, a
 - `hooks/scripts/lib/` — Shared libraries (state-io, escape-json, json-extract, validate-organism)
 - `skills/` — SKILL.md files with YAML frontmatter (14 skills)
 - `agents/` — Agent .md files with system prompts (3 agents)
-- `commands/` — Slash command .md files (8 commands)
+- `commands/` — Slash command .md files (9 commands)
 - `context/` — Auto-discovered context files with `keywords:` frontmatter (7 files)
 - `tests/` — Bash test suite
 
@@ -28,10 +28,10 @@ Claude Code plugin — session management, health tracking, context injection, a
 - When bug #34573 is fixed, remove `bootstrap-hooks.sh` and clean up `_cortex_bootstrap` entries from `settings.json`
 
 ### State Files
-- Location: `{project}/.claude/cortex-{type}-{session_id}.local.md`
+- Sessions: `{project}/.claude/cortex/sessions/YYYY-WNN/{session_id}.local.md`
+- Singletons: `{project}/.claude/cortex/{type}.local.md` (health, proposals, decisions, cross-session, profile)
 - Format: key=value pairs + INI-style sections (`[files_modified]`, `[carry_over]`, `[activity_log]`)
 - Read/write via `state-io.sh`: `read_field`, `write_field`, `read_section`, `append_to_section`
-- Session-scoped: each session gets its own state file, cleaned up after 24h
 
 ### Context Injection
 - Context files have `keywords:` as their first line (comma-separated)

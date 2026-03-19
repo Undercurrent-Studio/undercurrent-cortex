@@ -28,11 +28,11 @@ If a product-identity skill is available (e.g., via a domain pack), invoke it to
 - Explicit OUT OF SCOPE list?
 
 ## Phase 2 — Brainstorm + design doc
-Invoke `superpowers:brainstorming`.
+If the `superpowers` plugin is installed, invoke `superpowers:brainstorming`. Otherwise, brainstorm by listing 3-5 approaches, evaluating tradeoffs for each, and selecting the best fit. Write findings to the design doc.
 Design doc → `tasks/design-[feature-name].md` (canonical — see CLAUDE.md).
 
 ## Phase 3 — Implementation plan
-Invoke `superpowers:writing-plans`. Atomic waves, commit checkpoint per wave.
+If the `superpowers` plugin is installed, invoke `superpowers:writing-plans`. Otherwise, decompose the work into atomic waves with a commit checkpoint per wave. Each wave should be independently shippable.
 
 ## Phase 4 — Plan Audit Gate (before any code)
 
@@ -50,7 +50,7 @@ See `examples/design-doc-template.md` for the design doc format.
 
 ## Phase 5 — Code-Reviewer Agent Audit (after self-audit passes)
 
-For features touching pipeline, scoring, security, or multi-wave implementations: launch `superpowers:code-reviewer` agent against the plan file. Agent reviews for:
+For features touching pipeline, scoring, security, or multi-wave implementations: if the `superpowers` plugin is installed, launch `superpowers:code-reviewer` agent against the plan file. Otherwise, use `/cortex:code-review` for a 3-pass review. The reviewer checks for:
 - Data flow mismatches (function signatures vs actual types)
 - Constraint violations (API limits, DB schema, hook event types)
 - Missing error handling paths
@@ -59,7 +59,7 @@ For features touching pipeline, scoring, security, or multi-wave implementations
 
 Incorporate all CRITICAL and IMPORTANT findings into the plan before calling ExitPlanMode. MINOR findings are noted but don't block approval.
 
-→ Invoke `superpowers:executing-plans`
+If the `superpowers` plugin is installed, invoke `superpowers:executing-plans`. Otherwise, proceed with implementation following the plan's wave structure. Execute one wave at a time, verify before proceeding to the next.
 
 ## Mid-execution stop conditions — STOP and re-evaluate if
 - Feature taking 2x longer than planned

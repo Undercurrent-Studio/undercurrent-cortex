@@ -63,11 +63,11 @@ Log as `[health-metrics]`:
 See `examples/journal-entry.md` for a model journal entry with proper tags.
 
 **Step 7 — Organism health dispatch** (non-negotiable, every session):
-The SessionEnd hook does not fire reliably on Windows/VSCode. Run the dispatch script manually to ensure health metrics are recorded:
-```
-echo '{}' | bash "${CLAUDE_PLUGIN_ROOT}/hooks/scripts/session-end-dispatch.sh"
-```
-If this outputs `{}` silently, health was written (or the dedup guard fired). Check the project's `.claude/cortex-health.local.md` exists afterward.
+The SessionEnd hook fires automatically via bootstrap and writes health metrics to `.claude/cortex/health.local.md`. If health metrics are missing after session end:
+1. Check that bootstrap ran at session start (look for "bootstrap-hooks: wrote updated" in session-start output)
+2. Check `.claude/cortex/health.local.md` exists — if absent, the hook may not have fired
+3. Verify the session had non-zero activity (idle sessions intentionally skip health row writes)
+4. If on Windows/VSCode and the hook consistently doesn't fire, report this as a bug — the bootstrap system targets `~/.claude/settings.json` which should be reliable
 
 **Step 8 — Display session statusline diff** (every session):
 Display the organism statusline at the end, showing what changed during the session. Compare the values from session start (displayed in your first response) against current values. Format:

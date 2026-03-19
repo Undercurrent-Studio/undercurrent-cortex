@@ -78,7 +78,7 @@ For each detected correction, extract:
    - **YES, variant** → flag for update (same root cause, new manifestation)
    - **NO** → flag as new pattern class
 
-2. Read `.claude/cortex-health.local.md` — check for cross-session trends:
+2. Read `.claude/cortex/health.local.md` — check for cross-session trends:
    - Same domain appearing in reasoning_misses across 3+ sessions
    - Consistently high edits/commit ratio in the same domain
 
@@ -99,7 +99,7 @@ Write a new entry to `tasks/lessons.md` following the existing format exactly:
 Use the Edit tool to update the existing lesson entry — add the variant, don't duplicate the entry.
 
 **For patterns with 3+ occurrences across sessions:**
-Write a proposal to `.claude/cortex-proposals.local.md`. Create the file if it doesn't exist. Use this format:
+Write a proposal to `.claude/cortex/proposals.local.md`. Create the file if it doesn't exist. Use this format:
 ```
 ---
 id=YYYYMMDD-HHMMSS-[short-slug]
@@ -132,7 +132,7 @@ Proposal types and what "apply" means:
 
 ### Phase 5 — Repair Assessment
 
-Check health file (`.claude/cortex-health.local.md`) and proposals file (`.claude/cortex-proposals.local.md`) for:
+Check health file (`.claude/cortex/health.local.md`) and proposals file (`.claude/cortex/proposals.local.md`) for:
 
 1. **Hook false-positives**: If the same hook blocked an action and the user overrode it 3+ times across sessions → propose threshold or matcher adjustment (type=hook-rule)
 2. **Skill advice contradictions**: If a lesson contradicts a skill's guidance 2+ times → propose skill update (type=skill-update)
@@ -168,7 +168,7 @@ After completing all phases, output this structured report:
 ```
 
 ## Constraints
-- You may ONLY write to `tasks/lessons.md` and `.claude/cortex-proposals.local.md`
+- You may ONLY write to `tasks/lessons.md` and `.claude/cortex/proposals.local.md`
 - NEVER modify CLAUDE.md, any SKILL.md file, hooks, or scripts directly
 - NEVER auto-apply proposals — they exist for human review only
 - Be conservative in detection — when in doubt, it's not a correction

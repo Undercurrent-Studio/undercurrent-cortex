@@ -1,5 +1,6 @@
 ---
 name: plan-estimation
+version: 0.1.0
 description: |
   This skill should be used when the user asks to "estimate complexity", "how many waves", "how long will this take", "scope this out", "is this a big change", or before any non-trivial implementation planning. Surfaces historical plan data to calibrate expectations.
 ---

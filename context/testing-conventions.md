@@ -1,7 +1,7 @@
 keywords: vitest,test suite,write test,add test,run test,fix test,coverage
 # Testing Conventions Context
 
-**Stack**: vitest + jsdom. `server-only` module stubbed for test imports. 1460 tests across 90 files. CI: `.github/workflows/ci.yml` runs audit -> lint -> type-check -> test -> build.
+**Stack**: vitest + jsdom. `server-only` module stubbed for test imports. comprehensive test suite. CI: `.github/workflows/ci.yml` runs audit -> lint -> type-check -> test -> build.
 
 **Mock patterns**: `vi.mockRejectedValue` + fake timers leaks unhandled rejections. Use `mockImplementation` with `async () => { throw new Error(...) }` instead. Shared helpers: `src/__tests__/helpers/mock-supabase.ts` (chainable builder) + `mock-stripe.ts` (Stripe instance + event factory).
 

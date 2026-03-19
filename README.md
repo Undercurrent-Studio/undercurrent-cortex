@@ -291,7 +291,7 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | deep-dive | Exhaustive research with browser, hypothesis-driven methodology |
 | code-reviewer | 3-pass code review (bug/logic, security, conventions) with confidence scoring |
 
-### 8 Commands
+### 9 Commands
 
 | Command | What it does |
 |---------|-------------|
@@ -303,6 +303,7 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | `/setup` | Initialize project workspace — create skeleton files, verify Cortex installation, display profile |
 | `/code-review` | 3-pass code review — bug/logic, security, project conventions with confidence scoring |
 | `/create-skill` | Interactive scaffold for new skills — frontmatter, templates, optional context file wiring |
+| `/uninstall` | Guide for cleanly removing Cortex — bootstrap entries, state files, plugin registration |
 
 ### 5 State Files
 
@@ -359,13 +360,13 @@ To create a domain pack:
 
 ## Test Suite
 
-23 test scripts organized by type:
+24 test scripts organized by type:
 
 ```text
 tests/
   run-all.sh                              # Test runner
   unit/                                   # 4 tests — state-io, json-extract, escape-json, validate-organism
-  integration/                            # 15 tests — one per hook script + profiles
+  integration/                            # 16 tests — one per hook script + profiles + migration v3.7
   edge/                                   # 2 tests — empty stdin, Windows paths
   regression/                             # 2 tests — health dedup, pipefail glob
   lib/                                    # 3 shared helpers — fixtures, mocks, test framework
@@ -407,17 +408,18 @@ cortex/
         json-extract.sh                    # Lightweight JSON field extraction
         state-io.sh                        # read_field/write_field/read_section/append_to_section
         validate-organism.sh               # Healing system: 9 self-repair checks
-  skills/           # 12 skill directories
-  commands/         # 8 slash commands
+  skills/           # 14 skill directories
+  commands/         # 9 slash commands
   agents/           # conversation-analyzer + deep-dive + code-reviewer
   context/          # 7 context files (keyword-matched)
-  tests/            # 26 bash test scripts (run-all.sh)
+  tests/            # 24 test scripts + 4 helpers (run-all.sh)
 ```
 
 ---
 
 ## Version History
 
+- **3.9.2** — Fix 14 audit findings: stale v3.7 path references, unquoted variables, debug noise, superpowers fallbacks, TodoWrite removal, missing version fields, redundant grep, README count corrections, uninstall command, CI pipeline.
 - **3.9.0** — Phase 2: 3-pass code review agent (bug/logic, security, conventions with confidence scoring). Language detection (Python/Go/Rust) in sensory system + context files. `/create-skill` command with interactive scaffold + skill authoring guide.
 - **3.6.1** — Fix stop-gate escape hatch (debug logging + recency filter for state file resolution). Fix health dedup ordering (zero-metric sessions no longer burn the dedup flag). Fix cross-session tracking (runs before zero-metric exit). Test fixture updates (7 failures → 0).
 - **3.6.0** — Genericized reference files for public distribution. Hook profiles (`CORTEX_PROFILE=minimal|standard|strict`). Blog post outline.
@@ -443,6 +445,12 @@ claude plugins update cortex@undercurrent-studio         # Install new version
 ```
 
 These are **two separate operations** — `plugins update` only checks the cached index. Always run both.
+
+---
+
+## Uninstalling
+
+To cleanly remove Cortex and all its artifacts, run `/uninstall` in any Claude Code session with the plugin still installed. This guides you through removing bootstrap entries from `~/.claude/settings.json`, project-level state files, and the plugin itself.
 
 ---
 
