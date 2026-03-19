@@ -33,7 +33,21 @@ See `scripts/pre-commit-gates.sh` for an automated runner covering gates 1-6.
 - Information density over whitespace
 - No half-built sections
 
-All checks are gates, not warnings. Fix before committing.
+## Reference file staleness check (warning, not block)
+If commits touch domain code, check if the corresponding reference file needs updating:
+- `src/lib/scoring/` → `references/scoring.md`
+- `src/lib/pipeline/` → `references/pipeline.md`
+- `src/lib/signals/` → `references/signals.md`
+- `src/app/api/` → `references/api-routes.md`
+- `.github/workflows/` → `references/github-actions.md`
+- `supabase/migrations/` → `references/database.md`
+- `src/app/`, `src/components/` → `references/frontend.md`
+- `src/lib/data-sources/` → `references/data-sources.md`
+- `src/middleware.ts`, `src/lib/supabase/` → `references/auth.md`
+
+This is a warning — don't block the commit, but flag if a reference file may be stale after this change.
+
+All checks are gates, not warnings — except the reference staleness check above. Fix gates before committing.
 
 ---
 ## See Also

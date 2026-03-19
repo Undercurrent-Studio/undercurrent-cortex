@@ -139,6 +139,22 @@ A plan can pass every technical gate and still ship something half-thought-throu
 - **Performance & efficiency**: Does the plan consider the cost of what it's adding? Unnecessary complexity, redundant operations, unbounded fetches, duplicated logic — flag anything that adds weight without proportional value.
 - **The bar**: Ask — "Is this work thorough enough that someone reviewing it would find nothing half-done, nothing overlooked, and nothing they'd immediately want to redo?" If not, the plan needs work before implementation begins.
 
+## Gate 14: Reference Coverage (if project has references/ directory)
+
+Does the plan reference the correct `references/*.md` files for the domains it touches? If the plan modifies scoring logic but doesn't cite `references/scoring.md`, flag it.
+
+- For each domain the plan touches, identify the corresponding reference file
+- Check whether the plan's approach aligns with canonical facts in that reference file
+- If the plan would change a `[canonical]` fact, flag that the reference file needs updating in the same wave
+
+## Gate 15: Reference Freshness (if project has references/ directory)
+
+Will this plan's changes require updating any reference files? If new API routes are added, `references/api-routes.md` needs updating. If scoring weights change, `references/scoring.md` needs updating.
+
+- Flag any reference file that will become stale after implementation
+- Ensure the plan schedules reference file updates in the SAME wave as the behavior change (not deferred to a cleanup wave)
+- Check `last-verified` frontmatter if available — flag files not verified in 30+ days
+
 ## Output Format
 
 Write findings to the plan file as:
@@ -160,14 +176,16 @@ Not every gate applies to every plan. Skip gates that are genuinely irrelevant (
 
 | Plan touches... | Required gates |
 |---|---|
-| Database/queries | 1, 2, 4, 6, 8, 11, 12, 13 |
-| API routes | 1, 3, 8, 11, 12, 13 |
-| Frontend components | 6, 7, 8, 11, 12, 13 |
-| Pipeline/cron | 1, 2, 5, 8, 9, 11, 12, 13 |
-| Scoring/signals | 1, 2, 5, 8, 11, 12, 13 |
-| Migrations | 4, 8, 11, 12, 13 |
+| Database/queries | 1, 2, 4, 6, 8, 11, 12, 13, 14, 15 |
+| API routes | 1, 3, 8, 11, 12, 13, 14, 15 |
+| Frontend components | 6, 7, 8, 11, 12, 13, 14, 15 |
+| Pipeline/cron | 1, 2, 5, 8, 9, 11, 12, 13, 14, 15 |
+| Scoring/signals | 1, 2, 5, 8, 11, 12, 13, 14, 15 |
+| Migrations | 4, 8, 11, 12, 13, 14, 15 |
 | Bash/plugin scripts | 8, 9, 11, 12, 13 |
-| Math/algorithms | 5, 8, 11, 12, 13 |
+| Math/algorithms | 5, 8, 11, 12, 13, 14, 15 |
+
+Gates 14-15 apply when the project has a `references/` directory. Skip for projects without one.
 
 ---
 ## See Also

@@ -38,6 +38,12 @@ When surfacing carry-over items from previous sessions, explicitly write them as
 
 See `references/memory-tiers.md` for the full memory hierarchy and rules.
 
+## Reference file staleness check
+After reading MEMORY.md and journal, check if `references/` directory exists. If it does, scan for reference files with `last-verified` frontmatter older than 30 days while related code has changed. Surface staleness warnings:
+> "references/pipeline.md hasn't been verified since [date] — 3 pipeline commits since then."
+
+This is read-only guidance — it doesn't block work.
+
 **Default to reading** — skip only if the session is purely conversational (no files, no decisions, no code). When in doubt, read.
 
 ---

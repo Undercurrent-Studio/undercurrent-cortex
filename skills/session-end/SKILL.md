@@ -88,6 +88,13 @@ END    ✏️  4 edits · 📦 2 commits · 🧪✅ · 📄✅
 
 Show the START line (from session start), the END line (current values), and the organism health line (current). This gives the user a visible summary of session productivity.
 
+## Reference file tracking
+Add to journal entry:
+> **Reference files touched:** [list any references/*.md or rules/*-deep.md files created or updated]
+> **Reference files needing update:** [list any that should be updated based on code changes this session]
+
+If a reference file was modified this session, update its `last-verified` date in frontmatter.
+
 **Run session-end before closing every working session.** It takes 2 minutes.
 
 ---
