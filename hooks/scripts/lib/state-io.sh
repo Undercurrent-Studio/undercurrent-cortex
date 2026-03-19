@@ -203,6 +203,9 @@ cleanup_stale_state_files() {
 # Phase 1 (legacy): undercurrent-* → cortex-* flat files (pre-v3.3)
 # Phase 2 (v3.7): flat cortex-* → cortex/sessions/YYYY-WNN/ weekly buckets
 migrate_state_files() {
+  # Skip in CI — no real state files to migrate
+  [ "${CI:-}" = "true" ] && return 0
+
   # === Phase 1: undercurrent-* → cortex-* (flat, same as before) ===
 
   # --- Health file merge ---
@@ -450,4 +453,8 @@ get_profile() {
 }
 
 # Run migration on source (rename undercurrent-* -> cortex-*)
-migrate_state_files
+# Guard: only run once per process tree (prevents redundant work when sourced multiple times)
+if [ "${_CORTEX_STATE_IO_MIGRATED:-}" != "1" ]; then
+  migrate_state_files
+  _CORTEX_STATE_IO_MIGRATED=1
+fi

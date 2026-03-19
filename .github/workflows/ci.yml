@@ -14,3 +14,4 @@ jobs:
 
       - name: Run test suite
         run: bash tests/run-all.sh
+        timeout-minutes: 5

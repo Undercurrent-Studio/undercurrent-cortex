@@ -278,6 +278,10 @@ setup_script_sandbox() {
     "$plugin_root/hooks/scripts/lib/state-io.sh" \
     > "$sandbox/hooks/scripts/lib/state-io.sh"
 
+  # Disable migration in sandbox — no real state files to migrate, saves ~1.5s per invocation
+  sed -i 's/^  migrate_state_files$/  #migrate_state_files  # disabled in test sandbox/' \
+    "$sandbox/hooks/scripts/lib/state-io.sh"
+
   # Create cortex directory structure in sandbox
   mkdir -p "$tmpdir/.claude/cortex/sessions"
 
