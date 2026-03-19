@@ -1,7 +1,7 @@
 ---
 name: plan-audit
 version: 0.1.0
-description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 9-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, and architecture conflicts before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
+description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 10-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, and validation depth issues before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
 ---
 
 # Plan Audit
@@ -97,6 +97,16 @@ This gate catches the hardest bugs. Do NOT skip.
 - **Scope creep**: Does the plan do exactly what was asked? No silent feature additions?
 - **Deployment constraints**: Total runtime within 300s Vercel limit? Sequential API calls under timeout?
 - **Bash portability** (plugin work): Windows/Git Bash, `set -euo pipefail`, `grep` inside `if`, `cut -d:` on Windows paths.
+
+## Gate 10: Validation Depth
+
+Never declare validation complete after existence checks alone. For each component in the verification section:
+
+- [ ] Does the verification require EXECUTION tests, not just existence checks? (file exists ≠ file works)
+- [ ] For each component: is there a command that proves it works with realistic input?
+- [ ] Are edge cases covered for critical paths (empty input, missing files, error conditions)?
+
+Historical pattern: 3 instances of "first pass checked existence only, second pass found real bugs" (Mar 9, 15, 18). Step 2 (execution) is the minimum bar.
 
 ## Output Format
 

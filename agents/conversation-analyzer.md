@@ -81,8 +81,11 @@ For each detected correction, extract:
 2. Read `.claude/cortex/health.local.md` — check for cross-session trends:
    - Same domain appearing in reasoning_misses across 3+ sessions
    - Consistently high edits/commit ratio in the same domain
+   - Note: rows with `topology=idle` (field 11) are valid sessions but had zero tracked activity. Include them in session counts, exclude from metric averages.
 
-3. Output a classification table: correction → existing/new → domain → cross-session trend (yes/no)
+3. Count total sessions this week by counting `.local.md` files in `cortex/sessions/YYYY-WNN/` (e.g., `ls .claude/cortex/sessions/2026-W12/*.local.md | wc -l`). Health rows undercount sessions because the SessionEnd hook fires unreliably (~40%). Session file count is the authoritative session count.
+
+4. Output a classification table: correction → existing/new → domain → cross-session trend (yes/no)
 
 ### Phase 4 — Codification
 

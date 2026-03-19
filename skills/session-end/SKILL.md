@@ -62,12 +62,18 @@ Log as `[health-metrics]`:
 
 See `examples/journal-entry.md` for a model journal entry with proper tags.
 
-**Step 7 — Organism health dispatch** (non-negotiable, every session):
-The SessionEnd hook fires automatically via bootstrap and writes health metrics to `.claude/cortex/health.local.md`. If health metrics are missing after session end:
-1. Check that bootstrap ran at session start (look for "bootstrap-hooks: wrote updated" in session-start output)
-2. Check `.claude/cortex/health.local.md` exists — if absent, the hook may not have fired
-3. Verify the session had non-zero activity (idle sessions intentionally skip health row writes)
-4. If on Windows/VSCode and the hook consistently doesn't fire, report this as a bug — the bootstrap system targets `~/.claude/settings.json` which should be reliable
+**Step 7 — Write health row** (non-negotiable, every session):
+The SessionEnd hook is unreliable (~40% fire rate). The skill is the primary path for health row writes. Run this Bash command:
+
+```bash
+SID=$(cat .claude/cortex/current-session.id 2>/dev/null || true) && SCRIPT=$(ls -t ~/.claude/plugins/cache/undercurrent-studio/cortex/*/hooks/scripts/session-end-dispatch.sh 2>/dev/null | head -1 || true) && [ -n "$SCRIPT" ] && echo "{\"session_id\":\"${SID}\"}" | bash "$SCRIPT" || echo "session-end-dispatch not found"
+```
+
+This reads the current session_id (written by session-start) and pipes it as JSON to the dispatch script so it finds the correct state file. Without the session_id, the script may pick the wrong session.
+
+After running, verify `.claude/cortex/health.local.md` was updated — the last line's date should match today.
+If the script is not found, log `[system-health] session-end-dispatch not found — health row skipped` in the journal.
+The SessionEnd hook still runs as a backup if it fires, but the dedup guard (`health_written=true` in the state file) prevents duplicate rows.
 
 **Step 8 — Display session statusline diff** (every session):
 Display the organism statusline at the end, showing what changed during the session. Compare the values from session start (displayed in your first response) against current values. Format:

@@ -23,14 +23,26 @@ if [ ! -f "$STATE_FILE" ]; then
   fi
 fi
 
+# Bug 4 fix: derive PROJECT_DIR from state file location, not cwd.
+# State file is at: {project}/.claude/cortex/sessions/YYYY-WNN/{sid}.local.md
+# Navigate 4 levels up from the YYYY-WNN dir to reach the project root.
+if [ -f "$STATE_FILE" ]; then
+  STATE_PROJECT_DIR=$(cd "$(dirname "$STATE_FILE")/../../../.." && pwd)
+  if [ -d "$STATE_PROJECT_DIR/memory" ]; then
+    PROJECT_DIR="$STATE_PROJECT_DIR"
+  fi
+fi
+
 # --- Compute metrics ---
 today=$(date +%Y-%m-%d)
 journal="${PROJECT_DIR}/memory/${today}.md"
 
 # 1. reasoning_misses: count [reasoning-miss] tags in today's journal
+# Note: grep -c outputs "0" AND exits non-zero on no match. Using || echo 0
+# produces "0\n0" (double output). Guard with grep -q first (lessons.md).
 reasoning_misses=0
-if [ -f "$journal" ]; then
-  reasoning_misses=$(grep -c '\[reasoning-miss\]' "$journal" 2>/dev/null || echo 0)
+if [ -f "$journal" ] && grep -q '\[reasoning-miss\]' "$journal" 2>/dev/null; then
+  reasoning_misses=$(grep -c '\[reasoning-miss\]' "$journal" 2>/dev/null)
 fi
 
 # 2. edits_per_commit: total edit operations / max(commits, 1)
@@ -66,15 +78,17 @@ if command -v git >/dev/null 2>&1; then
   fi
 fi
 
-# 6/7. carry_over resolution (binary: all or nothing)
-carry_over=$(read_section "carry_over" "$STATE_FILE")
+# 6/7. carry_over resolution: count [carry-over] tags in today's journal
+# Bug 3 fix: state file [carry_over] section is never populated — parse journal instead.
+# Strikethrough ~~[carry-over]~~ marks resolved carry-overs.
 carry_total=0
 carry_resolved=0
-if [ -n "$carry_over" ]; then
-  carry_total=$(echo "$carry_over" | wc -l | tr -d ' ')
-  carry_over_addressed=$(read_field "carry_over_addressed" "$STATE_FILE")
-  if [ "$carry_over_addressed" = "true" ]; then
-    carry_resolved=$carry_total
+if [ -f "$journal" ]; then
+  if grep -q '\[carry-over\]' "$journal" 2>/dev/null; then
+    carry_total=$(grep -c '\[carry-over\]' "$journal" 2>/dev/null)
+  fi
+  if grep -q '~~\[carry-over\]' "$journal" 2>/dev/null; then
+    carry_resolved=$(grep -c '~~\[carry-over\]' "$journal" 2>/dev/null)
   fi
 fi
 
@@ -107,22 +121,11 @@ if [ -n "$files_modified" ]; then
 fi
 
 # --- Domain tagging ---
+# Bug 1 fix: use project basename instead of regex path extraction.
+# The regex [^/]+/[^/]+ breaks on Windows drive paths (C:/Users → domain_tag).
 domain_tag="mixed"
 if [ -n "$files_modified" ]; then
-  top_dir=$(echo "$files_modified" \
-    | grep -oE '[^/]+/[^/]+' \
-    | sort | uniq -c | sort -rn | head -1 \
-    | awk '{print $2}' 2>/dev/null || echo "")
-  # Fallback for root-level files (no subdirectory)
-  if [ -z "$top_dir" ]; then
-    top_dir=$(echo "$files_modified" \
-      | grep -oE '[^/]+$' \
-      | sort | uniq -c | sort -rn | head -1 \
-      | awk '{print $2}' 2>/dev/null || echo "root")
-  fi
-  if [ -n "$top_dir" ]; then
-    domain_tag="$top_dir"
-  fi
+  domain_tag=$(basename "$PROJECT_DIR" 2>/dev/null || echo "unknown")
 elif [ "${total_edits:-0}" -eq 0 ]; then
   domain_tag="idle"
 fi
@@ -174,19 +177,25 @@ if [ -n "$cutoff" ] && [ -f "$CROSS_FILE" ]; then
 fi
 
 # --- Skip health row if session had zero tracked activity (noise prevention) ---
-# Prevents writing all-zero rows from idle/exploratory sessions.
-# Includes carry_total so carry-over resolution tracking isn't lost.
-# NOTE: cross-session tracking runs BEFORE this exit — file patterns are always tracked.
+# Tag idle sessions instead of skipping them. Previously this exited early,
+# making ~60% of sessions invisible to health tracking. Now we tag them as
+# idle and still write the row. Rolling averages exclude idle to avoid dilution.
 if [ "${total_edits:-0}" -eq 0 ] && [ "${commits_count:-0}" -eq 0 ] && \
    [ "${reasoning_misses:-0}" -eq 0 ] && [ "${tests_delta:-0}" -eq 0 ] && \
    [ "${lessons_created:-0}" -eq 0 ] && [ "${carry_total:-0}" -eq 0 ]; then
-  echo "session-end-dispatch: all metrics zero, skipping health row" >&2
-  printf '{}'
-  exit 0
+  topology="idle"
 fi
 
 # --- Dedup guard: prevent duplicate health writes if hook fires multiple times ---
-# Placed AFTER zero-metric skip so idle sessions don't burn the flag.
+# Also prevents duplicates when the session-end skill calls this script AND the
+# SessionEnd hook fires afterward.
+# Bug 2 fix: also check global health file for today's date (per-session flag
+# doesn't prevent different sessions on the same day from writing duplicate rows).
+if grep -q "^${today}|" "$HEALTH_FILE" 2>/dev/null; then
+  write_field "health_written" "true" "$STATE_FILE" 2>/dev/null || true
+  printf '{}'
+  exit 0
+fi
 health_written=$(grep '^health_written=' "$STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '\r' || true)
 if [ "$health_written" = "true" ]; then
   printf '{}'
@@ -220,15 +229,20 @@ fi
 echo "${today}|${reasoning_misses}|${edits_per_commit}|${docs_synced}|${tests_delta}|${lessons_created}|${carry_resolved}|${carry_total}|${duration_min}|${max_re_edits}|${topology}|${domain_tag}" >> "$HEALTH_FILE"
 
 # --- Recompute rolling averages from last 10 data lines ---
+# Use ALL rows for session count/trend, but EXCLUDE idle rows from epc/duration averages.
+# Old rows (11 fields) without topology field are treated as non-idle.
 data_lines=$(grep -v '^#' "$HEALTH_FILE" | grep -v '^$' | grep -v '^trend_' | grep -v '^avg_' | grep -v '^---' | grep '|' | tail -10)
 line_count=$(echo "$data_lines" | wc -l | tr -d ' ')
 
 if [ "$line_count" -ge 1 ]; then
-  # Compute averages via awk
+  # Compute averages — reasoning_misses uses ALL rows, epc/duration exclude idle
   read -r avg_rm avg_epc avg_dur <<< $(echo "$data_lines" | awk -F'|' '{
-    rm += $2; epc += $3; dur += $9; count++
+    rm += $2; rm_count++
+    # Field 11 is topology — exclude idle rows from epc/duration averages
+    if (NF < 11 || $11 != "idle") { epc += $3; dur += $9; active_count++ }
   } END {
-    printf "%.1f %.1f %d", rm/count, epc/count, dur/count
+    if (active_count == 0) active_count = 1
+    printf "%.1f %.1f %d", rm/rm_count, epc/active_count, dur/active_count
   }')
 
   # Trend detection: compare last 3 vs prior sessions (requires 6+ data points)

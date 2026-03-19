@@ -419,6 +419,7 @@ cortex/
 
 ## Version History
 
+- **3.9.3** — Fix session tracking undercounting (~60% of sessions invisible). Session-end skill now calls `session-end-dispatch.sh` directly (SessionEnd hook was only firing ~40% of the time). Session-start writes `current-session.id` for correct state file resolution. Zero-metric sessions tagged `topology=idle` instead of dropped. Rolling averages exclude idle sessions. Conversation analyzer counts session files, not health rows. Fixed `grep -c || echo 0` double-output bug corrupting health rows. Cleaned stale hook registrations from `settings.json`.
 - **3.9.2** — Fix 14 audit findings: stale v3.7 path references, unquoted variables, debug noise, superpowers fallbacks, TodoWrite removal, missing version fields, redundant grep, README count corrections, uninstall command, CI pipeline.
 - **3.9.1** — Fix keyword collisions in language detection (Go: `go` → `golang`, removed `gin`/`chan`/`defer`; Rust: `rust` → `rustc`/`rust-lang`, removed `borrow`). 4 collision avoidance tests.
 - **3.9.0** — Phase 2: 3-pass code review agent (bug/logic, security, conventions with confidence scoring). Language detection (Python/Go/Rust) in sensory system + context files. `/create-skill` command with interactive scaffold + skill authoring guide.
