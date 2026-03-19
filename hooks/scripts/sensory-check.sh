@@ -94,6 +94,23 @@ if command -v gh >/dev/null 2>&1; then
   fi
 fi
 
+# --- Check 4: Language detection ---
+if [ "$MID_SESSION" != true ]; then
+  lang_detected=""
+  if [ -f "${PROJECT_DIR}/pyproject.toml" ] || [ -f "${PROJECT_DIR}/setup.py" ] || [ -f "${PROJECT_DIR}/requirements.txt" ] || [ -f "${PROJECT_DIR}/Pipfile" ]; then
+    lang_detected="${lang_detected}Python project detected."$'\n'
+  fi
+  if [ -f "${PROJECT_DIR}/go.mod" ]; then
+    lang_detected="${lang_detected}Go project detected."$'\n'
+  fi
+  if [ -f "${PROJECT_DIR}/Cargo.toml" ]; then
+    lang_detected="${lang_detected}Rust project detected."$'\n'
+  fi
+  if [ -n "$lang_detected" ]; then
+    output="${output}${lang_detected}"
+  fi
+fi
+
 # Write timestamp
 if [ -f "$STATE_FILE" ]; then
   write_field "last_sensory_check" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$STATE_FILE" 2>/dev/null || true

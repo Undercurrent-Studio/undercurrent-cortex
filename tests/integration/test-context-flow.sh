@@ -70,12 +70,52 @@ setup_test
 result=$(run_context_flow "update the SCORING system")
 assert_contains "case_insensitive_scoring" "$result" "Scoring architecture"
 
-# Test 11: "[decision]" in prompt triggers decision message
+# Test 11: "python" injects python-patterns content
+setup_test
+result=$(run_context_flow "set up the python virtual environment")
+assert_contains "python_keyword" "$result" "Python patterns"
+
+# Test 12: "pytest" injects python-patterns content
+setup_test
+result=$(run_context_flow "run pytest on this module")
+assert_contains "pytest_keyword" "$result" "Python patterns"
+
+# Test 13: "golang" injects go-patterns content
+setup_test
+result=$(run_context_flow "refactor the golang service")
+assert_contains "golang_keyword" "$result" "Go patterns"
+
+# Test 14: "goroutine" injects go-patterns content
+setup_test
+result=$(run_context_flow "fix the goroutine leak")
+assert_contains "goroutine_keyword" "$result" "Go patterns"
+
+# Test 15: "rust" injects rust-patterns content
+setup_test
+result=$(run_context_flow "update the rust crate dependencies")
+assert_contains "rust_keyword" "$result" "Rust patterns"
+
+# Test 16: "cargo.toml" injects rust-patterns content
+setup_test
+result=$(run_context_flow "edit the cargo.toml workspace")
+assert_contains "cargo_toml_keyword" "$result" "Rust patterns"
+
+# Test 17: "change" does NOT inject go-patterns (chan collision avoided)
+setup_test
+result=$(run_context_flow "change the variable name")
+assert_eq "no_chan_collision" "{}" "$result"
+
+# Test 18: "engine" does NOT inject go-patterns (gin collision avoided)
+setup_test
+result=$(run_context_flow "update the search engine")
+assert_eq "no_gin_collision" "{}" "$result"
+
+# Test 19: "[decision]" in prompt triggers decision message
 setup_test
 result=$(run_context_flow "[decision] use Postgres for this")
 assert_contains "decision_keyword" "$result" "Decision detected"
 
-# Test 12: "done for today" triggers session-end reminder
+# Test 20: "done for today" triggers session-end reminder
 setup_test
 result=$(run_context_flow "done for today")
 assert_contains "session_end_reminder" "$result" "session-end"

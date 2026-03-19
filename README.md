@@ -155,6 +155,7 @@ The organism looks *outside* the session. On session start (and mid-session on r
 | Remote commits | `git fetch --dry-run` | "Remote has new commits on origin/master" |
 | CI status | `gh run list --limit 3` | "CI FAILED: type-check" |
 | Open PRs | `gh pr list --state open` | "3 open PR(s) on this repo" |
+| Language detection | File existence checks | "Python project detected." / "Go project detected." / "Rust project detected." |
 
 Mid-session checks have a 5-minute cooldown.
 
@@ -282,14 +283,15 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | PreCompact | bootstrap | pre-compact.sh | Preserve carry-over |
 | SessionEnd | bootstrap | session-end-dispatch.sh | Health metrics, domain tag, cross-session tracking |
 
-### 2 Agents
+### 3 Agents
 
 | Agent | What |
 |-------|------|
 | conversation-analyzer | Detects correction patterns, proposes evolution rules |
 | deep-dive | Exhaustive research with browser, hypothesis-driven methodology |
+| code-reviewer | 3-pass code review (bug/logic, security, conventions) with confidence scoring |
 
-### 6 Commands
+### 8 Commands
 
 | Command | What it does |
 |---------|-------------|
@@ -299,6 +301,8 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | `/analyze-session` | Deep adaptive immunity scan (triggered by corrections or reasoning misses) |
 | `/review-decisions` | Review decisions from 7-14 days ago for validation |
 | `/setup` | Initialize project workspace — create skeleton files, verify Cortex installation, display profile |
+| `/code-review` | 3-pass code review — bug/logic, security, project conventions with confidence scoring |
+| `/create-skill` | Interactive scaffold for new skills — frontmatter, templates, optional context file wiring |
 
 ### 5 State Files
 
@@ -312,7 +316,7 @@ All in `.claude/`, all gitignored:
 | `cortex-decisions.local.md` | Decision journal entries with metadata |
 | `cortex-cross-session.local.md` | File edit frequency across sessions |
 
-### 4 Context Files
+### 7 Context Files
 
 Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` frontmatter line for auto-discovery.
 
@@ -322,6 +326,9 @@ Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` fron
 | testing-conventions.md | vitest, test suite, coverage |
 | math-review.md | formula, statistics, probability, monte carlo, sigmoid, z-score |
 | typescript-discipline.md | typescript, type error, tsc |
+| python-patterns.md | python, pyproject.toml, pytest, django, flask, fastapi |
+| go-patterns.md | golang, go.mod, goroutine, cobra, fiber |
+| rust-patterns.md | rust, cargo, cargo.toml, tokio, serde, clippy |
 
 ---
 
@@ -401,9 +408,9 @@ cortex/
         state-io.sh                        # read_field/write_field/read_section/append_to_section
         validate-organism.sh               # Healing system: 9 self-repair checks
   skills/           # 12 skill directories
-  commands/         # 5 slash commands
-  agents/           # conversation-analyzer + deep-dive
-  context/          # 4 context files (keyword-matched)
+  commands/         # 8 slash commands
+  agents/           # conversation-analyzer + deep-dive + code-reviewer
+  context/          # 7 context files (keyword-matched)
   tests/            # 26 bash test scripts (run-all.sh)
 ```
 
@@ -411,6 +418,7 @@ cortex/
 
 ## Version History
 
+- **3.9.0** — Phase 2: 3-pass code review agent (bug/logic, security, conventions with confidence scoring). Language detection (Python/Go/Rust) in sensory system + context files. `/create-skill` command with interactive scaffold + skill authoring guide.
 - **3.6.1** — Fix stop-gate escape hatch (debug logging + recency filter for state file resolution). Fix health dedup ordering (zero-metric sessions no longer burn the dedup flag). Fix cross-session tracking (runs before zero-metric exit). Test fixture updates (7 failures → 0).
 - **3.6.0** — Genericized reference files for public distribution. Hook profiles (`CORTEX_PROFILE=minimal|standard|strict`). Blog post outline.
 - **3.5.0** — Bootstrap targets global `~/.claude/settings.json` (proven reliable) instead of project-level `settings.local.json`. Cleans up stale project-level entries on upgrade.

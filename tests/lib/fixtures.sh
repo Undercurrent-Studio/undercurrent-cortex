@@ -199,6 +199,9 @@ create_context_dir() {
   printf '%s\n%s\n' "keywords: stripe,checkout,subscription,payment,billing,webhook" "Payment integration context loaded" > "$parent/context/payment-integration.md"
   printf '%s\n%s\n' "keywords: formula,statistics,probability,monte carlo,sigmoid,z-score" "Math review context loaded" > "$parent/context/math-review.md"
   printf '%s\n%s\n' "keywords: typescript,type error,tsc,nouncheckedindexedaccess,type guard" "TypeScript discipline context loaded" > "$parent/context/typescript-discipline.md"
+  printf '%s\n%s\n' "keywords: python,pyproject.toml,venv,pytest,django,flask,fastapi,poetry,ruff,mypy,pydantic" "Python patterns context loaded" > "$parent/context/python-patterns.md"
+  printf '%s\n%s\n' "keywords: golang,go.mod,goroutine,go.sum,cobra,fiber" "Go patterns context loaded" > "$parent/context/go-patterns.md"
+  printf '%s\n%s\n' "keywords: rust,cargo,cargo.toml,crate,borrow,lifetime,tokio,async-std,serde,clippy" "Rust patterns context loaded" > "$parent/context/rust-patterns.md"
 }
 
 # create_journal <dir> <date> [content]
