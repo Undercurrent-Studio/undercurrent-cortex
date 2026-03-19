@@ -36,7 +36,7 @@ If the `superpowers` plugin is installed, invoke `superpowers:writing-plans`. Ot
 
 ## Phase 4 — Plan Audit Gate (before any code)
 
-Run the 12-item self-audit checklist from `references/plan-audit-checklist.md` across 3 tiers:
+Run the 15-item self-audit checklist from `references/plan-audit-checklist.md` across 3 tiers:
 
 **Tier 1: Codebase Accuracy** — Did I Read every file to modify? Do types/signatures match? Did I check for existing utilities? Are file paths verified?
 

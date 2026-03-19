@@ -1,4 +1,4 @@
-# Plan Audit Checklist — 12 Items Across 3 Tiers
+# Plan Audit Checklist — 15 Items Across 3 Tiers
 
 Run this checklist before presenting any implementation plan for approval. Write `## Plan Self-Audit` at the bottom of the plan file with pass/fail + evidence for each item.
 
@@ -79,6 +79,21 @@ Wave X never references something first built in Wave Y where Y > X. No forward 
 ### 12. Test expectations
 Are test expectations included for every wave? What tests, approximately how many, what they cover?
 
+### 13. Documentation identified and scheduled
+Does the plan name which documentation files need updating, and are those updates scheduled in the same wave as the behavior change — not deferred to the end?
+
+**Failure example**: A plan added 3 new API routes and changed the scoring formula. Neither `documentation.md` nor the project history was updated. Next session started with stale architecture docs, causing a cascading misunderstanding of the current schema.
+
+### 14. Commit cadence and test coverage planned
+Does the plan include explicit commit points at logical boundaries? Are tests planned for error cases and edge conditions, not just happy path?
+
+**Failure example**: A 4-wave plan committed everything in a single commit after Wave 4. Wave 2 had introduced a subtle type error that Wave 3 built on top of — bisecting to find the root cause required re-reading the entire diff.
+
+### 15. Quality bar met
+Is this work thorough and complete to its natural boundary? Are edge cases considered, patterns followed, and nothing left half-done? Would a reviewer find anything they'd immediately want to redo?
+
+**Failure example**: A plan for 3 new plugin gates passed all technical checks but didn't update a cross-reference in a related skill file. The stale "12-item" reference was only caught by applying the documentation gate to itself — proving the gate's value in the same session it was designed.
+
 ---
 
 ## How to Write the Self-Audit
@@ -105,4 +120,7 @@ At the bottom of your plan file:
 10. Waves shippable — PASS (Wave 1 standalone, Wave 2 builds on 1)
 11. Dependencies — PASS (no forward refs)
 12. Tests — PASS (Wave 1: 15 unit tests, Wave 2: 8 integration tests)
+13. Docs identified — PASS (documentation.md §API Routes + §Schema need updates, scheduled in Wave 2)
+14. Commit cadence — PASS (commit per wave, W1 15 unit tests incl. edge cases, W2 8 integration)
+15. Quality bar — PASS (complete to natural boundary, edge cases covered, matches existing patterns)
 ```

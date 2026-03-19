@@ -1,12 +1,12 @@
 ---
 name: plan-audit
-version: 0.1.0
-description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 10-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, and validation depth issues before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
+version: 0.2.0
+description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 13-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, documentation gaps, commit strategy issues, quality standards, and validation depth issues before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
 ---
 
 # Plan Audit
 
-**TL;DR**: Run ALL 9 gates on every plan before ExitPlanMode. Present findings in the plan file. This audit has historically caught 50+ production bugs — it is the single highest-value step in the workflow.
+**TL;DR**: Run ALL 13 gates on every plan before ExitPlanMode. Present findings in the plan file. This audit has historically caught 50+ production bugs — it is the single highest-value step in the workflow.
 
 **This is not optional. This is not a checklist to skim. Every gate must be actively evaluated against the plan.**
 
@@ -108,6 +108,37 @@ Never declare validation complete after existence checks alone. For each compone
 
 Historical pattern: 3 instances of "first pass checked existence only, second pass found real bugs" (Mar 9, 15, 18). Step 2 (execution) is the minimum bar.
 
+## Gate 11: Documentation Completeness (universal)
+
+Plans that change behavior without updating docs create knowledge drift. Stale docs are worse than no docs.
+
+- **Doc file identification**: Does the plan explicitly name which documentation files need updating? (e.g., `documentation.md`, `PROJECTHISTORY.md`, `CLAUDE.md`, `MEMORY.md`, READMEs, API docs, changelogs — whatever the project uses)
+- **Timing**: Are doc updates scheduled during or immediately after the implementation wave that changes behavior — not deferred to a "cleanup wave" at the end?
+- **Architecture/schema/pattern changes**: If the plan alters database schema, API routes, architectural patterns, scoring logic, or conventions — corresponding docs MUST be updated in the same wave. Flag any plan that changes these without a doc update step.
+- **New feature completion**: If a feature is being completed (not just incremented), does the plan include a summary entry for the project's history/changelog file?
+- **Behavioral drift**: If the plan modifies existing behavior (not just adding new), does it identify which existing documentation describes that behavior and schedule an update?
+
+## Gate 12: Commit Strategy & Verification Cadence (universal)
+
+Plans without explicit commit boundaries produce "big bang" merges that are hard to bisect and easy to ship broken.
+
+- **Commit boundaries**: Are commits planned at logical boundaries — one per wave, one per independently shippable unit? Flag plans that defer all commits to the end.
+- **Working state invariant**: Does each commit leave the system in a working state? No half-done migrations, no imports of files that don't exist yet, no broken type signatures.
+- **Test coverage breadth**: Are tests planned for ALL new functionality — not just happy path? Check for: error cases, empty inputs, boundary conditions, null/undefined handling, edge cases. (Note: lint/type-check/test *execution* is enforced by pre-commit-checklist and hookify — this gate focuses on test *design* and *coverage planning*.)
+- **Multi-wave cadence**: For plans with 2+ waves, each wave should have its own commit cycle explicitly stated.
+- **Push/PR timing**: Are pushes or PRs planned at appropriate points? (e.g., after a logical milestone, not mid-feature)
+
+## Gate 13: Quality & Completeness Standard (universal)
+
+A plan can pass every technical gate and still ship something half-thought-through. This gate enforces a quality mindset at the design stage — where it's cheapest to fix. It applies to everything: features, scripts, migrations, documentation, infrastructure, plugin skills.
+
+- **Completeness**: Does the plan deliver a fully realized outcome, or a skeleton? Half-built sections, placeholder logic, and "we'll add this later" deferrals must be explicitly flagged and justified. Every piece of work should be finished to its natural boundary.
+- **Edge case thinking**: Has the plan considered what happens when things go wrong, when inputs are unexpected, when state is missing? Not just the happy path — the realistic path. This applies to UI (loading/empty/error states), scripts (malformed input, missing files), pipelines (partial failures, timeouts), and documentation (stale references, missing sections).
+- **Thoughtfulness**: Does the plan reflect genuine understanding of the problem space, or is it a mechanical "add X, modify Y" checklist? Good plans show awareness of *why* each change matters, how it fits the larger system, and what could go wrong.
+- **Consistency & craft**: Does the work follow existing patterns and conventions? New additions should feel like they belong — whether that's a UI component matching adjacent cards, a script matching the project's error handling style, or a skill matching the plugin's gate format. Nothing should look bolted on.
+- **Performance & efficiency**: Does the plan consider the cost of what it's adding? Unnecessary complexity, redundant operations, unbounded fetches, duplicated logic — flag anything that adds weight without proportional value.
+- **The bar**: Ask — "Is this work thorough enough that someone reviewing it would find nothing half-done, nothing overlooked, and nothing they'd immediately want to redo?" If not, the plan needs work before implementation begins.
+
 ## Output Format
 
 Write findings to the plan file as:
@@ -129,11 +160,11 @@ Not every gate applies to every plan. Skip gates that are genuinely irrelevant (
 
 | Plan touches... | Required gates |
 |---|---|
-| Database/queries | 1, 2, 4, 6, 8 |
-| API routes | 1, 3, 8 |
-| Frontend components | 6, 7, 8 |
-| Pipeline/cron | 1, 2, 5, 8, 9 |
-| Scoring/signals | 1, 2, 5, 8 |
-| Migrations | 4, 8 |
-| Bash/plugin scripts | 8, 9 |
-| Math/algorithms | 5, 8 |
+| Database/queries | 1, 2, 4, 6, 8, 11, 12, 13 |
+| API routes | 1, 3, 8, 11, 12, 13 |
+| Frontend components | 6, 7, 8, 11, 12, 13 |
+| Pipeline/cron | 1, 2, 5, 8, 9, 11, 12, 13 |
+| Scoring/signals | 1, 2, 5, 8, 11, 12, 13 |
+| Migrations | 4, 8, 11, 12, 13 |
+| Bash/plugin scripts | 8, 9, 11, 12, 13 |
+| Math/algorithms | 5, 8, 11, 12, 13 |
