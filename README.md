@@ -420,7 +420,10 @@ cortex/
 ## Version History
 
 - **3.9.2** — Fix 14 audit findings: stale v3.7 path references, unquoted variables, debug noise, superpowers fallbacks, TodoWrite removal, missing version fields, redundant grep, README count corrections, uninstall command, CI pipeline.
+- **3.9.1** — Fix keyword collisions in language detection (Go: `go` → `golang`, removed `gin`/`chan`/`defer`; Rust: `rust` → `rustc`/`rust-lang`, removed `borrow`). 4 collision avoidance tests.
 - **3.9.0** — Phase 2: 3-pass code review agent (bug/logic, security, conventions with confidence scoring). Language detection (Python/Go/Rust) in sensory system + context files. `/create-skill` command with interactive scaffold + skill authoring guide.
+- **3.7.1** — Fix stop-gate escape hatch with dedicated counter file (decoupled from session state resolution). Git status verification in Gate 1 filters gitignored files. `post-edit-dispatch.sh` uses `git check-ignore -q` to prevent false edit counts.
+- **3.7.0** — State file directory reorganization: flat files → `cortex/sessions/YYYY-WNN/` weekly buckets. Singletons to `cortex/` subdir. Two-phase migration with `.migrated-v3.7` sentinel. `resolve_state_file()` searches both layouts for backwards compatibility.
 - **3.6.1** — Fix stop-gate escape hatch (debug logging + recency filter for state file resolution). Fix health dedup ordering (zero-metric sessions no longer burn the dedup flag). Fix cross-session tracking (runs before zero-metric exit). Test fixture updates (7 failures → 0).
 - **3.6.0** — Genericized reference files for public distribution. Hook profiles (`CORTEX_PROFILE=minimal|standard|strict`). Blog post outline.
 - **3.5.0** — Bootstrap targets global `~/.claude/settings.json` (proven reliable) instead of project-level `settings.local.json`. Cleans up stale project-level entries on upgrade.
