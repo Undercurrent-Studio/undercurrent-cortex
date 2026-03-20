@@ -44,6 +44,11 @@ start_time=$(date +%s)
 for tf in "${test_files[@]}"; do
   suite_name=$(basename "$tf" .sh | sed 's/^test-//')
 
+  # Reset per-suite counters (prevent stale values from previous suite)
+  s_pass=0
+  s_fail=0
+  s_skip=0
+
   # Run in subshell, capture output
   result=$(bash "$tf" 2>&1) || true
 

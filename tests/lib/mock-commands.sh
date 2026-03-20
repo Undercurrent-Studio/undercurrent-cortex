@@ -62,7 +62,8 @@ case "\$1" in
     esac
     ;;
   -C)
-    shift
+    shift  # consume -C flag
+    shift  # consume directory argument
     case "\$1" in
       log) echo "feat: test commit" ;;
       diff)
@@ -74,6 +75,7 @@ case "\$1" in
         esac
         ;;
       rev-list) echo "0" ;;
+      check-ignore) exit 1 ;;
       *) echo "" ;;
     esac
     ;;

@@ -43,6 +43,7 @@ assert_file_contains "reject_status_changed" "$_TEST_TMPDIR/.claude/cortex/propo
 
 # Test 3: Empty proposals file (no pending proposals)
 setup_test
+mkdir -p "$_TEST_TMPDIR/.claude/cortex"
 > "$_TEST_TMPDIR/.claude/cortex/proposals.local.md"
 result=$(run_apply_proposal "approve")
 assert_contains "empty_proposals_file" "$result" "No pending proposals"

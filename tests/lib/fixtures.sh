@@ -112,6 +112,7 @@ HEADER
 create_proposals_file() {
   local filepath="$1"
   shift
+  mkdir -p "$(dirname "$filepath")"
   > "$filepath"
   for block in "$@"; do
     local id status ptype target summary body
@@ -235,6 +236,7 @@ override_state_paths() {
   HEALTH_FILE="$dir/.claude/cortex/health.local.md"
   PROPOSALS_FILE="$dir/.claude/cortex/proposals.local.md"
   DECISIONS_FILE="$dir/.claude/cortex/decisions.local.md"
+  mkdir -p "$SESSIONS_DIR/test-week"
   export PROJECT_DIR STATE_DIR CORTEX_DIR SESSIONS_DIR STATE_FILE HEALTH_FILE PROPOSALS_FILE DECISIONS_FILE
 }
 
