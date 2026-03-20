@@ -1,7 +1,7 @@
 ---
 name: session-end
 description: This skill should be used when wrapping up a working session — writes journal entry, captures carry-over, runs reasoning audit and pattern escalation check.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Session End
@@ -27,6 +27,8 @@ Keep total entry under 25 lines. Signal over noise.
 1. Did I jump to implementation before fully understanding the problem?
 2. Did I catch all architectural implications, or did any surface late?
 3. Was there a simpler solution I overlooked or dismissed?
+4. What decisions were made this session not yet in `.claude/cortex/decisions.local.md`? Log any missing ones now (same format as plan-audit Gate 17). This is the catch-all for sessions that skipped plan-audit.
+5. What context would most help the next session in the first 30 seconds? Write this as a `[carry-over]` entry — not a summary, but what's *actionable* immediately.
 If any "yes, I missed something" → add as `[reasoning-miss]`.
 Tag explicit user corrections (user says "that's wrong", corrects a factual claim, or redirects a wrong approach) with `[correction]`.
 

@@ -124,6 +124,15 @@ if [ "$carry_over_age" -ge 3 ]; then
   failures="${failures}- Stale carry-over: items unresolved for ${carry_over_age} sessions. Address or explicitly discard.\n"
 fi
 
+# Gate 7: Decisions captured after plan-mode session
+plan_mode_used=$(read_field "plan_mode_used" "$STATE_FILE" 2>/dev/null || echo "")
+decisions_logged=$(read_field "decisions_logged" "$STATE_FILE" 2>/dev/null || echo "")
+commits_for_g7=$(read_field "commits_count" "$STATE_FILE" 2>/dev/null || echo "0")
+commits_for_g7="${commits_for_g7:-0}"
+if [ "$plan_mode_used" = "true" ] && [ "$commits_for_g7" -gt 0 ] && [ "$decisions_logged" != "true" ]; then
+  failures="${failures}- Decisions not captured: plan-audit Gate 17 not run this session. Log decisions to .claude/cortex/decisions.local.md before stopping.\n"
+fi
+
 # Gate 6: Root cause documentation for fix: commits
 commits_count_g6=$(read_field "commits_count" "$STATE_FILE")
 commits_count_g6="${commits_count_g6:-0}"

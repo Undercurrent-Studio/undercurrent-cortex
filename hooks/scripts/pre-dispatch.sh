@@ -11,8 +11,17 @@ source "$SCRIPT_DIR/lib/json-extract.sh" || { printf '{}'; exit 0; }
 # Buffer stdin ONCE
 INPUT=$(cat)
 
+# Resolve state file for plan-mode tracking
+resolve_state_file "$INPUT" 2>/dev/null || true
+
 # Extract tool_name for routing
 tool_name=$(printf '%s' "$INPUT" | extract_json_field "tool_name")
+
+# Detect ExitPlanMode BEFORE the early-exit filter
+if [ "$tool_name" = "ExitPlanMode" ] && [ -f "$STATE_FILE" ]; then
+  write_field "plan_mode_used" "true" "$STATE_FILE"
+fi
+
 # Early exit for irrelevant tools
 case "$tool_name" in
   Write|Edit|Bash) ;;

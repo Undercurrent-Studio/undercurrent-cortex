@@ -39,15 +39,21 @@ if echo "$command_str" | grep -qE '^[[:space:]]*git[[:space:]]+commit[[:space:]]
       printf '\n## %s - commit: %s\n' "$time_now" "$msg" >> "$journal"
     fi
 
-    # --- Conventional commit check ---
+    # --- Conventional commit check + context prompt ---
+    source "$SCRIPT_DIR/lib/escape-json.sh" || true
+    context_prompt="📝 Commit logged. Add a 1-line context note to the journal: what problem did this solve, or what state was the system left in?"
     if [ "$msg" != "commit" ]; then
       if ! echo "$msg" | grep -qE '^(feat|fix|refactor|docs|chore|test|perf|ci|build|style):'; then
-        source "$SCRIPT_DIR/lib/escape-json.sh" || true
-        warn=$(escape_for_json "Non-conventional commit: '${msg}'. Expected prefix: feat:/fix:/refactor:/docs:/chore:/test:. Consider: git commit --amend -m 'type: ...'")
+        warn_text="Non-conventional commit: '${msg}'. Expected prefix: feat:/fix:/refactor:/docs:/chore:/test:. Consider: git commit --amend -m 'type: ...'\\n${context_prompt}"
+        warn=$(escape_for_json "$warn_text")
         printf '{"systemMessage":"%s"}' "$warn"
         exit 0
       fi
     fi
+    # Conventional commit (or couldn't determine) — still prompt for context
+    prompt=$(escape_for_json "$context_prompt")
+    printf '{"systemMessage":"%s"}' "$prompt"
+    exit 0
   fi
 fi
 

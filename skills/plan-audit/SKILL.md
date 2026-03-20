@@ -1,12 +1,12 @@
 ---
 name: plan-audit
-version: 0.2.0
-description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 13-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, documentation gaps, commit strategy issues, quality standards, and validation depth issues before implementation begins. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
+version: 0.3.0
+description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 18-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, documentation gaps, commit strategy issues, quality standards, validation depth, lesson application, decision capture, and journal pre-entry. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
 ---
 
 # Plan Audit
 
-**TL;DR**: Run ALL 13 gates on every plan before ExitPlanMode. Present findings in the plan file. This audit has historically caught 50+ production bugs — it is the single highest-value step in the workflow.
+**TL;DR**: Run ALL 18 gates on every plan before ExitPlanMode. Present findings in the plan file. This audit has historically caught 50+ production bugs — it is the single highest-value step in the workflow.
 
 **This is not optional. This is not a checklist to skim. Every gate must be actively evaluated against the plan.**
 
@@ -155,6 +155,51 @@ Will this plan's changes require updating any reference files? If new API routes
 - Ensure the plan schedules reference file updates in the SAME wave as the behavior change (not deferred to a cleanup wave)
 - Check `last-verified` frontmatter if available — flag files not verified in 30+ days
 
+## Gate 16: Lessons Surfaced & Applied (universal when lessons.md exists)
+
+Gate 8 says read `tasks/lessons.md` — this gate proves you did.
+
+For every domain the plan touches, grep lessons.md by domain tag:
+- Plugin/hooks → `grep "Plugin:\|Shell:\|Hook:"`
+- DB/queries → `grep "Database:\|PostgREST:"`
+- Pipeline → `grep "Pipeline:\|Cron:"`
+- Frontend → `grep "Frontend:\|React:"`
+- Auth/security → `grep "Auth:\|Security:"`
+- Migrations → `grep "Migration:\|constraint"`
+- Scoring/signals → `grep "Scoring:\|Signal:"`
+
+For each matching lesson: quote it verbatim + state **Applies: yes** (how plan addresses it) | **Applies: no** (why not relevant) | **Applies: n/a** (different context).
+
+Cannot write "no lessons found" without running the grep. Cannot defer to Gate 8.
+
+## Gate 17: Decision Pre-Capture (when plan contains non-obvious choices)
+
+Before ExitPlanMode, identify every non-obvious choice — anything that could reasonably be done differently and worth reviewing in 2 weeks.
+
+For each decision:
+1. Write to `.claude/cortex/decisions.local.md` (appending):
+   ```
+   ## YYYY-MM-DD - [short title]
+   category=[architecture|data|UX|pipeline|security] reversibility=[easy|hard|irreversible] confidence=[high|medium|low]
+   [1-2 sentence rationale: why this over the alternatives]
+   ```
+2. Include a Bash tool call to actually write the entry
+3. Run: `SID=$(cat .claude/cortex/current-session.id 2>/dev/null) && write_field "decisions_logged" "true" "$STATE_FILE"` to mark capture complete
+
+"No decisions in this plan" is valid ONLY for purely mechanical tasks (anchor fixes, typos). Any plan touching architecture, data flow, or behavioral choices has at least one decision.
+
+## Gate 18: Journal Pre-Entry (universal)
+
+Before ExitPlanMode, confirm `memory/YYYY-MM-DD.md` has an entry for this planning session.
+
+If no entry: write one now (2-4 lines):
+- What is being built and why
+- What approach was chosen vs alternatives
+- Any constraints or risks to remember
+- Tag: `[planning]`
+
+Captures the *reasoning* before implementation, when context is freshest.
+
 ## Output Format
 
 Write findings to the plan file as:
@@ -182,10 +227,12 @@ Not every gate applies to every plan. Skip gates that are genuinely irrelevant (
 | Pipeline/cron | 1, 2, 5, 8, 9, 11, 12, 13, 14, 15 |
 | Scoring/signals | 1, 2, 5, 8, 11, 12, 13, 14, 15 |
 | Migrations | 4, 8, 11, 12, 13, 14, 15 |
-| Bash/plugin scripts | 8, 9, 11, 12, 13 |
+| Bash/plugin scripts | 8, 9, 11, 12, 13, 16, 17, 18 |
 | Math/algorithms | 5, 8, 11, 12, 13, 14, 15 |
+| Any plan (default) | 11, 12, 13, 16, 17, 18 |
 
 Gates 14-15 apply when the project has a `references/` directory. Skip for projects without one.
+Gates 16-18 are universal — apply to all plans when `tasks/lessons.md` and `.claude/cortex/decisions.local.md` exist.
 
 ---
 ## See Also
