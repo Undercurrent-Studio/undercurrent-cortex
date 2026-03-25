@@ -139,7 +139,7 @@ if os.path.isfile(settings_path):
         with open(settings_path, 'r', encoding='utf-8') as f:
             settings = json.load(f)
     except (json.JSONDecodeError, IOError):
-        print("bootstrap-hooks: settings.local.json unreadable, creating fresh", file=sys.stderr)
+        print("bootstrap-hooks: settings.json unreadable, creating fresh", file=sys.stderr)
         settings = {}
 
 if "hooks" not in settings:

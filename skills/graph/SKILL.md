@@ -1,6 +1,7 @@
 ---
 name: graph
 description: This skill should be used to generate a Mermaid diagram of the reference file knowledge graph from See Also metadata — visual navigation aid for the reference tree.
+version: 0.1.0
 ---
 
 # Reference Graph

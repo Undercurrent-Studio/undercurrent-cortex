@@ -1,6 +1,7 @@
 ---
 name: validate-refs
 description: This skill should be used to validate the knowledge graph health — checks broken links, orphaned files, stale code paths, canonical violations, and directive contradictions across reference files.
+version: 0.1.0
 ---
 
 # Validate References
