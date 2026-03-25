@@ -474,6 +474,7 @@ cortex/
 
 ## Version History
 
+- **3.12.0** — Fix TDD guard deny format (strict mode was silently broken — wrong JSON format for Claude Code hook API). Sync all documentation counts and versions. Fix 5 stale references from v3.7 migration. Add missing version frontmatter to graph and validate-refs skills. Clarify superpowers as optional integration.
 - **3.11.0** — Memory enforcement: plan-audit gates 16-18 (lessons surfaced, decision pre-capture, journal pre-entry). Stop-gate Gate 7 (decision capture after plan-mode sessions). Decision journal integration with context-flow. 18-gate plan-audit (was 13).
 - **3.10.0** — Graph skill (Mermaid diagram of reference knowledge graph). Validate-refs skill (knowledge graph health checks). Plan-audit gates 14-15 (reference coverage + freshness).
 - **3.9.3** — Fix session tracking undercounting (~60% of sessions invisible). Session-end skill now calls `session-end-dispatch.sh` directly (SessionEnd hook was only firing ~40% of the time). Session-start writes `current-session.id` for correct state file resolution. Zero-metric sessions tagged `topology=idle` instead of dropped. Rolling averages exclude idle sessions. Conversation analyzer counts session files, not health rows. Fixed `grep -c || echo 0` double-output bug corrupting health rows. Cleaned stale hook registrations from `settings.json`.

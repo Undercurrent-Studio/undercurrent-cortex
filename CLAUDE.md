@@ -18,10 +18,10 @@ Claude Code plugin — session management, health tracking, context injection, a
 
 ### Directory Layout
 - `hooks/hooks.json` — Hook event registry (SessionStart, PreToolUse, PostToolUse, Stop, SessionEnd, UserPromptSubmit, PreCompact)
-- `hooks/session-start` — Main session init script (longest script, ~335 lines)
+- `hooks/session-start` — Main session init script (longest script, ~350 lines)
 - `hooks/scripts/` — All hook dispatch and handler scripts
 - `hooks/scripts/lib/` — Shared libraries (state-io, escape-json, json-extract, validate-organism)
-- `skills/` — SKILL.md files with YAML frontmatter (14 skills)
+- `skills/` — SKILL.md files with YAML frontmatter (16 skills)
 - `agents/` — Agent .md files with system prompts (3 agents)
 - `commands/` — Slash command .md files (9 commands)
 - `context/` — Auto-discovered context files with `keywords:` frontmatter (7 files)

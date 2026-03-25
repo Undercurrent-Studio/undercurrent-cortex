@@ -7,7 +7,7 @@
     {
       "name": "cortex",
       "source": "./",
-      "description": "Compounding intelligence system for Claude Code — 14 skills, 3 agents, 7 hook events, 9 commands, 7 context files. Session management, health tracking, TDD enforcement, systematic debugging, code review, context injection, and adaptive learning.",
+      "description": "Compounding intelligence system for Claude Code — 16 skills, 3 agents, 7 hook events, 9 commands, 8 context files. Session management, health tracking, TDD enforcement, systematic debugging, code review, context injection, and adaptive learning.",
       "version": "3.12.0",
       "author": {
         "name": "Undercurrent Studio L.L.C."
