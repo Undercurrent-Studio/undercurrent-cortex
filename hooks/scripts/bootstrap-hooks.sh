@@ -160,9 +160,20 @@ def find_cortex_bootstrap(hook_list):
 
 
 def remove_cortex_bootstrap(hook_list):
-    """Remove all _cortex_bootstrap entries from an event's hook list."""
+    """Remove all cortex hook entries from an event's hook list.
+    Matches entries with _cortex_bootstrap marker OR entries whose command
+    contains a known cortex hook script name (catches unmarked orphans)."""
+    CORTEX_SCRIPT_NAMES = [
+        "pre-dispatch.sh", "post-dispatch.sh", "stop-gate.sh",
+        "pre-compact.sh", "session-end-dispatch.sh", "context-flow.sh",
+    ]
+    def is_cortex_hook(h):
+        if h.get("_cortex_bootstrap"):
+            return True
+        cmd = h.get("command", "")
+        return any(name in cmd for name in CORTEX_SCRIPT_NAMES)
     for group in hook_list:
-        group["hooks"] = [h for h in group.get("hooks", []) if not h.get("_cortex_bootstrap")]
+        group["hooks"] = [h for h in group.get("hooks", []) if not is_cortex_hook(h)]
     # Remove empty groups
     return [g for g in hook_list if g.get("hooks")]
 
