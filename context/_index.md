@@ -11,7 +11,7 @@ Context files auto-inject when user prompts match their keywords. First match wi
 | [go-patterns.md](go-patterns.md) | golang, go.mod, goroutine, go.sum, cobra, fiber | Go project detected |
 | [rust-patterns.md](rust-patterns.md) | rustc, cargo.toml, lifetime, tokio, async-std, serde, clippy, rust-lang | Rust project detected |
 | [testing-conventions.md](testing-conventions.md) | vitest, test suite, write test, add test, run test, fix test, coverage | Testing-related tasks |
-| [math-review.md](math-review.md) | formula, statistics, probability, monte carlo, sigmoid, logarithm, exponential decay, half-life, normalization, regression, interpolation, z-score, variance, distribution, likelihood, ou, gbm | Mathematical/statistical code |
+| [math-review.md](math-review.md) | formula, statistics, probability, monte carlo, sigmoid, logarithm, exponential decay, half-life, normalization, regression, interpolation, z-score, zscore, standard deviation, stddev, variance, distribution, likelihood, ou, gbm | Mathematical/statistical code |
 | [deploy-readiness.md](deploy-readiness.md) | deploy, vercel, go live, push to prod, production, ship it | Deployment tasks |
 
 ## How Context Injection Works

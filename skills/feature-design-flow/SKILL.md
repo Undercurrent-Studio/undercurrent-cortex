@@ -6,9 +6,9 @@ version: 0.1.0
 
 # Feature Design Flow
 
-> **Dependencies**: This skill orchestrates skills from the `superpowers` plugin (`brainstorming`, `writing-plans`, `code-reviewer`, `executing-plans`). If superpowers is not installed, perform each phase manually.
+> **Optional integration**: If a `superpowers` plugin is installed, this skill can delegate to its `brainstorming`, `writing-plans`, and `executing-plans` skills. Otherwise, all phases are performed directly. Cortex's own `code-reviewer` agent is used for plan review.
 
-**TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute. Sets the bar, sequences superpowers skills.
+**TL;DR**: Quality bar → brainstorm+doc → plan → audit → execute.
 
 ## Before Phase 1 — Ground in product mission
 If a product-identity skill is available (e.g., via a domain pack), invoke it to verify the feature aligns with the product mission and respects gating philosophy.
@@ -28,11 +28,11 @@ If a product-identity skill is available (e.g., via a domain pack), invoke it to
 - Explicit OUT OF SCOPE list?
 
 ## Phase 2 — Brainstorm + design doc
-If the `superpowers` plugin is installed, invoke `superpowers:brainstorming`. Otherwise, brainstorm by listing 3-5 approaches, evaluating tradeoffs for each, and selecting the best fit. Write findings to the design doc.
+Brainstorm by listing 3-5 approaches, evaluating tradeoffs for each, and selecting the best fit. Write findings to the design doc.
 Design doc → `tasks/design-[feature-name].md` (canonical — see CLAUDE.md).
 
 ## Phase 3 — Implementation plan
-If the `superpowers` plugin is installed, invoke `superpowers:writing-plans`. Otherwise, decompose the work into atomic waves with a commit checkpoint per wave. Each wave should be independently shippable.
+Decompose the work into atomic waves with a commit checkpoint per wave. Each wave should be independently shippable.
 
 ## Phase 4 — Plan Audit Gate (before any code)
 
@@ -50,7 +50,7 @@ See `examples/design-doc-template.md` for the design doc format.
 
 ## Phase 5 — Code-Reviewer Agent Audit (after self-audit passes)
 
-For features touching pipeline, scoring, security, or multi-wave implementations: if the `superpowers` plugin is installed, launch `superpowers:code-reviewer` agent against the plan file. Otherwise, use `/cortex:code-review` for a 3-pass review. The reviewer checks for:
+For features touching pipeline, scoring, security, or multi-wave implementations: launch the Cortex code-reviewer agent (`/cortex:code-review`) for a 3-pass review against the plan file. The reviewer checks for:
 - Data flow mismatches (function signatures vs actual types)
 - Constraint violations (API limits, DB schema, hook event types)
 - Missing error handling paths
@@ -59,7 +59,7 @@ For features touching pipeline, scoring, security, or multi-wave implementations
 
 Incorporate all CRITICAL and IMPORTANT findings into the plan before calling ExitPlanMode. MINOR findings are noted but don't block approval.
 
-If the `superpowers` plugin is installed, invoke `superpowers:executing-plans`. Otherwise, proceed with implementation following the plan's wave structure. Execute one wave at a time, verify before proceeding to the next.
+Proceed with implementation following the plan's wave structure. Execute one wave at a time, verify before proceeding to the next.
 
 ## Mid-execution stop conditions — STOP and re-evaluate if
 - Feature taking 2x longer than planned
