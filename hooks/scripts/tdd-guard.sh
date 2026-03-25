@@ -56,7 +56,8 @@ case "$profile" in
     printf '{}'
     ;;
   strict)
-    printf '{"deny":{"reason":"TDD enforcement: no test file created/edited this session. Write a failing test before editing production code."}}'
+    msg=$(escape_for_json "TDD enforcement: no test file created/edited this session. Write a failing test before editing production code.")
+    printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny"},"systemMessage":"%s"}' "$msg"
     ;;
   *)
     # standard — warn but allow
