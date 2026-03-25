@@ -18,6 +18,7 @@ Imagine a second brain sitting alongside Claude that:
 - **Adapts** its behavior based on your recent session quality
 - **Proposes** its own improvements and waits for your approval
 - **Tracks patterns** across sessions — which files keep getting re-edited, what domains you focus on
+- **Audits** your implementation plans before you start building (18 gates covering silent failures, security, math, caching, and more)
 
 All of this happens through bash hooks that fire at specific moments in your Claude Code session.
 
@@ -53,9 +54,22 @@ Cortex uses a two-tier hook dispatch system due to a [known bug](https://github.
 The `bootstrap-hooks.sh` script runs on every SessionStart and:
 1. Injects 6 hook events into `~/.claude/settings.json` (idempotent — skips if already correct)
 2. Replaces stale entries when the plugin version changes (path-aware)
-3. Cleans up legacy entries from the old project-level `settings.local.json`
+3. Cleans up orphan entries from old plugin versions (matches by script name pattern)
+4. Cleans up legacy entries from the old project-level `settings.local.json`
 
 All bootstrapped entries are tagged with `"_cortex_bootstrap": true` for identification.
+
+### Profiles
+
+Cortex supports three hook profiles that control which systems are active:
+
+| Profile | Events Injected | Use Case |
+|---------|----------------|----------|
+| `standard` (default) | All 6 events | Full organism — recommended for most projects |
+| `minimal` | PreToolUse, PostToolUse, SessionEnd only | Lightweight — enforcement + state tracking only |
+| `strict` | All 6 events + proposals auto-surfaced | Full organism with more aggressive adaptation |
+
+Set via `CORTEX_PROFILE` env var or `.claude/cortex/profile.local` file in your project.
 
 ---
 
@@ -79,8 +93,9 @@ Before certain tools execute, the immune system checks if the operation is safe.
 Examples of what gets blocked:
 - `now()` or `CURRENT_DATE` in a migration file (PostgreSQL requires IMMUTABLE functions in partial indexes)
 - Overwriting a plan file without reading it first (plan-file-guard prevents accidental destruction)
+- Writing implementation code before tests exist (TDD guard, when test files are expected)
 
-*Where:* `pre-dispatch.sh` routes to `migration-linter.sh` + `plan-file-guard.sh`
+*Where:* `pre-dispatch.sh` routes to `migration-linter.sh` + `plan-file-guard.sh` + `tdd-guard.sh`
 
 **3. Circulatory System — Context Injection**
 When you mention a topic keyword in your prompt, the circulatory system injects the right context file. Context files use a `keywords:` frontmatter line for auto-discovery — no hardcoded routing needed.
@@ -112,11 +127,17 @@ Nudges you to commit when edits accumulate. The threshold is dynamic — the Fee
 *Default threshold:* 15 edits (adjustable by Feedback system)
 
 **7. Memory System — Stop Gates**
-When Claude tries to end the session (Stop event), 4 gates must pass:
-1. All edits committed (no abandoned work)
-2. Documentation updated (if code changed)
-3. Tests mentioned or run
-4. Carry-over resolved (no stale items from previous sessions)
+When Claude tries to end the session (Stop event), 7 gates must pass:
+
+| Gate | What it checks | When it fires |
+|------|---------------|---------------|
+| 1 | Uncommitted changes | Always (with git status self-heal) |
+| 2 | `documentation.md` not updated after architectural changes | When 3+ files modified, touching scoring/pipeline/signals/etc. |
+| 3 | Tests not run after modifying TypeScript files | When 3+ files modified, touching `.ts`/`.tsx` |
+| 4 | Carry-over items from prior session not addressed | When carry-over exists in state |
+| 5 | Stale carry-over unresolved for 3+ sessions | When `carry_over_age >= 3` |
+| 6 | Root cause not documented after `fix:` commits | When session has `fix:` commits (standard/strict profiles) |
+| 7 | Decisions not captured after plan-mode session | When plan mode was used and commits were made |
 
 If a gate fails, the session continues with a warning. After 2 consecutive blocks on the same gate, an escape hatch opens — sometimes you genuinely need to stop.
 
@@ -125,7 +146,7 @@ If a gate fails, the session continues with a warning. After 2 consecutive block
 **8. Reproductive System — Evolution Proposals**
 The `conversation-analyzer` agent watches for recurring patterns across sessions and proposes new rules. These become "proposals" — the raw material that the Growth system (System 11) manages.
 
-*Where:* `agents/conversation-analyzer.md` generates proposals, stored in `cortex-proposals.local.md`
+*Where:* `agents/conversation-analyzer.md` generates proposals, stored in `.claude/cortex/proposals.local.md`
 
 **8b. Research System — Deep-Dive Agent**
 A research analyst agent that can exhaustively investigate any topic — competitors, markets, technology, codebase architecture — and produce a comprehensive written report with strategic recommendations.
@@ -217,7 +238,7 @@ Cautious mode doesn't block anything — it adds a gentle reminder to think befo
 Patterns that only emerge across multiple sessions:
 
 - **Domain tagging:** Each session gets a domain tag based on which subdirectory was most edited. Written as the 12th field in each health row.
-- **Cross-session file tracking:** Every file edited gets logged with its session count and last-edit date in `cortex-cross-session.local.md`.
+- **Cross-session file tracking:** Every file edited gets logged with its session count and last-edit date in `.claude/cortex/cross-session.local.md`.
 - **Pattern detection** (runs at session start):
   - *Domain clustering:* "Last 4 sessions were all scoring work" — surfaces focus patterns
   - *Session length trends:* Compares recent session durations to historical average
@@ -261,7 +282,7 @@ The organism displays a two-line pulse at the start of every session and on-dema
 
 ## Components
 
-### 14 Skills
+### 16 Skills
 
 | Layer | Skills |
 |-------|--------|
@@ -270,6 +291,36 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | **Methodology** | tdd-enforcement, systematic-debugging |
 | **Workflow** | feature-design-flow, pre-commit-checklist, deploy-readiness, plan-audit, plan-estimation |
 | **Learning** | session-start, session-end, pattern-escalation |
+| **Diagnostics** | validate-refs, graph |
+
+Skills are invoked via `/cortex:<skill-name>` (e.g., `/cortex:plan-audit`). Each skill is a Markdown file with YAML frontmatter that defines its name, description, and trigger conditions.
+
+#### Plan Audit (the highest-value skill)
+
+`/cortex:plan-audit` runs 18 gates on every implementation plan before you start building:
+
+| Gate | What it catches |
+|------|----------------|
+| 1 | Silent failure patterns (PostgREST gotchas, error swallowing, null propagation) |
+| 2 | Data integrity & pipeline issues (batch corruption, column existence, aggregation semantics) |
+| 3 | Security & auth (route protection, input validation, CSRF, RLS) |
+| 4 | Schema & migration safety (constraint naming, transactional rollback, FK ordering) |
+| 5 | Math & algorithm correctness (sign conventions, edge values, hand-verification) |
+| 6 | Caching & state (cache keys, null caching, "use cache" + cookies incompatibility) |
+| 7 | Frontend & React (Suspense boundaries, server/client, router state races) |
+| 8 | Architecture & lessons (documentation conflicts, naming collisions, pattern consistency) |
+| 9 | Estimate & scope validation (wave count, scope creep, deployment constraints) |
+| 10 | Validation depth (execution tests, not just existence checks) |
+| 11 | Documentation completeness (which docs need updating, timing, behavioral drift) |
+| 12 | Commit strategy & verification cadence (commit boundaries, working state, test coverage) |
+| 13 | Quality & completeness standard (edge cases, thoughtfulness, consistency, performance) |
+| 14 | Reference coverage (correct reference files cited for domains touched) |
+| 15 | Reference freshness (will changes make reference files stale?) |
+| 16 | Lessons surfaced & applied (grep lessons.md by domain, quote + assess each) |
+| 17 | Decision pre-capture (identify non-obvious choices, write to decisions file) |
+| 18 | Journal pre-entry (confirm journal has planning session entry) |
+
+Not every gate applies to every plan — the skill includes a gate applicability matrix by domain.
 
 ### 7 Hook Events
 
@@ -279,17 +330,17 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | PreToolUse | bootstrap | pre-dispatch.sh | Routes to migration-linter + plan-file-guard + tdd-guard |
 | PostToolUse | bootstrap | post-dispatch.sh | Universal tool counter + routes to edit/bash tracking + patterns |
 | UserPromptSubmit | bootstrap | context-flow.sh | Context injection, decision detection, cautious mode |
-| Stop | bootstrap | stop-gate.sh | 6-gate session end (includes root cause documentation) |
+| Stop | bootstrap | stop-gate.sh | 7-gate session end (includes root cause documentation + decision capture) |
 | PreCompact | bootstrap | pre-compact.sh | Preserve carry-over |
 | SessionEnd | bootstrap | session-end-dispatch.sh | Health metrics, domain tag, cross-session tracking |
 
 ### 3 Agents
 
-| Agent | What |
-|-------|------|
-| conversation-analyzer | Detects correction patterns, proposes evolution rules |
-| deep-dive | Exhaustive research with browser, hypothesis-driven methodology |
-| code-reviewer | 3-pass code review (bug/logic, security, conventions) with confidence scoring |
+| Agent | What | Invoke |
+|-------|------|--------|
+| conversation-analyzer | Detects correction patterns across sessions, proposes evolution rules | `/analyze-session` |
+| deep-dive | Exhaustive research with browser, hypothesis-driven methodology, strategic reports | `/deep-dive <topic>` |
+| code-reviewer | 3-pass code review (bug/logic, security, conventions) with confidence scoring >=80 | `/code-review` |
 
 ### 9 Commands
 
@@ -305,31 +356,34 @@ The organism displays a two-line pulse at the start of every session and on-dema
 | `/create-skill` | Interactive scaffold for new skills — frontmatter, templates, optional context file wiring |
 | `/uninstall` | Guide for cleanly removing Cortex — bootstrap entries, state files, plugin registration |
 
-### 5 State Files
+### State Files
 
-All in `.claude/`, all gitignored:
+All state files live in `.claude/cortex/` (gitignored):
 
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| `cortex-state-{id}.local.md` | Current session: edit counts, commit counts, tool calls, mode, thresholds, file list |
-| `cortex-health.local.md` | Historical: one row per session with 12 metrics |
-| `cortex-proposals.local.md` | Pending/applied/rejected evolution proposals |
-| `cortex-decisions.local.md` | Decision journal entries with metadata |
-| `cortex-cross-session.local.md` | File edit frequency across sessions |
+| `cortex/sessions/YYYY-WNN/{session-id}.local.md` | Session state: edit counts, commit counts, tool calls, mode, thresholds, file list. Organized in weekly buckets. |
+| `cortex/health.local.md` | Historical: one row per session with 12 metrics. Rolling averages computed on read. |
+| `cortex/proposals.local.md` | Pending/applied/rejected evolution proposals |
+| `cortex/decisions.local.md` | Decision journal entries with metadata (category, reversibility, confidence) |
+| `cortex/cross-session.local.md` | File edit frequency across sessions |
+| `cortex/current-session.id` | Pointer to active session state file (ensures correct resolution) |
+| `cortex/profile.local` | Hook profile override (minimal/standard/strict) |
 
-### 7 Context Files
+### 8 Context Files
 
 Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` frontmatter line for auto-discovery.
 
 | File | Keywords |
 |------|----------|
-| deploy-readiness.md | deploy, vercel, production, ship |
-| testing-conventions.md | vitest, test suite, coverage |
-| math-review.md | formula, statistics, probability, monte carlo, sigmoid, z-score |
-| typescript-discipline.md | typescript, type error, tsc |
-| python-patterns.md | python, pyproject.toml, pytest, django, flask, fastapi |
+| deploy-readiness.md | deploy, vercel, production, ship, go live |
+| testing-conventions.md | vitest, test suite, write test, add test, run test, fix test, coverage |
+| math-review.md | formula, statistics, probability, monte carlo, sigmoid, z-score, distribution, likelihood, half-life |
+| typescript-discipline.md | typescript, type error, tsc, nouncheckedindexedaccess, type guard |
+| python-patterns.md | python, pyproject.toml, pytest, django, flask, fastapi, poetry, ruff, mypy |
 | go-patterns.md | golang, go.mod, goroutine, cobra, fiber |
 | rust-patterns.md | rustc, cargo.toml, lifetime, tokio, serde, clippy, rust-lang |
+| _index.md | Master index of all context files |
 
 ---
 
@@ -350,23 +404,23 @@ To create a domain pack:
 
 | Task | How |
 |------|-----|
-| Add a skill | Create `skills/<name>/SKILL.md` with YAML frontmatter |
-| Add a context file | Create in `context/` with `keywords:` first line |
-| Add a hook (PreToolUse/PostToolUse) | Add routing in the dispatcher script |
-| Add a command | Create `commands/<name>.md` |
-| Add an agent | Create `agents/<name>.md` |
+| Add a skill | Create `skills/<name>/SKILL.md` with YAML frontmatter (`name`, `description`, `version`) |
+| Add a context file | Create in `context/` with `keywords:` as the first line (comma-separated) |
+| Add a hook (PreToolUse/PostToolUse) | Add routing in the dispatcher script (`pre-dispatch.sh` or `post-dispatch.sh`) |
+| Add a command | Create `commands/<name>.md` with YAML frontmatter (`name`, `description`) |
+| Add an agent | Create `agents/<name>.md` with frontmatter (`name`, `description`, `tools`) |
 
 ---
 
 ## Test Suite
 
-24 test scripts organized by type:
+26 test scripts organized by type:
 
 ```text
 tests/
   run-all.sh                              # Test runner
   unit/                                   # 4 tests — state-io, json-extract, escape-json, validate-organism
-  integration/                            # 16 tests — one per hook script + profiles + migration v3.7
+  integration/                            # 18 tests — one per hook script + profiles + migration v3.7
   edge/                                   # 2 tests — empty stdin, Windows paths
   regression/                             # 2 tests — health dedup, pipefail glob
   lib/                                    # 3 shared helpers — fixtures, mocks, test framework
@@ -394,10 +448,11 @@ cortex/
       post-bash-dispatch.sh                # Bash tracking + commit format validation
       migration-linter.sh                  # Block now() in migrations
       plan-file-guard.sh                   # Block plan overwrites
+      tdd-guard.sh                         # Block implementation before tests
       context-flow.sh                      # Keyword context + decisions + cautious mode
       drift-detector.sh                    # Async codebase spot-checks
       pattern-template.sh                  # Convention exemplar injection
-      stop-gate.sh                         # 4-gate session end
+      stop-gate.sh                         # 7-gate session end
       sensory-check.sh                     # External awareness (git, CI, PRs)
       apply-proposal.sh                    # Proposal approve/reject lifecycle
       pre-compact.sh                       # Preserve carry-over on context compaction
@@ -408,17 +463,19 @@ cortex/
         json-extract.sh                    # Lightweight JSON field extraction
         state-io.sh                        # read_field/write_field/read_section/append_to_section
         validate-organism.sh               # Healing system: 9 self-repair checks
-  skills/           # 14 skill directories
-  commands/         # 9 slash commands
-  agents/           # conversation-analyzer + deep-dive + code-reviewer
-  context/          # 7 context files (keyword-matched)
-  tests/            # 24 test scripts + 4 helpers (run-all.sh)
+  skills/             # 16 skill directories
+  commands/           # 9 slash commands
+  agents/             # conversation-analyzer + deep-dive + code-reviewer
+  context/            # 8 context files (keyword-matched)
+  tests/              # 26 test scripts + 3 helpers (run-all.sh)
 ```
 
 ---
 
 ## Version History
 
+- **3.11.0** — Memory enforcement: plan-audit gates 16-18 (lessons surfaced, decision pre-capture, journal pre-entry). Stop-gate Gate 7 (decision capture after plan-mode sessions). Decision journal integration with context-flow. 18-gate plan-audit (was 13).
+- **3.10.0** — Graph skill (Mermaid diagram of reference knowledge graph). Validate-refs skill (knowledge graph health checks). Plan-audit gates 14-15 (reference coverage + freshness).
 - **3.9.3** — Fix session tracking undercounting (~60% of sessions invisible). Session-end skill now calls `session-end-dispatch.sh` directly (SessionEnd hook was only firing ~40% of the time). Session-start writes `current-session.id` for correct state file resolution. Zero-metric sessions tagged `topology=idle` instead of dropped. Rolling averages exclude idle sessions. Conversation analyzer counts session files, not health rows. Fixed `grep -c || echo 0` double-output bug corrupting health rows. Cleaned stale hook registrations from `settings.json`.
 - **3.9.2** — Fix 14 audit findings: stale v3.7 path references, unquoted variables, debug noise, superpowers fallbacks, TodoWrite removal, missing version fields, redundant grep, README count corrections, uninstall command, CI pipeline.
 - **3.9.1** — Fix keyword collisions in language detection (Go: `go` → `golang`, removed `gin`/`chan`/`defer`; Rust: `rust` → `rustc`/`rust-lang`, removed `borrow`). 4 collision avoidance tests.
