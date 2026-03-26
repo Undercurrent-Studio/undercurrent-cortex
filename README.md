@@ -474,6 +474,7 @@ cortex/
 
 ## Version History
 
+- **3.12.1** — Session-start statusline now displays model metadata (model name, reasoning effort, context window) as a third line.
 - **3.12.0** — Fix TDD guard deny format (strict mode was silently broken — wrong JSON format for Claude Code hook API). Sync all documentation counts and versions. Fix 5 stale references from v3.7 migration. Add missing version frontmatter to graph and validate-refs skills. Clarify superpowers as optional integration.
 - **3.11.0** — Memory enforcement: plan-audit gates 16-18 (lessons surfaced, decision pre-capture, journal pre-entry). Stop-gate Gate 7 (decision capture after plan-mode sessions). Decision journal integration with context-flow. 18-gate plan-audit (was 13).
 - **3.10.0** — Graph skill (Mermaid diagram of reference knowledge graph). Validate-refs skill (knowledge graph health checks). Plan-audit gates 14-15 (reference coverage + freshness).
