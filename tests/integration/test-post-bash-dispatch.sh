@@ -73,11 +73,12 @@ sf="$_TEST_TMPDIR/.claude/cortex/sessions/test-week/test-run.local.md"
 result=$(grep '^tests_run=' "$sf" | cut -d= -f2 | tr -d '\r')
 assert_eq "npm_test_sets_flag" "true" "$result"
 
-# Test 6: Conventional commit - no warning (mock git returns "feat: test commit message")
+# Test 6: Conventional commit - no warning, but journal nudge (mock git returns "feat: test commit message")
 setup_test
 create_state_file "$_TEST_TMPDIR/.claude" "conv-ok" "commits_count=0" > /dev/null
 result=$(run_post_bash "conv-ok" "git commit -m test")
-assert_eq "conventional_commit_no_warn" "{}" "$result"
+# Conventional commits still get a journal context-note nudge (not a warning)
+assert_contains "conventional_commit_no_warn" "$result" "Commit logged"
 
 # Test 7: npx vitest also sets tests_run=true
 setup_test
