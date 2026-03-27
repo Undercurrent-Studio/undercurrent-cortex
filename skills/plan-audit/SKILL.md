@@ -1,241 +1,186 @@
 ---
 name: plan-audit
-version: 0.3.0
-description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 18-gate audit that catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, documentation gaps, commit strategy issues, quality standards, validation depth, lesson application, decision capture, and journal pre-entry. Historically catches 50+ bug categories. Non-negotiable before any plan approval.
+description: This skill should be used before calling ExitPlanMode or finalizing any implementation plan — 44-gate layered audit with Killer 7 universal core, risk-tiered depth, and domain-specific activation. Catches silent failures, data integrity bugs, security gaps, math errors, architecture conflicts, idempotency violations, race conditions, blast radius issues, and AI-isms. Non-negotiable before any plan approval.
 ---
 
-# Plan Audit
+# Plan Audit v1.0
 
-**TL;DR**: Run ALL 18 gates on every plan before ExitPlanMode. Present findings in the plan file. This audit has historically caught 50+ production bugs — it is the single highest-value step in the workflow.
+**TL;DR**: Killer 7 on every plan. Domain gates activated by what the plan touches. Risk tier controls depth. Every gate produces evidence, not checkmarks.
 
-**This is not optional. This is not a checklist to skim. Every gate must be actively evaluated against the plan.**
+**Meta-instruction**: Any gate that asks "is X within Y?" requires arithmetic showing the computation. Assertions without math are a FAIL. Format: `[COMPUTED: X * Y = Z, Z < limit]`
 
-## Gate 1: Silent Failure Patterns (90% historical catch rate)
+## The Irreducible Core (Always — Every Plan)
 
-The #1 source of production bugs. For every data path in the plan:
+Three questions asked FIRST, before any gates. These catch ~80% of plan-level bugs.
 
-- **PostgREST query results**: Does any query use `.select()`, `.update()`, `.upsert()`, `.in()`? Check:
-  - No `.update().or().select()` (returns empty — read-then-write instead)
-  - No `.maybeSingle()` after `.update()` (returns 406)
-  - `.in()` chunks stay under 50K total rows (`num_items × rows_per_item`)
-  - Bad `.select()` column names return `{ data: null, error }`, NOT a throw
-  - With `Promise.allSettled`, null data silently becomes `[]`
-  - Upsert includes ALL NOT NULL columns (even for existing rows)
-- **Error swallowing**: Does any `try/catch` or `Promise.allSettled` silently discard errors?
-- **Empty/null propagation**: If upstream returns null, does downstream handle it or crash silently?
+1. **Show the Math.** Compute every resource estimate. Row counts, time budgets, API call rates. Not "should be fine" — show `[COMPUTED: X * Y = Z, Z < limit]`.
 
-## Gate 2: Data Integrity & Pipeline (90% catch rate)
+2. **What Breaks If This Fails?** Combined premortem + blast radius. Scope: one component / one page / entire pipeline / all users. Name the containment mechanism.
 
-- **Batch operations**: Can a single batch failure corrupt data for the whole run? (Yahoo batch → false delistings pattern)
-- **Data source assumptions**: Does the plan assume an API returns a specific format? Verify against actual API behavior.
-- **Column existence**: Every column referenced in `.select()` — does it actually exist in the schema? Check `documentation.md` or migration files.
-- **Aggregation semantics**: Are nulls handled correctly? (`null` in avg vs `0` in avg produce different results)
-- **Data freshness**: Could stale cached data produce incorrect results?
+3. **Prove the Data Exists.** For every field from an external source: cite a sample response, doc URL, or tested query. "I assume it returns X" is a FAIL.
 
-## Gate 3: Security & Auth (85% catch rate)
+If time is short, do these three. They are NEVER skipped.
 
-- **Route protection**: New dashboard routes → middleware matcher updated? API routes → auth check present?
-- **Input validation**: User-supplied values bounded and sanitized? (Zod schemas, length limits)
-- **CSRF**: Mutation endpoints (POST/PATCH/DELETE) → CSRF token verified?
-- **Secrets**: No hardcoded keys. `server-only` on sensitive modules. No secrets in client bundles.
-- **Rate limiting**: New API endpoints → rate limiter present?
-- **RLS**: New tables → RLS enabled + policies + GRANT statements?
+## Risk Classification
 
-## Gate 4: Schema & Migration Safety (80% catch rate)
+Classify the plan. This determines which layers activate.
 
-- **Constraint names**: `DROP CONSTRAINT IF EXISTS` for BOTH explicit name AND Postgres default pattern (`{table}_{col}_key`, `{table}_{col}_fkey`)
-- **Transactional rollback**: If ANY statement in migration fails, ALL roll back. Include all dependencies (CREATE TABLE + RLS + policies + seed) in same migration.
-- **FK ordering**: Seed data with foreign keys → `WHERE EXISTS` guard or insert referenced rows first.
-- **IMMUTABLE requirement**: Partial index WHERE clauses → no `now()`, `CURRENT_DATE`, `clock_timestamp()`
-- **NOT NULL traps**: New columns → default value or nullable? Upsert paths include all NOT NULL columns?
-- **Data types**: BIGINT for counts/dollars + `Math.round()` at ingestion. NUMERIC for ratios/EPS/per-share.
+| Tier | Description | Examples | Depth |
+|------|-------------|----------|-------|
+| **S** | Safety-critical | Scoring formula changes, Stripe/auth, pipeline architecture, schema migrations | Full gate set + FMEA |
+| **A** | High-impact | New data sources, new API routes, new GH Actions, multi-file features | Killer 7 + Phase 1-3 |
+| **B** | Standard | Bug fixes, enhancements, refactors touching multiple files | Killer 7 + domain gates |
+| **C** | Trivial | Typo fixes, single-file changes, doc updates, config tweaks | Killer 7 only |
 
-## Gate 5: Math & Algorithm Correctness (40% catch rate — requires active hand-verification)
+## The Killer 7 (All Plans, All Tiers)
 
-This gate catches the hardest bugs. Do NOT skip.
+Evaluated FIRST, in this order. If a Killer 7 gate also appears in domain phases, skip it there.
 
-- **Sign conventions**: Addition vs subtraction correct? (Bearish signals subtract from P(bullish), not add)
-- **Dimensional consistency**: Units match across operations? (`dt` in correct units, probabilities in [0,1], percentages in [0,100])
-- **Edge values**: Division by zero? Log of zero? Empty arrays to `Math.max()`/`Math.min()`?
-- **Dead code**: Is the computed value actually used downstream? (surpriseMagnitude, control variate patterns)
-- **Known analytical solutions**: Can you verify with a hand-calculated example? If yes, do it.
-- **Probability bounds**: Values clamped to [0,1]? Log-odds clamped to prevent infinity?
+| # | Gate | What to Produce |
+|---|------|-----------------|
+| 1 | **Premortem** (G39) | "Assume this failed catastrophically. Write 3 specific, plausible reasons why." |
+| 2 | **Show the Math** (G20) | All resource estimates computed with arithmetic. `[COMPUTED: ...]` format. |
+| 3 | **Source Evidence** (G19) | For every external data field: cite sample response, doc URL, or tested query. |
+| 4 | **Success Criteria** (G37) | "How will you know this worked? What metric or behavior changes?" |
+| 5 | **Blast Radius** (G38) | "If this breaks, what else breaks?" Scope + containment mechanism. |
+| 6 | **Lessons Check** (G16) | Grep `tasks/lessons.md` by domain. Quote matches. State applicability for each. |
+| 7 | **AI-ism Smell Test** (G43) | "Does this plan have opinions? Would a senior engineer under deadline produce this?" One sentence identifying strongest opinion or flagging its absence. |
 
-## Gate 6: Caching & State (80% catch rate)
+## Domain Gates (Tier B+)
 
-- **Cache key design**: Pro/Free tier in shared cache keys? User-scoped data uses `'use cache: private'`?
-- **Null caching**: Supabase errors inside cached functions MUST throw (never cache null results)
-- **`"use cache"` + cookies**: No `getUser()` inside cached page functions
-- **`"use client"` exports**: Data constants exported from `"use client"` files are `undefined` in RSC (Turbopack)
-- **State persistence**: No code that assumes in-memory state persists between serverless requests
+All 44 gate definitions live in `@context/plan-audit-gates.md`. SKILL.md references gates by number. Organized into 3 sequential phases:
 
-## Gate 7: Frontend & React (varies)
+### Phase 1 — Understanding (what does the plan assume?)
 
-- **Suspense boundaries**: `useSearchParams()` → wrapped in Suspense?
-- **Server/client boundary**: Event handlers → `"use client"` directive? `server-only` imports → not in client components?
-- **Router state**: Multiple `router.replace()` calls → batched into single call?
-- **Key props**: Dynamic lists → stable, unique keys (not array index)?
-- **Loading/empty/error states**: All three present for data-driven components?
+| Gate | Name | Triggered by |
+|------|------|-------------|
+| G8 | Architecture & Lessons | Universal |
+| G14 | Reference Coverage | `references/` exists |
+| G15 | Reference Freshness | `references/` exists |
+| G41 | Precedent Check | New utilities, pipelines, UI patterns |
+| G40 | Invariant Preservation | New write paths, modified computations |
+| G25 | Data Volume & Cardinality | DB queries returning multiple rows, batch processing |
 
-## Gate 8: Architecture & Lessons (varies)
+### Phase 2 — Evaluation (will the plan work?)
 
-- **Read `documentation.md`**: Does the plan conflict with existing architecture, schema, or patterns?
-- **Read `tasks/lessons.md`**: Surface ALL lessons matching the plan's domain. Do not limit to "top N."
-  - DB/Supabase/PostgREST → surface DB lessons
-  - Pipeline/cron → surface pipeline lessons
-  - Auth/RLS/middleware → surface auth lessons
-  - React/Next.js → surface frontend lessons
-  - Bash/hooks/scripts → surface bash lessons
-  - Migrations → surface migration lessons
-  - Scoring/signals → surface scoring lessons
-- **Naming collisions**: New files/functions/routes → no conflicts with existing?
-- **Pattern consistency**: Follows existing patterns in codebase?
+| Gate | Name | Triggered by |
+|------|------|-------------|
+| G1 | Silent Failure Patterns | DB queries, error handling, null paths |
+| G2 | Data Integrity & Pipeline | Pipeline ops, external data, DB queries |
+| G3 | Security & Auth | API routes, user input, auth, new tables |
+| G4 | Schema & Migration Safety | Database migrations |
+| G5 | Math & Algorithm Correctness | Math, scoring, signal processing |
+| G6 | Caching & State | Caching, `"use cache"`, state management |
+| G7 | Frontend & React | React/Next.js components |
+| G9 | Estimate & Scope Validation | Time estimates, batch processing, shell scripts |
+| G10 | Validation Depth | Verification/testing sections |
+| G19 | Data Source Provenance | New schema for external data, new sources |
+| G20 | Quantitative Resource Modeling | DB queries, batch loops, API calls, GH Actions |
+| G21 | Verification Path Fidelity | DB writes, batch processing, API integration |
+| G22 | Idempotency & Re-Run Safety | DB writes, side effects, cron/worker logic |
+| G23 | Temporal Ordering & Race Conditions | Concurrent execution, cron timing, TOCTOU |
+| G24 | Partial Failure & Recovery | Batch processing, multi-step pipelines |
+| G26 | Observability & Failure Detectability | New data sources, pipeline steps, workers |
+| G27 | Data Freshness & Staleness | Serving data to users, derived metrics, caching |
+| G28 | Upstream Contract & Dependency Stability | External APIs, dependency upgrades |
+| G29 | Implicit Coupling & Hidden Dependencies | Shared tables, cache keys, utilities, constants |
+| G30 | Downstream Consumer Impact | Schema changes, API response changes |
+| G31 | Rollback & Forward-Fix Safety | Migrations, data transformations |
+| G32 | Environment & Deployment Divergence | New API calls, shell scripts, GH Actions, env vars |
+| G33 | Attack Surface Delta | New endpoints, user input, third-party deps |
+| G34 | Monotonicity & Data Regression Guards | Scores, rankings, trends, time-series |
+| G35 | External Timing & Calendar Awareness | Financial data, periodic sources, time windows |
+| G36 | Type Coercion Boundary Analysis | External source → DB writes, BIGINT/NUMERIC |
 
-## Gate 9: Estimate & Scope Validation
+### Phase 3 — Holistic (is this plan complete?)
 
-- **Wave count**: Compare to similar past work in `memory/` journals. Flag if optimistic.
-- **Scope creep**: Does the plan do exactly what was asked? No silent feature additions?
-- **Deployment constraints**: Total runtime within 300s Vercel limit? Sequential API calls under timeout?
-- **Bash portability** (plugin work): Windows/Git Bash, `set -euo pipefail`, `grep` inside `if`, `cut -d:` on Windows paths.
+| Gate | Name | Triggered by |
+|------|------|-------------|
+| G11 | Documentation Completeness | Universal |
+| G12 | Commit Strategy & Verification Cadence | Universal |
+| G13 | Quality & Completeness Standard | Universal |
+| G17 | Decision Pre-Capture | Non-obvious choices |
+| G18 | Journal Pre-Entry | Universal |
+| G42 | Ripple Effect Trace | Shared code, schemas, cache keys, API contracts |
+| G44 | Product-Value Alignment | New features, significant reworks (not bug fixes) |
 
-## Gate 10: Validation Depth
+## Applicability Matrix
 
-Never declare validation complete after existence checks alone. For each component in the verification section:
+| Plan touches... | Required gates (in addition to Killer 7) |
+|-----------------|------------------------------------------|
+| **Database/queries** | 1, 2, 4, 6, 8, 20, 22, 24, 25, 30, 36, 40 |
+| **API routes** | 1, 3, 8, 26, 28, 30, 33, 40 |
+| **Frontend components** | 6, 7, 8, 43 (LC + UX questions) |
+| **Pipeline/cron** | 1, 2, 5, 8, 9, 20, 22, 23, 24, 26, 32 |
+| **Scoring/signals** | 1, 2, 5, 8, 20, 27, 34, 40 |
+| **Migrations** | 4, 8, 31, 30, 36 |
+| **Bash/plugin scripts** | 8, 9, 32 |
+| **Math/algorithms** | 5, 8, 21, 40 |
+| **External data sources** | 2, 19, 26, 27, 28 |
+| **Batch processing** | 9, 20, 22, 24, 25 |
+| **Caching / serving data** | 6, 27, 29 |
+| **Financial time-series** | 27, 34, 35 |
+| **Shared infrastructure** | 29, 30, 42 |
+| **New API endpoints** | 3, 33, 30 |
+| **Any plan (universal)** | 11, 12, 13, 16, 17, 18 |
 
-- [ ] Does the verification require EXECUTION tests, not just existence checks? (file exists ≠ file works)
-- [ ] For each component: is there a command that proves it works with realistic input?
-- [ ] Are edge cases covered for critical paths (empty input, missing files, error conditions)?
+Gates 14-15 apply when the project has a `references/` directory.
 
-Historical pattern: 3 instances of "first pass checked existence only, second pass found real bugs" (Mar 9, 15, 18). Step 2 (execution) is the minimum bar.
+## Gate Activation by Risk Tier
 
-## Gate 11: Documentation Completeness (universal)
+| Tier | Active Layers | Expected Gates | Target Time |
+|------|--------------|----------------|-------------|
+| **S** | Killer 7 + Phase 1-3 + extended | 20-30 | 25-35 min |
+| **A** | Killer 7 + Phase 1-3 | 12-18 | 15-20 min |
+| **B** | Killer 7 + applicable domain gates | 8-12 | 10-15 min |
+| **C** | Killer 7 only | 7 | 5-10 min |
 
-Plans that change behavior without updating docs create knowledge drift. Stale docs are worse than no docs.
+## Severity Levels
 
-- **Doc file identification**: Does the plan explicitly name which documentation files need updating? (e.g., `documentation.md`, `PROJECTHISTORY.md`, `CLAUDE.md`, `MEMORY.md`, READMEs, API docs, changelogs — whatever the project uses)
-- **Timing**: Are doc updates scheduled during or immediately after the implementation wave that changes behavior — not deferred to a "cleanup wave" at the end?
-- **Architecture/schema/pattern changes**: If the plan alters database schema, API routes, architectural patterns, scoring logic, or conventions — corresponding docs MUST be updated in the same wave. Flag any plan that changes these without a doc update step.
-- **New feature completion**: If a feature is being completed (not just incremented), does the plan include a summary entry for the project's history/changelog file?
-- **Behavioral drift**: If the plan modifies existing behavior (not just adding new), does it identify which existing documentation describes that behavior and schedule an update?
-
-## Gate 12: Commit Strategy & Verification Cadence (universal)
-
-Plans without explicit commit boundaries produce "big bang" merges that are hard to bisect and easy to ship broken.
-
-- **Commit boundaries**: Are commits planned at logical boundaries — one per wave, one per independently shippable unit? Flag plans that defer all commits to the end.
-- **Working state invariant**: Does each commit leave the system in a working state? No half-done migrations, no imports of files that don't exist yet, no broken type signatures.
-- **Test coverage breadth**: Are tests planned for ALL new functionality — not just happy path? Check for: error cases, empty inputs, boundary conditions, null/undefined handling, edge cases. (Note: lint/type-check/test *execution* is enforced by pre-commit-checklist and hookify — this gate focuses on test *design* and *coverage planning*.)
-- **Multi-wave cadence**: For plans with 2+ waves, each wave should have its own commit cycle explicitly stated.
-- **Push/PR timing**: Are pushes or PRs planned at appropriate points? (e.g., after a logical milestone, not mid-feature)
-
-## Gate 13: Quality & Completeness Standard (universal)
-
-A plan can pass every technical gate and still ship something half-thought-through. This gate enforces a quality mindset at the design stage — where it's cheapest to fix. It applies to everything: features, scripts, migrations, documentation, infrastructure, plugin skills.
-
-- **Completeness**: Does the plan deliver a fully realized outcome, or a skeleton? Half-built sections, placeholder logic, and "we'll add this later" deferrals must be explicitly flagged and justified. Every piece of work should be finished to its natural boundary.
-- **Edge case thinking**: Has the plan considered what happens when things go wrong, when inputs are unexpected, when state is missing? Not just the happy path — the realistic path. This applies to UI (loading/empty/error states), scripts (malformed input, missing files), pipelines (partial failures, timeouts), and documentation (stale references, missing sections).
-- **Thoughtfulness**: Does the plan reflect genuine understanding of the problem space, or is it a mechanical "add X, modify Y" checklist? Good plans show awareness of *why* each change matters, how it fits the larger system, and what could go wrong.
-- **Consistency & craft**: Does the work follow existing patterns and conventions? New additions should feel like they belong — whether that's a UI component matching adjacent cards, a script matching the project's error handling style, or a skill matching the plugin's gate format. Nothing should look bolted on.
-- **Performance & efficiency**: Does the plan consider the cost of what it's adding? Unnecessary complexity, redundant operations, unbounded fetches, duplicated logic — flag anything that adds weight without proportional value.
-- **The bar**: Ask — "Is this work thorough enough that someone reviewing it would find nothing half-done, nothing overlooked, and nothing they'd immediately want to redo?" If not, the plan needs work before implementation begins.
-
-## Gate 14: Reference Coverage (if project has references/ directory)
-
-Does the plan reference the correct `references/*.md` files for the domains it touches? If the plan modifies scoring logic but doesn't cite `references/scoring.md`, flag it.
-
-- For each domain the plan touches, identify the corresponding reference file
-- Check whether the plan's approach aligns with canonical facts in that reference file
-- If the plan would change a `[canonical]` fact, flag that the reference file needs updating in the same wave
-
-## Gate 15: Reference Freshness (if project has references/ directory)
-
-Will this plan's changes require updating any reference files? If new API routes are added, `references/api-routes.md` needs updating. If scoring weights change, `references/scoring.md` needs updating.
-
-- Flag any reference file that will become stale after implementation
-- Ensure the plan schedules reference file updates in the SAME wave as the behavior change (not deferred to a cleanup wave)
-- Check `last-verified` frontmatter if available — flag files not verified in 30+ days
-
-## Gate 16: Lessons Surfaced & Applied (universal when lessons.md exists)
-
-Gate 8 says read `tasks/lessons.md` — this gate proves you did.
-
-For every domain the plan touches, grep lessons.md by domain tag:
-- Plugin/hooks → `grep "Plugin:\|Shell:\|Hook:"`
-- DB/queries → `grep "Database:\|PostgREST:"`
-- Pipeline → `grep "Pipeline:\|Cron:"`
-- Frontend → `grep "Frontend:\|React:"`
-- Auth/security → `grep "Auth:\|Security:"`
-- Migrations → `grep "Migration:\|constraint"`
-- Scoring/signals → `grep "Scoring:\|Signal:"`
-
-For each matching lesson: quote it verbatim + state **Applies: yes** (how plan addresses it) | **Applies: no** (why not relevant) | **Applies: n/a** (different context).
-
-Cannot write "no lessons found" without running the grep. Cannot defer to Gate 8.
-
-## Gate 17: Decision Pre-Capture (when plan contains non-obvious choices)
-
-Before ExitPlanMode, identify every non-obvious choice — anything that could reasonably be done differently and worth reviewing in 2 weeks.
-
-For each decision:
-1. Write to `.claude/cortex/decisions.local.md` (appending):
-   ```
-   ## YYYY-MM-DD - [short title]
-   category=[architecture|data|UX|pipeline|security] reversibility=[easy|hard|irreversible] confidence=[high|medium|low]
-   [1-2 sentence rationale: why this over the alternatives]
-   ```
-2. Include a Bash tool call to actually write the entry
-3. Run: `SID=$(cat .claude/cortex/current-session.id 2>/dev/null) && write_field "decisions_logged" "true" "$STATE_FILE"` to mark capture complete
-
-"No decisions in this plan" is valid ONLY for purely mechanical tasks (anchor fixes, typos). Any plan touching architecture, data flow, or behavioral choices has at least one decision.
-
-## Gate 18: Journal Pre-Entry (universal)
-
-Before ExitPlanMode, confirm `memory/YYYY-MM-DD.md` has an entry for this planning session.
-
-If no entry: write one now (2-4 lines):
-- What is being built and why
-- What approach was chosen vs alternatives
-- Any constraints or risks to remember
-- Tag: `[planning]`
-
-Captures the *reasoning* before implementation, when context is freshest.
+| Level | Meaning | Action |
+|-------|---------|--------|
+| **CRITICAL** | Would cause production bug, data loss, or security hole | Hard block — must fix before implementation |
+| **IMPORTANT** | Would cause incorrect behavior or maintenance burden | Requires explicit override with rationale |
+| **MINOR** | Style, performance, or edge case polish | Noted, doesn't block |
 
 ## Output Format
 
-Write findings to the plan file as:
+Write findings to the plan file:
 
 ```
 ## Pre-Implementation Audit Findings
 
+**Risk Tier:** [S/A/B/C] — [justification]
+**Gates Evaluated:** [list of gate numbers]
+
+### Killer 7
+
+1. **Premortem:** [3 failure scenarios]
+2. **Show the Math:** [computations]
+3. **Source Evidence:** [citations or "no external sources"]
+4. **Success Criteria:** [metric/behavior]
+5. **Blast Radius:** [scope + containment]
+6. **Lessons Check:** [grep output + applicability]
+7. **AI-ism Smell Test:** [strongest opinion or absence]
+
+### Domain Gate Findings
+
 1. **[SEVERITY] — [title]**: [description]. Fix: [action]. Applied/Deferred.
 ```
 
-Severity levels:
-- **CRITICAL**: Must fix before implementing. Would cause production bug, data loss, or security hole.
-- **IMPORTANT**: Should fix. Would cause incorrect behavior or maintenance burden.
-- **MINOR**: Nice to have. Style, performance, or edge case polish.
+Each gate produces either a **finding** (something discovered) or **"clear with evidence"** (a specific fact confirming correctness). Never just "PASS."
 
-## Gate Applicability
+"Clear with evidence" can be one line: `"row count: 3361 * 1 = 3361 < 50K — within limits."`
 
-Not every gate applies to every plan. Skip gates that are genuinely irrelevant (e.g., Gate 4 for a pure frontend change). But **actively decide** which gates to skip — don't skip by default.
+## Justified Exclusion
 
-| Plan touches... | Required gates |
-|---|---|
-| Database/queries | 1, 2, 4, 6, 8, 11, 12, 13, 14, 15 |
-| API routes | 1, 3, 8, 11, 12, 13, 14, 15 |
-| Frontend components | 6, 7, 8, 11, 12, 13, 14, 15 |
-| Pipeline/cron | 1, 2, 5, 8, 9, 11, 12, 13, 14, 15 |
-| Scoring/signals | 1, 2, 5, 8, 11, 12, 13, 14, 15 |
-| Migrations | 4, 8, 11, 12, 13, 14, 15 |
-| Bash/plugin scripts | 8, 9, 11, 12, 13, 16, 17, 18 |
-| Math/algorithms | 5, 8, 11, 12, 13, 14, 15 |
-| Any plan (default) | 11, 12, 13, 16, 17, 18 |
-
-Gates 14-15 apply when the project has a `references/` directory. Skip for projects without one.
-Gates 16-18 are universal — apply to all plans when `tasks/lessons.md` and `.claude/cortex/decisions.local.md` exist.
+Every skipped gate must include a one-sentence justification. "N/A — this plan has no database writes" is valid. "N/A" alone is treated as a gate failure.
 
 ---
 ## See Also
+- @context/plan-audit-gates.md — Full 44-gate catalog with checklist questions
+- @context/ai-ism-taxonomy.md — 87 AI-ism patterns (loaded when Gate 43 fires)
+- @context/plan-audit-reference.md — Meta-principles, evidence, appendices
 - [plan-estimation](../plan-estimation/SKILL.md) — Estimation feeds audit: wave count and scope validated by Gate 9 [upstream]
 - [deploy-readiness](../deploy-readiness/SKILL.md) — Plan audit catches issues pre-implementation; deploy readiness verifies pre-ship [workflow]
 - [pre-commit-checklist](../pre-commit-checklist/SKILL.md) — Audit gates validate planning; pre-commit gates validate execution [workflow]
