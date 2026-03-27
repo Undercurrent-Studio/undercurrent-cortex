@@ -18,7 +18,7 @@ Imagine a second brain sitting alongside Claude that:
 - **Adapts** its behavior based on your recent session quality
 - **Proposes** its own improvements and waits for your approval
 - **Tracks patterns** across sessions — which files keep getting re-edited, what domains you focus on
-- **Audits** your implementation plans before you start building (18 gates covering silent failures, security, math, caching, and more)
+- **Audits** your implementation plans before you start building (44 gates with Killer 7 universal core, risk-tiered depth, and domain-specific activation)
 
 All of this happens through bash hooks that fire at specific moments in your Claude Code session.
 
@@ -297,30 +297,25 @@ Skills are invoked via `/cortex:<skill-name>` (e.g., `/cortex:plan-audit`). Each
 
 #### Plan Audit (the highest-value skill)
 
-`/cortex:plan-audit` runs 18 gates on every implementation plan before you start building:
+`/cortex:plan-audit` runs a layered 44-gate audit on implementation plans with risk-tiered depth:
 
-| Gate | What it catches |
-|------|----------------|
-| 1 | Silent failure patterns (PostgREST gotchas, error swallowing, null propagation) |
-| 2 | Data integrity & pipeline issues (batch corruption, column existence, aggregation semantics) |
-| 3 | Security & auth (route protection, input validation, CSRF, RLS) |
-| 4 | Schema & migration safety (constraint naming, transactional rollback, FK ordering) |
-| 5 | Math & algorithm correctness (sign conventions, edge values, hand-verification) |
-| 6 | Caching & state (cache keys, null caching, "use cache" + cookies incompatibility) |
-| 7 | Frontend & React (Suspense boundaries, server/client, router state races) |
-| 8 | Architecture & lessons (documentation conflicts, naming collisions, pattern consistency) |
-| 9 | Estimate & scope validation (wave count, scope creep, deployment constraints) |
-| 10 | Validation depth (execution tests, not just existence checks) |
-| 11 | Documentation completeness (which docs need updating, timing, behavioral drift) |
-| 12 | Commit strategy & verification cadence (commit boundaries, working state, test coverage) |
-| 13 | Quality & completeness standard (edge cases, thoughtfulness, consistency, performance) |
-| 14 | Reference coverage (correct reference files cited for domains touched) |
-| 15 | Reference freshness (will changes make reference files stale?) |
-| 16 | Lessons surfaced & applied (grep lessons.md by domain, quote + assess each) |
-| 17 | Decision pre-capture (identify non-obvious choices, write to decisions file) |
-| 18 | Journal pre-entry (confirm journal has planning session entry) |
+**Irreducible Core** (every plan, always first):
+1. Show the Math — all resource estimates computed, not asserted
+2. What Breaks If This Fails — premortem + blast radius
+3. Prove the Data Exists — cite evidence for every external data assumption
 
-Not every gate applies to every plan — the skill includes a gate applicability matrix by domain.
+**Killer 7** (every plan, all tiers):
+Premortem, Show the Math, Source Evidence, Success Criteria, Blast Radius, Lessons Check, AI-ism Smell Test
+
+**Risk tiers** control depth:
+- **Tier S** (scoring, auth, pipeline architecture): 20-30 gates, 25-35 min
+- **Tier A** (new features, data sources, API routes): 12-18 gates, 15-20 min
+- **Tier B** (bug fixes, multi-file refactors): 8-12 gates, 10-15 min
+- **Tier C** (typos, config tweaks): Killer 7 only, 5-10 min
+
+**44 gates** organized into 3 sequential phases (Understanding → Evaluation → Holistic), covering: silent failures, data integrity, security, migrations, math, caching, frontend, architecture, estimates, validation depth, documentation, commit strategy, quality, references, lessons, decisions, journal, data source provenance, resource modeling, verification fidelity, idempotency, race conditions, partial failure, cardinality, observability, freshness contracts, upstream stability, implicit coupling, downstream impact, rollback safety, environment divergence, attack surface, monotonicity, calendar awareness, type coercion, success criteria, blast radius, premortem, invariant preservation, precedent check, ripple effects, AI-ism detection, and product-value alignment.
+
+Gate definitions live in `context/plan-audit-gates.md`. AI-ism taxonomy (122 patterns) in `context/ai-ism-taxonomy.md`. Meta-principles and research evidence in `context/plan-audit-reference.md`.
 
 ### 7 Hook Events
 
@@ -370,9 +365,11 @@ All state files live in `.claude/cortex/` (gitignored):
 | `cortex/current-session.id` | Pointer to active session state file (ensures correct resolution) |
 | `cortex/profile.local` | Hook profile override (minimal/standard/strict) |
 
-### 8 Context Files
+### 11 Context Files
 
-Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` frontmatter line for auto-discovery.
+7 keyword-injected files (via `context-flow.sh`) + 3 plan-audit reference files (loaded on demand via `@context/`) + 1 index.
+
+**Keyword-injected** (auto-discovery via `keywords:` frontmatter):
 
 | File | Keywords |
 |------|----------|
@@ -383,7 +380,16 @@ Injected by `context-flow.sh` on keyword match. Each file has a `keywords:` fron
 | python-patterns.md | python, pyproject.toml, pytest, django, flask, fastapi, poetry, ruff, mypy |
 | go-patterns.md | golang, go.mod, goroutine, cobra, fiber |
 | rust-patterns.md | rustc, cargo.toml, lifetime, tokio, serde, clippy, rust-lang |
-| _index.md | Master index of all context files |
+
+**Plan-audit reference** (loaded via `@context/` when plan-audit skill fires):
+
+| File | Contents |
+|------|----------|
+| plan-audit-gates.md | Full 44-gate catalog with all checklist questions |
+| ai-ism-taxonomy.md | 122 AI-ism patterns, 8 anti-patterns with code examples, detection heuristics |
+| plan-audit-reference.md | 15 meta-principles, cognitive bias mitigations, gaming countermeasures, cross-domain research evidence |
+
+**Index:** `_index.md` — master index of keyword-injected context files
 
 ---
 
@@ -466,7 +472,7 @@ cortex/
   skills/             # 16 skill directories
   commands/           # 9 slash commands
   agents/             # conversation-analyzer + deep-dive + code-reviewer
-  context/            # 8 context files (keyword-matched)
+  context/            # 11 context files (7 keyword-matched + 3 plan-audit reference + 1 index)
   tests/              # 26 test scripts + 3 helpers (run-all.sh)
 ```
 
@@ -474,6 +480,7 @@ cortex/
 
 ## Version History
 
+- **3.13.2** — Plan-audit v1.0: layered 44-gate architecture (was 18 flat gates). Irreducible Core (3 questions on every plan). Killer 7 universal gates. Risk-tiered depth (Tier S/A/B/C). 26 new gates covering idempotency, race conditions, partial failure, blast radius, observability, type coercion, and more. 5 existing gates enhanced (mandatory arithmetic, source evidence, data exposure, staleness windows, full-universe scaling). 3 new context files: `plan-audit-gates.md` (44 gate definitions), `ai-ism-taxonomy.md` (122 patterns + 8 anti-patterns), `plan-audit-reference.md` (15 meta-principles + research evidence).
 - **3.12.1** — Session-start statusline now displays model metadata (model name, reasoning effort, context window) as a third line.
 - **3.12.0** — Fix TDD guard deny format (strict mode was silently broken — wrong JSON format for Claude Code hook API). Sync all documentation counts and versions. Fix 5 stale references from v3.7 migration. Add missing version frontmatter to graph and validate-refs skills. Clarify superpowers as optional integration.
 - **3.11.0** — Memory enforcement: plan-audit gates 16-18 (lessons surfaced, decision pre-capture, journal pre-entry). Stop-gate Gate 7 (decision capture after plan-mode sessions). Decision journal integration with context-flow. 18-gate plan-audit (was 13).
