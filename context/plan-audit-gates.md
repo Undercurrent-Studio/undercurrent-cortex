@@ -187,6 +187,7 @@
 - Thoughtfulness: Does the plan reflect genuine understanding of the problem space, or is it a mechanical "add X, modify Y" checklist?
 - Consistency & craft: Does the work follow existing patterns and conventions?
 - Performance & efficiency: Does the plan consider the cost of what it's adding?
+- Source traceability: If the plan was derived from a research doc, design doc, or requirements list — does every item from the source appear in the plan as either a task or an explicit "Deferred: [reason]" entry? Silently dropping items is a FAIL.
 - The bar: "Is this work thorough enough that someone reviewing it would find nothing half-done, nothing overlooked, and nothing they'd immediately want to redo?"
 
 ---
