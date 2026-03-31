@@ -1,7 +1,7 @@
 ---
 name: session-end
 description: This skill should be used when wrapping up a working session — writes journal entry, captures carry-over, runs reasoning audit and pattern escalation check.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Session End
@@ -31,6 +31,42 @@ Keep total entry under 25 lines. Signal over noise.
 5. What context would most help the next session in the first 30 seconds? Write this as a `[carry-over]` entry — not a summary, but what's *actionable* immediately.
 If any "yes, I missed something" → add as `[reasoning-miss]`.
 Tag explicit user corrections (user says "that's wrong", corrects a factual claim, or redirects a wrong approach) with `[correction]`.
+
+**Step 2b — Synthesis extraction** (if something notable happened):
+Review the full conversation for meta-cognitive patterns worth capturing. This is NOT about what happened (that's the journal) or what went wrong (that's lessons). This is about HOW we worked together and WHAT approaches were effective.
+
+For each candidate insight, it must pass at least one **evidence gate**:
+1. **User action gate** (→ importance: high): A specific user action (pushback, correction, approval, request) reveals this pattern. Quote or paraphrase it.
+2. **Repetition gate** (→ importance: medium): This pattern appeared in 2+ distinct moments this session or across sessions.
+3. **Process gate** (→ importance: medium): A specific sequence of steps produced a notably good/bad outcome that's reproducible.
+
+If no gate passes, skip the candidate. When in doubt, skip — the pattern will recur.
+
+**Conflict checking (before any write):** Read `~/.claude/synthesis/collaboration.md` and compare the candidate against existing entries in the same theme:
+- **ADD**: Genuinely new pattern. Write it with `[unconfirmed]` tag.
+- **UPDATE**: Variant of existing entry. Increment Reinforced, update Last validated. If Reinforced reaches 2, remove `[unconfirmed]`.
+- **NOOP**: Already captured. Skip.
+Default to NOOP — only ADD when clearly distinct.
+
+**Classify each finding:**
+- **Collaboration pattern** (about how we interact) → append to `~/.claude/synthesis/collaboration.md` under best-fit theme. Full metadata: Origin, Reinforced, Last validated, Scope, Importance (from gate), Negative scope, Evidence (project-qualified: `project-name:memory/YYYY-MM-DD.md#section`), Applied (starts at 0), Supersedes.
+- **Anti-pattern** (about what DOESN'T work) → same format, under "Anti-Patterns" theme. Source: `[correction]` tags from this session or conversation-analyzer findings.
+- **Reusable workflow** (discrete reproducible steps) → create detail file in `~/.claude/synthesis/workflows/`, add one-liner to `_index.md`.
+- **Applied tracking** → scan conversation for moments where an existing pattern was consciously followed. Increment that entry's `Applied` count and update `Last validated`.
+
+**Conversation-analyzer cross-reference:** If the conversation-analyzer ran this session (adaptive immunity triggered), read its correction findings. Corrections that reveal collaboration preferences → anti-patterns. Don't duplicate the analyzer's work — consume its output.
+
+**PreCompact capture note:** For long sessions (>90 min), write `[synthesis-candidate]` tags in the journal when collaboration-relevant moments occur mid-session. These anchor insights for extraction even if conversation detail is compacted.
+
+Log what was written:
+```
+[synthesis] Added collaboration pattern: "Pattern name" (Theme) [unconfirmed]
+[synthesis] Added anti-pattern: "Don't do X" (Anti-Patterns)
+[synthesis] Reinforced workflow: workflow-name (now Nx)
+[synthesis] Applied: "propose then iterate" (now Nx applied)
+```
+
+If nothing is synthesis-worthy this session, skip silently.
 
 **Step 3 — Pattern escalation check**:
 For each journal item: seen this class of problem in `tasks/lessons.md` or prior journals?

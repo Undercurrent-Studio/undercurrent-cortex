@@ -13,6 +13,7 @@ Context files auto-inject when user prompts match their keywords. First match wi
 | [testing-conventions.md](testing-conventions.md) | vitest, test suite, write test, add test, run test, fix test, coverage | Testing-related tasks |
 | [math-review.md](math-review.md) | formula, statistics, probability, monte carlo, sigmoid, logarithm, exponential decay, half-life, normalization, regression, interpolation, z-score, zscore, standard deviation, stddev, variance, distribution, likelihood, ou, gbm | Mathematical/statistical code |
 | [deploy-readiness.md](deploy-readiness.md) | deploy, vercel, go live, push to prod, production, ship it | Deployment tasks |
+| [synthesis-memory.md](synthesis-memory.md) | collaboration pattern, workflow pattern, synthesis, curate memory, how we work, reusable workflow, memory tier, collaboration file | Synthesis memory operations |
 
 ## How Context Injection Works
 

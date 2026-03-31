@@ -1,7 +1,7 @@
 ---
 name: session-start
 description: This skill should be used when starting or resuming a session — reads memory, creates journal, surfaces carry-over and domain-relevant lessons.
-version: 0.1.0
+version: 0.2.0
 ---
 
 # Session Start
@@ -12,7 +12,9 @@ version: 0.1.0
 1. Read `MEMORY.md` (project root) — personal context, preferences, active decisions
 2. Read or create `memory/YYYY-MM-DD.md` — if missing, create: `# Journal - YYYY-MM-DD` + `## HH:MM - Session start`. Do not ask. Just create it.
 3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/cortex:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
-4. **Display the organism statusline.** The SessionStart hook injects it into system context (inside `<cortex-session-start>` tags), but the user cannot see system context. Copy the two statusline lines verbatim, then append a third line with model metadata extracted from your system context:
+4. Read `~/.claude/synthesis/collaboration.md` (full file) — how we work together. If the file doesn't exist, skip (first-run: create it via seed data or let session-end populate it).
+5. Read `~/.claude/synthesis/workflows/_index.md` (compact index only) — awareness of reusable approaches. If the file doesn't exist, skip.
+6. **Display the organism statusline.** The SessionStart hook injects it into system context (inside `<cortex-session-start>` tags), but the user cannot see system context. Copy the two statusline lines verbatim, then append a third line with model metadata extracted from your system context:
    ```
    🤖 {model_name} · ⚡ {effort_level} · 🪟 {context_window}
    ```
@@ -29,12 +31,22 @@ version: 0.1.0
    - React/Next.js/components → surface frontend lessons
    - SEC/EDGAR/XBRL → surface SEC lessons
    Surface all matches. Do not limit to "last 5."
+   - If the task domain matches a workflow's scope tags in `~/.claude/synthesis/workflows/_index.md`, read that workflow's full detail file from `~/.claude/synthesis/workflows/`. Use the same domain detection as lesson filtering above.
 
 ## If touching architecture, schema, or pipeline
 5. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness to Will before proceeding.
 
 ## State file protocol
 6. Check `tasks/todo.md` for in-progress items (unchecked boxes). If the previous session left work mid-flight, complete it before starting new tasks.
+
+## Housekeeping (lightweight, after greeting)
+After displaying the statusline and beginning the session, run these non-blocking checks. Use the Bash tool for mv/rm operations, Read + Grep for carry-over detection:
+
+1. If any journals in `memory/` are from a previous month AND have no open `[carry-over]` (grep `^- \[carry-over\]` returns 0 = safe to move), move them to `memory/archive/YYYY-MM/`. Create the archive dir if needed.
+2. If any session files in `.claude/cortex/sessions/` are from a previous week AND have no `[carry_over]` section with content, move them to `.claude/cortex/sessions-archive/YYYY-WNN/`.
+3. Clean any `.tmp.*` files from `.claude/cortex/` (bash `rm -f`).
+4. If 10+ sessions have passed since the last curation run (check `~/.claude/synthesis/collaboration.md` modification date vs session count), suggest: "It's been a while since memory curation ran. Want me to run `/cortex:curate-memory`?"
+5. If `~/.claude/synthesis/collaboration.md` has >20 H3 entries (count `###` headings), warn: "Collaboration patterns file has grown to [N] entries. Consider splitting into per-theme files for better token efficiency."
 
 ## Carry-over re-injection
 When surfacing carry-over items from previous sessions, explicitly write them as the first item in today's journal entry. Do not just acknowledge them — write them to the journal so they are tracked:
