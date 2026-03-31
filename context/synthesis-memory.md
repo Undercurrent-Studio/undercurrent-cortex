@@ -2,7 +2,7 @@ keywords: collaboration pattern, workflow pattern, synthesis, curate memory, how
 
 # Synthesis Memory Context
 
-You have a synthesis memory system at `~/.claude/synthesis/`. It contains:
+You have a synthesis memory system at `~/.cortex/synthesis/`. It contains:
 
 ## Collaboration Patterns (`collaboration.md`)
 - Loaded every session-start. Contains patterns about how you and the user work together.

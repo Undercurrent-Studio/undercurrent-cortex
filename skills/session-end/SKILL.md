@@ -42,16 +42,16 @@ For each candidate insight, it must pass at least one **evidence gate**:
 
 If no gate passes, skip the candidate. When in doubt, skip — the pattern will recur.
 
-**Conflict checking (before any write):** Read `~/.claude/synthesis/collaboration.md` and compare the candidate against existing entries in the same theme:
+**Conflict checking (before any write):** Read `~/.cortex/synthesis/collaboration.md` and compare the candidate against existing entries in the same theme:
 - **ADD**: Genuinely new pattern. Write it with `[unconfirmed]` tag.
 - **UPDATE**: Variant of existing entry. Increment Reinforced, update Last validated. If Reinforced reaches 2, remove `[unconfirmed]`.
 - **NOOP**: Already captured. Skip.
 Default to NOOP — only ADD when clearly distinct.
 
 **Classify each finding:**
-- **Collaboration pattern** (about how we interact) → append to `~/.claude/synthesis/collaboration.md` under best-fit theme. Full metadata: Origin, Reinforced, Last validated, Scope, Importance (from gate), Negative scope, Evidence (project-qualified: `project-name:memory/YYYY-MM-DD.md#section`), Applied (starts at 0), Supersedes.
+- **Collaboration pattern** (about how we interact) → append to `~/.cortex/synthesis/collaboration.md` under best-fit theme. Full metadata: Origin, Reinforced, Last validated, Scope, Importance (from gate), Negative scope, Evidence (project-qualified: `project-name:memory/YYYY-MM-DD.md#section`), Applied (starts at 0), Supersedes.
 - **Anti-pattern** (about what DOESN'T work) → same format, under "Anti-Patterns" theme. Source: `[correction]` tags from this session or conversation-analyzer findings.
-- **Reusable workflow** (discrete reproducible steps) → create detail file in `~/.claude/synthesis/workflows/`, add one-liner to `_index.md`.
+- **Reusable workflow** (discrete reproducible steps) → create detail file in `~/.cortex/synthesis/workflows/`, add one-liner to `_index.md`.
 - **Applied tracking** → scan conversation for moments where an existing pattern was consciously followed. Increment that entry's `Applied` count and update `Last validated`.
 
 **Conversation-analyzer cross-reference:** If the conversation-analyzer ran this session (adaptive immunity triggered), read its correction findings. Corrections that reveal collaboration preferences → anti-patterns. Don't duplicate the analyzer's work — consume its output.
