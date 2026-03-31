@@ -24,7 +24,7 @@ version: 0.2.0
    Display all three lines in your first response to the user.
 
 ## If task is non-trivial (new feature, bug, architectural decision — not a quick question)
-4. Read `tasks/todo.md` + scan `tasks/lessons.md` by domain:
+7. Read `tasks/todo.md` + scan `tasks/lessons.md` by domain:
    - DB/Supabase/PostgREST → surface all DB lessons
    - Pipeline/cron/sync-tickers → surface pipeline lessons
    - Auth/RLS/middleware → surface auth lessons
@@ -34,10 +34,10 @@ version: 0.2.0
    - If the task domain matches a workflow's scope tags in `~/.claude/synthesis/workflows/_index.md`, read that workflow's full detail file from `~/.claude/synthesis/workflows/`. Use the same domain detection as lesson filtering above.
 
 ## If touching architecture, schema, or pipeline
-5. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness to Will before proceeding.
+8. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness to Will before proceeding.
 
 ## State file protocol
-6. Check `tasks/todo.md` for in-progress items (unchecked boxes). If the previous session left work mid-flight, complete it before starting new tasks.
+9. Check `tasks/todo.md` for in-progress items (unchecked boxes). If the previous session left work mid-flight, complete it before starting new tasks.
 
 ## Housekeeping (lightweight, after greeting)
 After displaying the statusline and beginning the session, run these non-blocking checks. Use the Bash tool for mv/rm operations, Read + Grep for carry-over detection:
