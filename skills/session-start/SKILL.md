@@ -1,7 +1,7 @@
 ---
 name: session-start
 description: This skill should be used when starting or resuming a session — reads memory, creates journal, surfaces carry-over and domain-relevant lessons.
-version: 0.2.0
+version: 0.3.0
 ---
 
 # Session Start
@@ -13,6 +13,10 @@ version: 0.2.0
 2. Read or create `memory/YYYY-MM-DD.md` — if missing, create: `# Journal - YYYY-MM-DD` + `## HH:MM - Session start`. Do not ask. Just create it.
 3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/cortex:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
 4. Read `~/.cortex/synthesis/collaboration.md` (full file) — how we work together. If the file doesn't exist, skip (first-run: create it via seed data or let session-end populate it).
+   - **Promotion sweep**: Scan for entries with `Reinforced` >= 2 that still have `[unconfirmed]` in the heading. Remove the tag immediately — this is a mechanical fix, not a judgment call.
+   - **Staleness check**: Flag any patterns with `Last validated` older than 30 days: "Pattern X hasn't been validated since [date]."
+   - **Applied tracking**: After reading, note which patterns are relevant to today's task or conversation. Log them in the journal. At session-end, check which were actually followed and increment their `Applied` count then.
+   - **Duplicate detection**: Scan for entries that describe semantically similar behaviors (same pattern worded differently across sessions). Flag to user: "Patterns X and Y look like duplicates — merge or keep separate?"
 5. Read `~/.cortex/synthesis/workflows/_index.md` (compact index only) — awareness of reusable approaches. If the file doesn't exist, skip.
 6. **Display the organism statusline.** The SessionStart hook injects it into system context (inside `<cortex-session-start>` tags), but the user cannot see system context. Copy the two statusline lines verbatim, then append a third line with model metadata extracted from your system context:
    ```
@@ -31,7 +35,7 @@ version: 0.2.0
    - React/Next.js/components → surface frontend lessons
    - SEC/EDGAR/XBRL → surface SEC lessons
    Surface all matches. Do not limit to "last 5."
-   - If the task domain matches a workflow's scope tags in `~/.cortex/synthesis/workflows/_index.md`, read that workflow's full detail file from `~/.cortex/synthesis/workflows/`. Use the same domain detection as lesson filtering above.
+   - **Domain workflow loading**: Check each workflow in `_index.md` — if its scope tags match the current task domain, read the full detail file from `~/.cortex/synthesis/workflows/`. Example: task involves design or brainstorming → load `design-through-conversation.md`. Task involves audit or code-quality → load `probe-then-fix.md`.
 
 ## If touching architecture, schema, or pipeline
 8. Read `documentation.md`. Run `git log --oneline -5 documentation.md` — if not touched in 3+ commits while code changed, flag staleness to Will before proceeding.

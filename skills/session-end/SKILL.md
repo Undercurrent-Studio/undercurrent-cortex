@@ -1,7 +1,7 @@
 ---
 name: session-end
 description: This skill should be used when wrapping up a working session — writes journal entry, captures carry-over, runs reasoning audit and pattern escalation check.
-version: 0.3.0
+version: 0.4.0
 ---
 
 # Session End
@@ -32,41 +32,29 @@ Keep total entry under 25 lines. Signal over noise.
 If any "yes, I missed something" → add as `[reasoning-miss]`.
 Tag explicit user corrections (user says "that's wrong", corrects a factual claim, or redirects a wrong approach) with `[correction]`.
 
-**Step 2b — Synthesis extraction** (if something notable happened):
-Review the full conversation for meta-cognitive patterns worth capturing. This is NOT about what happened (that's the journal) or what went wrong (that's lessons). This is about HOW we worked together and WHAT approaches were effective.
+**Step 2b — Synthesis final sweep** (safety net, not primary path):
+Inline extraction (via `CLAUDE.md` rules) is the primary mechanism for capturing collaboration patterns during the session. This step is the safety net — check if anything was missed.
 
-For each candidate insight, it must pass at least one **evidence gate**:
-1. **User action gate** (→ importance: high): A specific user action (pushback, correction, approval, request) reveals this pattern. Quote or paraphrase it.
-2. **Repetition gate** (→ importance: medium): This pattern appeared in 2+ distinct moments this session or across sessions.
-3. **Process gate** (→ importance: medium): A specific sequence of steps produced a notably good/bad outcome that's reproducible.
+Quickly scan the conversation for moments that should have triggered inline extraction but didn't:
+- Corrections, approvals, or pushback that reveal HOW to collaborate
+- Anti-patterns (from `[correction]` tags) that reveal what DOESN'T work
+- Reusable workflows (discrete reproducible steps) → create detail file in `~/.cortex/synthesis/workflows/`, add one-liner to `_index.md`
 
-If no gate passes, skip the candidate. When in doubt, skip — the pattern will recur.
+If the conversation-analyzer ran this session, consume its correction findings for anti-patterns.
 
-**Conflict checking (before any write):** Read `~/.cortex/synthesis/collaboration.md` and compare the candidate against existing entries in the same theme:
-- **ADD**: Genuinely new pattern. Write it with `[unconfirmed]` tag.
-- **UPDATE**: Variant of existing entry. Increment Reinforced, update Last validated. If Reinforced reaches 2, remove `[unconfirmed]`.
-- **NOOP**: Already captured. Skip.
-Default to NOOP — only ADD when clearly distinct.
-
-**Classify each finding:**
-- **Collaboration pattern** (about how we interact) → append to `~/.cortex/synthesis/collaboration.md` under best-fit theme. Full metadata: Origin, Reinforced, Last validated, Scope, Importance (from gate), Negative scope, Evidence (project-qualified: `project-name:memory/YYYY-MM-DD.md#section`), Applied (starts at 0), Supersedes.
-- **Anti-pattern** (about what DOESN'T work) → same format, under "Anti-Patterns" theme. Source: `[correction]` tags from this session or conversation-analyzer findings.
-- **Reusable workflow** (discrete reproducible steps) → create detail file in `~/.cortex/synthesis/workflows/`, add one-liner to `_index.md`.
-- **Applied tracking** → scan conversation for moments where an existing pattern was consciously followed. Increment that entry's `Applied` count and update `Last validated`.
-
-**Conversation-analyzer cross-reference:** If the conversation-analyzer ran this session (adaptive immunity triggered), read its correction findings. Corrections that reveal collaboration preferences → anti-patterns. Don't duplicate the analyzer's work — consume its output.
-
-**PreCompact capture note:** For long sessions (>90 min), write `[synthesis-candidate]` tags in the journal when collaboration-relevant moments occur mid-session. These anchor insights for extraction even if conversation detail is compacted.
+For any missed items, use the same ADD/UPDATE/NOOP check against `~/.cortex/synthesis/collaboration.md`. Full metadata for new entries: Origin, Reinforced, Last validated, Scope, Importance, Negative scope, Evidence (project-qualified), Applied (starts at 0), Supersedes.
 
 Log what was written:
+
 ```
 [synthesis] Added collaboration pattern: "Pattern name" (Theme) [unconfirmed]
 [synthesis] Added anti-pattern: "Don't do X" (Anti-Patterns)
 [synthesis] Reinforced workflow: workflow-name (now Nx)
-[synthesis] Applied: "propose then iterate" (now Nx applied)
 ```
 
-If nothing is synthesis-worthy this session, skip silently.
+If inline extraction captured everything, skip silently.
+
+Also: check which patterns were marked as relevant at session-start. For any that were actually followed during the session, increment their `Applied` count and update `Last validated` in `collaboration.md`.
 
 **Step 3 — Pattern escalation check**:
 For each journal item: seen this class of problem in `tasks/lessons.md` or prior journals?
