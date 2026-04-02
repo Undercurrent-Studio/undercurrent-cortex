@@ -1,7 +1,7 @@
 ---
 name: session-start
 description: This skill should be used when starting or resuming a session — reads memory, creates journal, surfaces carry-over and domain-relevant lessons.
-version: 0.3.0
+version: 0.4.0
 ---
 
 # Session Start
@@ -13,8 +13,8 @@ version: 0.3.0
 2. Read or create `memory/YYYY-MM-DD.md` — if missing, create: `# Journal - YYYY-MM-DD` + `## HH:MM - Session start`. Do not ask. Just create it.
 3. Check `memory/[yesterday].md` — if hook surfaced a missed-session-end warning, run `/cortex:session-end` retrospective for yesterday first. Then check last 3 entries for `[carry-over]` tags and surface them.
 4. Read `~/.cortex/synthesis/collaboration.md` (full file) — how we work together. If the file doesn't exist, skip (first-run: create it via seed data or let session-end populate it).
-   - **Promotion sweep**: Scan for entries with `Reinforced` >= 2 that still have `[unconfirmed]` in the heading. Remove the tag immediately — this is a mechanical fix, not a judgment call.
-   - **Staleness check**: Flag any patterns with `Last validated` older than 30 days: "Pattern X hasn't been validated since [date]."
+   - **Promotion sweep**: *(Automated by hook — check hook output for "Promoted N pattern(s)". Manual fallback: scan for `Reinforced` >= 2 + `[unconfirmed]` in heading, remove the tag.)*
+   - **Staleness check**: *(Automated by hook — check hook output for stale pattern warnings. Manual fallback: flag patterns with `Last validated` older than 30 days.)*
    - **Applied tracking**: After reading, note which patterns are relevant to today's task or conversation. Log them in the journal. At session-end, check which were actually followed and increment their `Applied` count then.
    - **Duplicate detection**: Scan for entries that describe semantically similar behaviors (same pattern worded differently across sessions). Flag to user: "Patterns X and Y look like duplicates — merge or keep separate?"
 5. Read `~/.cortex/synthesis/workflows/_index.md` (compact index only) — awareness of reusable approaches. If the file doesn't exist, skip.

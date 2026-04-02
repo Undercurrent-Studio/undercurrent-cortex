@@ -82,6 +82,97 @@ if [ -n "$old_carry_over" ]; then
   old_carry_over=$(echo "$old_carry_over" | grep -E '^[-*] |^TODO|^\[carry-over\]|^\[mid-session pin\]' | sort -u | sed '/^$/d')
 fi
 
+# --- Step 1b: Synthesis automation (mechanical tasks) ---
+# Promotion sweep + staleness check run deterministically in bash.
+# Applied tracking + duplicate detection remain Claude's job (require judgment).
+COLLAB_FILE="${HOME}/.cortex/synthesis/collaboration.md"
+synthesis_actions=""
+
+if [ -f "$COLLAB_FILE" ]; then
+  # Guard: synthesis automation must not kill the hook on failure
+  set +e
+
+  # --- Promotion sweep ---
+  # Single pass: find [unconfirmed] headings, check Reinforced count, collect line numbers
+  promoted_count=0
+  promote_lines=""
+  current_heading_line=0
+
+  line_num=0
+  while IFS= read -r line; do
+    line_num=$((line_num + 1))
+    if echo "$line" | grep -q '^### .* \[unconfirmed\]'; then
+      current_heading_line=$line_num
+    elif [ "$current_heading_line" -gt 0 ]; then
+      if echo "$line" | grep -q '\*\*Reinforced\*\*:'; then
+        count=$(echo "$line" | sed 's/.*\*\*Reinforced\*\*: \([0-9]*\).*/\1/')
+        if [ "${count:-0}" -ge 2 ]; then
+          promote_lines="${promote_lines}${current_heading_line},"
+          promoted_count=$((promoted_count + 1))
+        fi
+        current_heading_line=0
+      elif echo "$line" | grep -q '^###\|^## \|^---'; then
+        current_heading_line=0
+      fi
+    fi
+  done < "$COLLAB_FILE"
+
+  if [ "$promoted_count" -gt 0 ] && [ -n "$promote_lines" ]; then
+    temp_file="${COLLAB_FILE}.tmp.$$"
+    # Build sed expression: for each qualifying line, remove " [unconfirmed]"
+    sed_expr=""
+    IFS=',' read -ra lines_arr <<< "$promote_lines"
+    for ln in "${lines_arr[@]}"; do
+      [ -z "$ln" ] && continue
+      sed_expr="${sed_expr}${ln}s/ \[unconfirmed\]//;"
+    done
+    sed "$sed_expr" "$COLLAB_FILE" > "$temp_file" 2>/dev/null
+
+    # Safety check: new file must exist, be non-empty, and have same line count
+    orig_lines=$(wc -l < "$COLLAB_FILE")
+    new_lines=$(wc -l < "$temp_file" 2>/dev/null || echo "0")
+    if [ -s "$temp_file" ] && [ "$new_lines" -ge "$((orig_lines - 1))" ]; then
+      mv "$temp_file" "$COLLAB_FILE"
+      synthesis_actions="Promoted ${promoted_count} pattern(s) from [unconfirmed] (Reinforced >= 2)."
+    else
+      rm -f "$temp_file"
+    fi
+  fi
+
+  # --- Staleness check ---
+  stale_warnings=""
+  now_epoch=$(date +%s)
+  last_heading=""
+
+  while IFS= read -r line; do
+    if echo "$line" | grep -q '^### '; then
+      last_heading=$(echo "$line" | sed 's/^### //' | sed 's/ \[unconfirmed\]//')
+    fi
+    if echo "$line" | grep -q '\*\*Last validated\*\*:'; then
+      val_date=$(echo "$line" | sed 's/.*\*\*Last validated\*\*: \([0-9-]*\).*/\1/')
+      if [ -n "$val_date" ]; then
+        # Dual fallback: GNU date || BSD date
+        val_epoch=$(date -d "$val_date" +%s 2>/dev/null \
+          || date -j -f "%Y-%m-%d" "$val_date" +%s 2>/dev/null \
+          || echo "0")
+        if [ "$val_epoch" -gt 0 ]; then
+          age_days=$(( (now_epoch - val_epoch) / 86400 ))
+          if [ "$age_days" -ge 30 ]; then
+            stale_warnings="${stale_warnings}  - \"${last_heading}\" (${val_date}, ${age_days}d ago)"$'\n'
+          fi
+        fi
+      fi
+    fi
+  done < "$COLLAB_FILE"
+
+  if [ -n "$stale_warnings" ]; then
+    synthesis_actions="${synthesis_actions:+${synthesis_actions}$'\n'}Stale collaboration patterns (>30d since last validated):"$'\n'"${stale_warnings}"
+  fi
+
+  # Restore errexit
+  set -e
+fi
+
 # --- Step 2: Create fresh session-scoped state file ---
 mkdir -p "$STATE_DIR"
 cat > "$STATE_FILE" << 'STATEEOF'
@@ -335,8 +426,22 @@ if [ -n "$old_carry_over" ]; then
   carry_over_msg=$'\n\n'"Carry-over from prior session:"$'\n'"${old_carry_over}"
 fi
 
+# --- Step 6b: Synthesis directive (judgment tasks for Claude) ---
+synthesis_directive=""
+if [ -f "$COLLAB_FILE" ]; then
+  synthesis_directive="## REQUIRED: Synthesis Tasks (complete before responding to user)
+${synthesis_actions:+
+Hook automated:
+${synthesis_actions}}
+Claude MUST complete these (requires judgment):
+- [ ] Applied tracking: Which collaboration patterns from collaboration.md are relevant to today's task? Write to today's journal.
+- [ ] Duplicate detection: Any semantically similar entries in collaboration.md? Flag to user.
+
+Do NOT skip these. Do NOT defer. Complete before addressing user's message."
+fi
+
 # --- Output ---
-full_context="${statusline_output:+${statusline_output}$'\n\n'}${repair_report:+${repair_report}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${sensory_output:+$'\n\n'Sensory scan:$'\n'${sensory_output}}${carry_over_msg}"
+full_context="${statusline_output:+${statusline_output}$'\n\n'}${repair_report:+${repair_report}$'\n\n'}${synthesis_directive:+${synthesis_directive}$'\n\n'}${skill_content}${missed_close}${health_warning}${proposal_summary}${social_warnings:+$'\n\n'${social_warnings}}${sensory_output:+$'\n\n'Sensory scan:$'\n'${sensory_output}}${carry_over_msg}"
 escaped=$(escape_for_json "$full_context")
 context="<cortex-session-start>${escaped}</cortex-session-start>"
 
